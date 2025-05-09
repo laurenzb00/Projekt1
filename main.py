@@ -5,6 +5,12 @@ from datetime import datetime, timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Setze den Arbeitsbereich explizit
+WORKING_DIRECTORY = "/laurenz/Projekt1 " \
+"1"
+os.chdir(WORKING_DIRECTORY)  # Ändere das aktuelle Arbeitsverzeichnis
+print(f"Aktuelles Arbeitsverzeichnis: {os.getcwd()}")  # Debug-Ausgabe
+
 # Pfade zu den beiden Skripten
 BMKDATEN_SCRIPT = "BMKDATEN.py"
 WECHSELRICHTER_SCRIPT = "Wechselrichter.py"
@@ -12,7 +18,7 @@ WECHSELRICHTER_SCRIPT = "Wechselrichter.py"
 # Funktion zum Starten eines Skripts
 def start_script(script_path):
     print(f"Starte Skript: {script_path}")
-    return subprocess.Popen(["python", script_path])
+    return subprocess.Popen(["python3", script_path])
 
 # Funktion zum Filtern der Daten der letzten 48 Stunden (zwei Kalendertage)
 def filter_data_last_48_hours(csv_file):
