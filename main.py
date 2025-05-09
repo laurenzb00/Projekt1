@@ -145,6 +145,84 @@ def update_bmk_graphics():
     except KeyError as e:
         print(f"Fehler: Die Spalte {e} existiert nicht in der CSV-Datei.")
 
+# Funktion zum Erstellen der aktualisierten Zusammenfassungs-Grafiken
+def update_summary_graphics():
+    print("Aktualisiere Zusammenfassungs-Grafiken...")
+    try:
+        # CSV-Dateien lesen
+        fronius_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv"))
+        heizung_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv"))
+        
+        # Debug-Ausgabe der Spaltennamen
+        print(f"Spalten in FroniusDaten.csv: {list(fronius_daten.columns)}")
+        print(f"Spalten in Heizungstemperaturen.csv: {list(heizung_daten.columns)}")
+
+        # Spaltennamen bereinigen
+        fronius_daten.columns = fronius_daten.columns.str.strip()
+        heizung_daten.columns = heizung_daten.columns.str.strip()
+
+        # Überprüfen, ob die benötigten Spalten existieren
+        fronius_required_columns = ["Netz-Leistung (kW)", "Batterieladestand (%)", "Hausverbrauch (kW)"]
+        heizung_required_columns = [
+            "Pufferspeicher Oben",
+            "Pufferspeicher Mitte",
+            "Pufferspeicher Unten",
+            "Kesseltemperatur",
+            "Außentemperatur"
+        ]
+
+        for col in fronius_required_columns:
+            if col not in fronius_daten.columns:
+                print(f"Fehler: Die Spalte '{col}' existiert nicht in FroniusDaten.csv.")
+                print(f"Vorhandene Spalten: {list(fronius_daten.columns)}")
+                return
+
+        for col in heizung_required_columns:
+            if col not in heizung_daten.columns:
+                print(f"Fehler: Die Spalte '{col}' existiert nicht in Heizungstemperaturen.csv.")
+                print(f"Vorhandene Spalten: {list(heizung_daten.columns)}")
+                return
+
+        # Berechne die aktuellen Werte aus FroniusDaten.csv
+        aktuelle_netz_leistung = fronius_daten["Netz-Leistung (kW)"].iloc[-1]
+        aktuelle_batterieladestand = fronius_daten["Batterieladestand (%)"].iloc[-1]
+        aktuelle_hausverbrauch = fronius_daten["Hausverbrauch (kW)"].iloc[-1]
+
+        # Berechne die aktuellen Werte aus Heizungstemperaturen.csv
+        aktuelle_puffer_oben = heizung_daten["Pufferspeicher Oben"].iloc[-1]
+        aktuelle_puffer_mitte = heizung_daten["Pufferspeicher Mitte"].iloc[-1]
+        aktuelle_puffer_unten = heizung_daten["Pufferspeicher Unten"].iloc[-1]
+        aktuelle_kesseltemperatur = heizung_daten["Kesseltemperatur"].iloc[-1]
+        aktuelle_aussentemperatur = heizung_daten["Außentemperatur"].iloc[-1]
+
+        # Erstelle die Grafik
+        plt.figure(figsize=(10, 6))
+        plt.axis("off")  # Keine Achsen anzeigen
+
+        # Textinhalt für die Zusammenfassung
+        text = (
+            f"Puffertemperatur Oben: {aktuelle_puffer_oben:.1f} °C\n"
+            f"Puffertemperatur Mitte: {aktuelle_puffer_mitte:.1f} °C\n"
+            f"Puffertemperatur Unten: {aktuelle_puffer_unten:.1f} °C\n"
+            f"Kesseltemperatur: {aktuelle_kesseltemperatur:.1f} °C\n"
+            f"Außentemperatur: {aktuelle_aussentemperatur:.1f} °C\n"
+            f"Batterieladestand: {aktuelle_batterieladestand:.1f} %\n"
+            f"Hausverbrauch: {aktuelle_hausverbrauch:.1f} kW\n"
+            f"Netz-Leistung: {aktuelle_netz_leistung:.1f} kW"
+        )
+
+        # Text in die Grafik einfügen
+        plt.text(0.5, 0.5, text, fontsize=18, ha="center", va="center", wrap=True)
+
+        # Grafik speichern
+        grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
+        plt.savefig(grafik_pfad, dpi=300, bbox_inches="tight")
+        print(f"Zusammenfassungsgrafik '{grafik_pfad}' gespeichert.")
+        plt.close()
+
+    except Exception as e:
+        print(f"Fehler beim Erstellen der Zusammenfassungs-Grafik: {e}")
+
 # Hauptprogramm
 def main():
     # Starte die drei Skripte
@@ -169,6 +247,7 @@ def main():
             # Aktualisiere die Grafiken
             update_fronius_graphics()
             update_bmk_graphics()
+            update_summary_graphics()  # Zusammenfassung aktualisieren
 
             # Warte 10 Sekunden, bevor die nächste Aktualisierung erfolgt
             time.sleep(10)
