@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime  # Für Zeitstempel
+import sys
 
 def abrufen_und_speichern():
     print("Funktion abrufen_und_speichern wird ausgeführt...")
@@ -110,6 +111,8 @@ schedule.every(60).seconds.do(abrufen_und_speichern)  # Daten alle 5 Sekunden ab
 schedule.every(10).minutes.do(daten_visualisieren)  # Grafik alle 10 Sekunden aktualisieren
 
 print("Programm läuft erfolgreich.")
+print(f"Python-Version: {sys.version}")
+print(f"Python-Pfad: {sys.executable}")
 
 while True:
     print("Scheduler läuft...")  # Debug-Ausgabe

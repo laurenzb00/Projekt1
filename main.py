@@ -4,21 +4,27 @@ import os
 from datetime import datetime, timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
+import sys
 
-# Setze den Arbeitsbereich explizit
-WORKING_DIRECTORY = "/laurenz/Projekt1 " \
-"1"
+# Setze den Arbeitsbereich auf das Verzeichnis, in dem das Skript liegt
+WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 os.chdir(WORKING_DIRECTORY)  # Ändere das aktuelle Arbeitsverzeichnis
 print(f"Aktuelles Arbeitsverzeichnis: {os.getcwd()}")  # Debug-Ausgabe
 
 # Pfade zu den beiden Skripten
-BMKDATEN_SCRIPT = "BMKDATEN.py"
-WECHSELRICHTER_SCRIPT = "Wechselrichter.py"
+BMKDATEN_SCRIPT = os.path.join(WORKING_DIRECTORY, "BMKDATEN.py")
+WECHSELRICHTER_SCRIPT = os.path.join(WORKING_DIRECTORY, "Wechselrichter.py")
 
 # Funktion zum Starten eines Skripts
 def start_script(script_path):
     print(f"Starte Skript: {script_path}")
-    return subprocess.Popen(["python3", script_path])
+    try:
+        process = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"Prozess gestartet: {process.pid}")
+        return process
+    except Exception as e:
+        print(f"Fehler beim Starten des Skripts {script_path}: {e}")
+        return None
 
 # Funktion zum Filtern der Daten der letzten 48 Stunden (zwei Kalendertage)
 def filter_data_last_48_hours(csv_file):
@@ -41,7 +47,7 @@ def filter_data_last_48_hours(csv_file):
 def update_fronius_graphics():
     print("Aktualisiere Fronius-Grafiken...")
     # Filtere die Daten der letzten 48 Stunden
-    daten = filter_data_last_48_hours("FroniusDaten.csv")
+    daten = filter_data_last_48_hours(os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv"))
     if daten is None or daten.empty:
         print("Keine Fronius-Daten für die letzten 48 Stunden verfügbar.")
         return
@@ -88,15 +94,16 @@ def update_fronius_graphics():
     plt.tight_layout()
 
     # Grafik speichern
-    plt.savefig("FroniusDaten.png", dpi=300)  # Höhere Auflösung für bessere Qualität
-    print("Aktualisierte Grafik 'FroniusDaten.png' gespeichert.")
+    grafik_pfad = os.path.join(WORKING_DIRECTORY, "FroniusDaten.png")
+    plt.savefig(grafik_pfad, dpi=300)  # Höhere Auflösung für bessere Qualität
+    print(f"Aktualisierte Grafik '{grafik_pfad}' gespeichert.")
     plt.close()
 
 # Funktion zum Erstellen der aktualisierten Grafiken für Heizungstemperaturen
 def update_bmk_graphics():
     print("Aktualisiere Heizungstemperaturen-Grafiken...")
     # Filtere die Daten der letzten 48 Stunden
-    daten = filter_data_last_48_hours("Heizungstemperaturen.csv")
+    daten = filter_data_last_48_hours(os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv"))
     if daten is None or daten.empty:
         print("Keine Heizungstemperaturen-Daten für die letzten 48 Stunden verfügbar.")
         return
@@ -129,74 +136,15 @@ def update_bmk_graphics():
         plt.tight_layout()
 
         # Grafik speichern
-        plt.savefig("Heizungstemperaturen.png", dpi=300)
-        print("Aktualisierte Grafik 'Heizungstemperaturen.png' gespeichert.")
+        grafik_pfad = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png")
+        plt.savefig(grafik_pfad, dpi=300)
+        print(f"Aktualisierte Grafik '{grafik_pfad}' gespeichert.")
         plt.close()
 
     except KeyError as e:
         print(f"Fehler: Die Spalte {e} existiert nicht in der CSV-Datei.")
 
-# Funktion zum Erstellen einer Zusammenfassungsgrafik mit aktuellen Werten
-def create_summary_graphic():
-    print("Erstelle Zusammenfassungsgrafik...")
-
-    # Lade die aktuellen Daten
-    try:
-        # Debug-Ausgabe des aktuellen Arbeitsverzeichnisses
-        print(f"Aktuelles Arbeitsverzeichnis: {os.getcwd()}")
-
-        # Heizungstemperaturen
-        heizung_daten = pd.read_csv("Heizungstemperaturen.csv", parse_dates=["Zeitstempel"])
-        aktuelle_temperatur = heizung_daten["Kesseltemperatur"].iloc[-1]  # Letzter Wert
-        aktuelle_puffer_oben = heizung_daten["Pufferspeicher Oben"].iloc[-1]  # Letzter Wert
-
-        # Batterieladestand aus FroniusDaten.csv
-        fronius_daten = pd.read_csv("FroniusDaten.csv", parse_dates=["Zeitstempel"])
-
-        # Filtere die Daten ab Mitternacht des aktuellen Tages
-        jetzt = pd.Timestamp.now()
-        mitternacht = jetzt.replace(hour=0, minute=0, second=0, microsecond=0)
-        tagesdaten = fronius_daten[fronius_daten["Zeitstempel"] >= mitternacht]
-
-        # Berechne die Tagesproduktion
-        tagesproduktion = 0  # Initialisiere die Tagesproduktion
-        if len(tagesdaten) > 1:  # Stelle sicher, dass genügend Daten vorhanden sind
-            # Berechne die Zeitdifferenzen in Stunden
-            tagesdaten["Zeitdifferenz"] = tagesdaten["Zeitstempel"].diff().dt.total_seconds() / 3600.0
-            # Multipliziere die PV-Leistung (kW) mit der Zeitdifferenz (h) und summiere die Ergebnisse
-            tagesproduktion = (tagesdaten["PV-Leistung (kW)"][:-1] * tagesdaten["Zeitdifferenz"][1:]).sum()
-
-        # Aktueller Batterieladestand
-        aktueller_batteriestand = fronius_daten["Batterieladestand (%)"].iloc[-1]  # Letzter Wert
-
-        # Erstelle die Grafik
-        plt.figure(figsize=(10, 8))
-        plt.axis("off")  # Keine Achsen anzeigen
-
-        # Werte als Text darstellen
-        plt.text(0.5, 0.85, f"Aktuelle Kesseltemperatur: {aktuelle_temperatur:.1f} °C", 
-                 fontsize=16, ha="center", color="red")
-        plt.text(0.5, 0.7, f"Aktuelle Puffertemperatur oben: {aktuelle_puffer_oben:.1f} °C", 
-                 fontsize=16, ha="center", color="orange")
-        plt.text(0.5, 0.55, f"Aktueller Batterieladestand: {aktueller_batteriestand:.1f} %", 
-                 fontsize=16, ha="center", color="blue")
-        plt.text(0.5, 0.4, f"Tagesproduktion PV-Anlage: {tagesproduktion:.2f} kWh", 
-                 fontsize=16, ha="center", color="green")
-
-        # Titel
-        plt.title("Zusammenfassung der aktuellen Werte", fontsize=18, fontweight="bold")
-
-        # Grafik speichern
-        plt.tight_layout()
-        plt.savefig("Zusammenfassung.png", dpi=300)
-        print("Zusammenfassungsgrafik 'Zusammenfassung.png' gespeichert.")
-        plt.close()
-
-    except FileNotFoundError as e:
-        print(f"Fehler: Die Datei wurde nicht gefunden: {e.filename}")
-    except Exception as e:
-        print(f"Fehler beim Erstellen der Zusammenfassungsgrafik: {e}")
-
+# Hauptprogramm
 def main():
     # Starte die beiden Skripte
     bmkdaten_process = start_script(BMKDATEN_SCRIPT)
@@ -219,7 +167,6 @@ def main():
             # Aktualisiere die Grafiken
             update_fronius_graphics()
             update_bmk_graphics()
-            create_summary_graphic()  # Füge die Erstellung der Zusammenfassungsgrafik hinzu
 
             # Warte 10 Sekunden, bevor die nächste Aktualisierung erfolgt
             time.sleep(10)
