@@ -11,9 +11,10 @@ WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 os.chdir(WORKING_DIRECTORY)  # Ändere das aktuelle Arbeitsverzeichnis
 print(f"Aktuelles Arbeitsverzeichnis: {os.getcwd()}")  # Debug-Ausgabe
 
-# Pfade zu den beiden Skripten
+# Pfade zu den Skripten
 BMKDATEN_SCRIPT = os.path.join(WORKING_DIRECTORY, "BMKDATEN.py")
 WECHSELRICHTER_SCRIPT = os.path.join(WORKING_DIRECTORY, "Wechselrichter.py")
+VISUALISIERUNG_SCRIPT = os.path.join(WORKING_DIRECTORY, "visualisierung.py")  # Neuer Pfad
 
 # Funktion zum Starten eines Skripts
 def start_script(script_path):
@@ -146,9 +147,10 @@ def update_bmk_graphics():
 
 # Hauptprogramm
 def main():
-    # Starte die beiden Skripte
+    # Starte die drei Skripte
     bmkdaten_process = start_script(BMKDATEN_SCRIPT)
     wechselrichter_process = start_script(WECHSELRICHTER_SCRIPT)
+    visualisierung_process = start_script(VISUALISIERUNG_SCRIPT)  # Visualisierung starten
 
     # Speichere die Startzeit des Programms
     start_time = datetime.now()
@@ -175,12 +177,15 @@ def main():
         print("Programm wird beendet...")
 
         # Beende die gestarteten Prozesse
-        bmkdaten_process.terminate()
-        wechselrichter_process.terminate()
-
-        # Warte, bis die Prozesse beendet sind
-        bmkdaten_process.wait()
-        wechselrichter_process.wait()
+        if bmkdaten_process:
+            bmkdaten_process.terminate()
+            bmkdaten_process.wait()
+        if wechselrichter_process:
+            wechselrichter_process.terminate()
+            wechselrichter_process.wait()
+        if visualisierung_process:
+            visualisierung_process.terminate()
+            visualisierung_process.wait()
 
 if __name__ == "__main__":
     main()
