@@ -2,6 +2,9 @@ import os
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget, QPushButton, QHBoxLayout
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QTimer, Qt
+import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import pandas as pd
 
 class GraphicViewer(QMainWindow):
     def __init__(self, graphics, update_interval=5000):
@@ -70,6 +73,68 @@ class GraphicViewer(QMainWindow):
         self.current_index = (self.current_index - 1) % len(self.graphics)
         self.update_image()
 
+def update_summary_graphics():
+    print("Aktualisiere Zusammenfassungs-Grafiken...")
+    try:
+        WORKING_DIRECTORY = os.getcwd()  # Setze das Arbeitsverzeichnis auf das aktuelle Verzeichnis
+        # CSV-Dateien lesen
+        fronius_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv"))
+        heizung_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv"))
+        
+        # Spaltennamen bereinigen
+        fronius_daten.columns = fronius_daten.columns.str.strip()
+        heizung_daten.columns = heizung_daten.columns.str.strip()
+
+        # Berechne die aktuellen Werte
+        aktuelle_netz_leistung = fronius_daten["Netz-Leistung (kW)"].iloc[-1]
+        aktuelle_batterieladestand = fronius_daten["Batterieladestand (%)"].iloc[-1]
+        aktuelle_hausverbrauch = fronius_daten["Hausverbrauch (kW)"].iloc[-1]
+        aktuelle_puffer_oben = heizung_daten["Pufferspeicher Oben"].iloc[-1]
+        aktuelle_puffer_mitte = heizung_daten["Pufferspeicher Mitte"].iloc[-1]
+        aktuelle_puffer_unten = heizung_daten["Pufferspeicher Unten"].iloc[-1]
+        aktuelle_kesseltemperatur = heizung_daten["Kesseltemperatur"].iloc[-1]
+        aktuelle_aussentemperatur = heizung_daten["Außentemperatur"].iloc[-1]
+
+        # Erstelle die Grafik
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.axis("off")  # Keine Achsen anzeigen
+
+        # Text und Piktogramme
+        daten = [
+            ("Puffertemperatur Oben", f"{aktuelle_puffer_oben:.1f} °C", "temperature.png"),
+            ("Puffertemperatur Mitte", f"{aktuelle_puffer_mitte:.1f} °C", "temperature.png"),
+            ("Puffertemperatur Unten", f"{aktuelle_puffer_unten:.1f} °C", "temperature.png"),
+            ("Kesseltemperatur", f"{aktuelle_kesseltemperatur:.1f} °C", "boiler.png"),
+            ("Außentemperatur", f"{aktuelle_aussentemperatur:.1f} °C", "outdoor.png"),
+            ("Batterieladestand", f"{aktuelle_batterieladestand:.1f} %", "battery.png"),
+            ("Hausverbrauch", f"{aktuelle_hausverbrauch:.1f} kW", "house.png"),
+            ("Netz-Leistung", f"{aktuelle_netz_leistung:.1f} kW", "power.png"),
+        ]
+
+        # Zeichne die Daten mit Piktogrammen
+        y_pos = 0.9
+        for label, value, icon_name in daten:
+            icon_path = os.path.join(WORKING_DIRECTORY, "icons", icon_name)
+            if os.path.exists(icon_path):
+                print(f"Piktogramm gefunden: {icon_path}")  # Debug-Ausgabe
+                image = plt.imread(icon_path)
+                imagebox = OffsetImage(image, zoom=0.1)
+                ab = AnnotationBbox(imagebox, (0.2, y_pos), frameon=False)
+                ax.add_artist(ab)
+            else:
+                print(f"Piktogramm fehlt: {icon_path}")  # Debug-Ausgabe
+            ax.text(0.3, y_pos, label, fontsize=14, ha="left", va="center", color="black")
+            ax.text(0.7, y_pos, value, fontsize=14, ha="right", va="center", color="blue")
+            y_pos -= 0.1  # Abstand zwischen den Zeilen
+
+        # Grafik speichern
+        grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
+        plt.savefig(grafik_pfad, dpi=300, bbox_inches="tight")
+        print(f"Zusammenfassungsgrafik '{grafik_pfad}' gespeichert.")
+        plt.close()
+
+    except Exception as e:
+        print(f"Fehler beim Erstellen der Zusammenfassungs-Grafik: {e}")
 
 def main():
     app = QApplication([])

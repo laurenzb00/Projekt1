@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
 import sys
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 # Setze den Arbeitsbereich auf das Verzeichnis, in dem das Skript liegt
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -149,46 +150,19 @@ def update_bmk_graphics():
 def update_summary_graphics():
     print("Aktualisiere Zusammenfassungs-Grafiken...")
     try:
+        WORKING_DIRECTORY = os.getcwd()  # Setze das Arbeitsverzeichnis auf das aktuelle Verzeichnis
         # CSV-Dateien lesen
         fronius_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv"))
         heizung_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv"))
         
-        # Debug-Ausgabe der Spaltennamen
-        print(f"Spalten in FroniusDaten.csv: {list(fronius_daten.columns)}")
-        print(f"Spalten in Heizungstemperaturen.csv: {list(heizung_daten.columns)}")
-
         # Spaltennamen bereinigen
         fronius_daten.columns = fronius_daten.columns.str.strip()
         heizung_daten.columns = heizung_daten.columns.str.strip()
 
-        # Überprüfen, ob die benötigten Spalten existieren
-        fronius_required_columns = ["Netz-Leistung (kW)", "Batterieladestand (%)", "Hausverbrauch (kW)"]
-        heizung_required_columns = [
-            "Pufferspeicher Oben",
-            "Pufferspeicher Mitte",
-            "Pufferspeicher Unten",
-            "Kesseltemperatur",
-            "Außentemperatur"
-        ]
-
-        for col in fronius_required_columns:
-            if col not in fronius_daten.columns:
-                print(f"Fehler: Die Spalte '{col}' existiert nicht in FroniusDaten.csv.")
-                print(f"Vorhandene Spalten: {list(fronius_daten.columns)}")
-                return
-
-        for col in heizung_required_columns:
-            if col not in heizung_daten.columns:
-                print(f"Fehler: Die Spalte '{col}' existiert nicht in Heizungstemperaturen.csv.")
-                print(f"Vorhandene Spalten: {list(heizung_daten.columns)}")
-                return
-
-        # Berechne die aktuellen Werte aus FroniusDaten.csv
+        # Berechne die aktuellen Werte
         aktuelle_netz_leistung = fronius_daten["Netz-Leistung (kW)"].iloc[-1]
         aktuelle_batterieladestand = fronius_daten["Batterieladestand (%)"].iloc[-1]
         aktuelle_hausverbrauch = fronius_daten["Hausverbrauch (kW)"].iloc[-1]
-
-        # Berechne die aktuellen Werte aus Heizungstemperaturen.csv
         aktuelle_puffer_oben = heizung_daten["Pufferspeicher Oben"].iloc[-1]
         aktuelle_puffer_mitte = heizung_daten["Pufferspeicher Mitte"].iloc[-1]
         aktuelle_puffer_unten = heizung_daten["Pufferspeicher Unten"].iloc[-1]
@@ -196,23 +170,39 @@ def update_summary_graphics():
         aktuelle_aussentemperatur = heizung_daten["Außentemperatur"].iloc[-1]
 
         # Erstelle die Grafik
-        plt.figure(figsize=(10, 6))
-        plt.axis("off")  # Keine Achsen anzeigen
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.axis("off")  # Keine Achsen anzeigen
 
-        # Textinhalt für die Zusammenfassung
-        text = (
-            f"Puffertemperatur Oben: {aktuelle_puffer_oben:.1f} °C\n"
-            f"Puffertemperatur Mitte: {aktuelle_puffer_mitte:.1f} °C\n"
-            f"Puffertemperatur Unten: {aktuelle_puffer_unten:.1f} °C\n"
-            f"Kesseltemperatur: {aktuelle_kesseltemperatur:.1f} °C\n"
-            f"Außentemperatur: {aktuelle_aussentemperatur:.1f} °C\n"
-            f"Batterieladestand: {aktuelle_batterieladestand:.1f} %\n"
-            f"Hausverbrauch: {aktuelle_hausverbrauch:.1f} kW\n"
-            f"Netz-Leistung: {aktuelle_netz_leistung:.1f} kW"
-        )
+        # Text und Piktogramme
+        daten = [
+            ("Puffertemperatur Oben", f"{aktuelle_puffer_oben:.1f} °C", "temperature.png"),
+            ("Puffertemperatur Mitte", f"{aktuelle_puffer_mitte:.1f} °C", "temperature.png"),
+            ("Puffertemperatur Unten", f"{aktuelle_puffer_unten:.1f} °C", "temperature.png"),
+            ("Kesseltemperatur", f"{aktuelle_kesseltemperatur:.1f} °C", "boiler.png"),
+            ("Außentemperatur", f"{aktuelle_aussentemperatur:.1f} °C", "outdoor.png"),
+            ("Batterieladestand", f"{aktuelle_batterieladestand:.1f} %", "battery.png"),
+            ("Hausverbrauch", f"{aktuelle_hausverbrauch:.1f} kW", "house.png"),
+            ("Netz-Leistung", f"{aktuelle_netz_leistung:.1f} kW", "power.png"),
+        ]
 
-        # Text in die Grafik einfügen
-        plt.text(0.5, 0.5, text, fontsize=18, ha="center", va="center", wrap=True)
+        # Einheitliche Icon-Größe
+        icon_zoom = 0.1  # Skalierungsfaktor für alle Icons
+
+        # Zeichne die Daten mit Piktogrammen
+        y_pos = 0.9
+        for label, value, icon_name in daten:
+            icon_path = os.path.join(WORKING_DIRECTORY, "icons", icon_name)
+            if os.path.exists(icon_path):
+                print(f"Piktogramm gefunden: {icon_path}")  # Debug-Ausgabe
+                image = plt.imread(icon_path)
+                imagebox = OffsetImage(image, zoom=icon_zoom)  # Einheitliche Größe
+                ab = AnnotationBbox(imagebox, (0.2, y_pos), frameon=False)
+                ax.add_artist(ab)
+            else:
+                print(f"Piktogramm fehlt: {icon_path}")  # Debug-Ausgabe
+            ax.text(0.3, y_pos, label, fontsize=14, ha="left", va="center", color="black")
+            ax.text(0.7, y_pos, value, fontsize=14, ha="right", va="center", color="blue")
+            y_pos -= 0.1  # Abstand zwischen den Zeilen
 
         # Grafik speichern
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
@@ -249,8 +239,8 @@ def main():
             update_bmk_graphics()
             update_summary_graphics()  # Zusammenfassung aktualisieren
 
-            # Warte 10 Sekunden, bevor die nächste Aktualisierung erfolgt
-            time.sleep(10)
+            # Warte 60 Sekunden, bevor die nächste Aktualisierung erfolgt
+            time.sleep(60)
 
     except KeyboardInterrupt:
         print("Programm wird beendet...")
