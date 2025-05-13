@@ -72,7 +72,7 @@ def update_fronius_graphics():
     plt.gca().set_facecolor("white")
     plt.tight_layout()
     grafik_pfad = os.path.join(WORKING_DIRECTORY, "FroniusDaten.png")
-    plt.savefig(grafik_pfad, dpi=300)
+    plt.savefig(grafik_pfad, dpi=600)
     plt.close()
 
 # Funktion zum Erstellen der aktualisierten Grafiken für Heizungstemperaturen
@@ -95,7 +95,7 @@ def update_bmk_graphics():
         plt.gca().set_facecolor("white")
         plt.tight_layout()
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png")
-        plt.savefig(grafik_pfad, dpi=300)
+        plt.savefig(grafik_pfad, dpi=600)
         plt.close()
     except KeyError:
         pass
@@ -142,7 +142,7 @@ def update_summary_graphics():
             ax.text(0.7, y_pos, value, fontsize=14, ha="right", va="center", color="blue")
             y_pos -= 0.1
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
-        plt.savefig(grafik_pfad, dpi=300, bbox_inches="tight")
+        plt.savefig(grafik_pfad, dpi=600, bbox_inches="tight")
         plt.close()
     except Exception:
         pass
@@ -154,16 +154,30 @@ def main():
     visualisierung_process = start_script(VISUALISIERUNG_SCRIPT)
 
     start_time = datetime.now()
+    last_fronius_update = start_time
+    last_bmk_update = start_time
+    last_summary_update = start_time
+
     try:
         while True:
             current_time = datetime.now()
-            elapsed_time = current_time - start_time
-            if elapsed_time.total_seconds() > 10 and int(elapsed_time.total_seconds()) % 120 == 0:
-                pass
-            update_fronius_graphics()
-            update_bmk_graphics()
-            update_summary_graphics()
-            time.sleep(60)
+
+            # Aktualisiere Fronius- und BMK-Grafiken alle 5 Minuten
+            if (current_time - last_fronius_update).total_seconds() >= 300:
+                update_fronius_graphics()
+                last_fronius_update = current_time
+
+            if (current_time - last_bmk_update).total_seconds() >= 300:
+                update_bmk_graphics()
+                last_bmk_update = current_time
+
+            # Aktualisiere die Zusammenfassungsgrafik alle 30 Sekunden
+            if (current_time - last_summary_update).total_seconds() >= 30:
+                update_summary_graphics()
+                last_summary_update = current_time
+
+            # Kurze Pause, um die CPU-Auslastung zu reduzieren
+            time.sleep(1)
     except KeyboardInterrupt:
         if bmkdaten_process:
             bmkdaten_process.terminate()
