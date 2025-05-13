@@ -130,9 +130,12 @@ def update_summary_graphics():
         # Hintergrundbild hinzufügen
         if os.path.exists(background_image_path):
             try:
-                img = plt.imread(background_image_path)
-                print("Hintergrundbild erfolgreich geladen.")
+                # Hintergrundbild nur einmal laden
+                if not hasattr(update_summary_graphics, "background_image"):
+                    update_summary_graphics.background_image = plt.imread(background_image_path)
+                img = update_summary_graphics.background_image
                 ax.imshow(img, extent=[0, 1, 0, 1], aspect='auto')  # Bild als Hintergrund setzen
+                print("Hintergrundbild erfolgreich geladen.")
             except Exception as e:
                 print(f"Fehler beim Laden des Hintergrundbilds: {e}")
         else:
@@ -162,7 +165,7 @@ def update_summary_graphics():
             ax.text(0.85, y_pos, value, fontsize=14, fontweight="bold", ha="right", va="center", color="white")  # Fett u
             y_pos -= 0.1
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
-        plt.savefig(grafik_pfad, dpi=600, bbox_inches="tight")
+        plt.savefig(grafik_pfad, dpi=150, bbox_inches="tight")
         plt.close()
         print("Zusammenfassungsgrafik aktualisiert.")
     except Exception as e:
