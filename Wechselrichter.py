@@ -1,11 +1,8 @@
 import requests
 import csv
-import time
-import schedule
-import os
-import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime
+import time
+import os
 
 def abrufen_und_speichern():
     try:
@@ -18,10 +15,10 @@ def abrufen_und_speichern():
 
             # Relevante Werte extrahieren
             zeitstempel = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            pv_leistung = abs(data["Body"]["Data"]["Site"]["P_PV"] / 1000)  # Umrechnung in kW, absoluter Wert
-            netz_leistung = abs(data["Body"]["Data"]["Site"]["P_Grid"] / 1000)  # Umrechnung in kW, absoluter Wert
-            batterie_leistung = abs(data["Body"]["Data"]["Site"]["P_Akku"] / 1000)  # Umrechnung in kW, absoluter Wert
-            hausverbrauch = abs(data["Body"]["Data"]["Site"]["P_Load"] / 1000)  # Umrechnung in kW, absoluter Wert
+            pv_leistung = abs(data["Body"]["Data"]["Site"]["P_PV"] / 1000)  # Umrechnung in kW
+            netz_leistung = abs(data["Body"]["Data"]["Site"]["P_Grid"] / 1000)  # Umrechnung in kW
+            batterie_leistung = abs(data["Body"]["Data"]["Site"]["P_Akku"] / 1000)  # Umrechnung in kW
+            hausverbrauch = abs(data["Body"]["Data"]["Site"]["P_Load"] / 1000)  # Umrechnung in kW
             batterieladestand = data["Body"]["Data"]["Inverters"]["1"]["SOC"]  # Batterieladestand in %
 
             daten = {
@@ -43,78 +40,11 @@ def abrufen_und_speichern():
                 if not datei_existiert or os.stat(csv_datei).st_size == 0:
                     writer.writerow(daten.keys())  # Schreibe die Spaltenüberschriften
                 writer.writerow(daten.values())  # Schreibe die Werte
-    except Exception:
-        pass
-
-def daten_visualisieren():
-    csv_datei = "FroniusDaten.csv"
-    try:
-        daten = pd.read_csv(csv_datei, parse_dates=["Zeitstempel"], dtype={
-            "PV-Leistung (kW)": float,
-            "Netz-Leistung (kW)": float,
-            "Batterie-Leistung (kW)": float,
-            "Hausverbrauch (kW)": float,
-            "Batterieladestand (%)": float
-        })
-
-        if daten.empty:
-            return
-
-        # Berechne die kumulierte Produktion und den Verbrauch
-        daten["Kumulative Produktion (kWh)"] = daten["PV-Leistung (kW)"].cumsum() / 60  # Annahme: 1 Minute Intervalle
-        daten["Kumulativer Verbrauch (kWh)"] = daten["Hausverbrauch (kW)"].cumsum() / 60  # Annahme: 1 Minute Intervalle
-
-        # Zeitlicher Verlauf aller Werte darstellen (ohne Batterieladestand)
-        plt.figure(figsize=(12, 8))
-        plt.plot(daten["Zeitstempel"], abs(daten["PV-Leistung (kW)"]), label="PV-Leistung (kW)", marker="o")
-        plt.plot(daten["Zeitstempel"], abs(daten["Netz-Leistung (kW)"]), label="Netz-Leistung (kW)", marker="x")
-        plt.plot(daten["Zeitstempel"], abs(daten["Batterie-Leistung (kW)"]), label="Batterie-Leistung (kW)", marker="s")
-        plt.plot(daten["Zeitstempel"], abs(daten["Hausverbrauch (kW)"]), label="Hausverbrauch (kW)", marker="^")
-        plt.title("Fronius GEN24 Leistungsdaten (positiver Bereich)")
-        plt.xlabel("Zeit")
-        plt.ylabel("Leistung (kW)")
-        plt.legend()
-        plt.grid()
-        plt.xticks(rotation=45)
-        plt.savefig("FroniusDaten.png")
-        plt.close()
-
-        # Kumulative Produktion und Verbrauch darstellen
-        plt.figure(figsize=(12, 8))
-        plt.plot(daten["Zeitstempel"], daten["Kumulative Produktion (kWh)"], label="Kumulative Produktion (kWh)", marker="o")
-        plt.plot(daten["Zeitstempel"], daten["Kumulativer Verbrauch (kWh)"], label="Kumulativer Verbrauch (kWh)", marker="x")
-        plt.title("Kumulative Produktion und Verbrauch")
-        plt.xlabel("Zeit")
-        plt.ylabel("Energie (kWh)")
-        plt.legend()
-        plt.grid()
-        plt.xticks(rotation=45)
-        plt.savefig("KumulativeDaten.png")
-        plt.close()
-
-        # Erstelle eine Batterie-Grafik für den Batterieladestand
-        aktueller_batterieladestand = daten["Batterieladestand (%)"].iloc[-1]  # Letzter Wert
-        plt.figure(figsize=(4, 8))
-        plt.barh([0], aktueller_batterieladestand, color="green", height=0.5)
-        plt.xlim(0, 100)
-        plt.title("Batterieladestand")
-        plt.xlabel("Ladestand (%)")
-        plt.yticks([])
-        plt.grid(axis="x")
-        plt.savefig("Batterieladestand.png")
-        plt.close()
-
-    except FileNotFoundError:
-        print(f"Die Datei '{csv_datei}' wurde nicht gefunden.")
     except Exception as e:
-        print(f"Ein Fehler ist aufgetreten: {e}")
+        print(f"Fehler beim Abrufen und Speichern der Wechselrichter-Daten: {e}")
 
-# Scheduler einrichten
-schedule.every(10).seconds.do(abrufen_und_speichern)  # Daten alle 60 Sekunden abrufen
-schedule.every(1).minutes.do(daten_visualisieren)  # Grafik alle 10 Minuten aktualisieren
-
-print("Programm läuft erfolgreich.")
-
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+# Nur ausführen, wenn die Datei direkt gestartet wird
+if __name__ == "__main__":
+    while True:
+        abrufen_und_speichern()
+        time.sleep(1)

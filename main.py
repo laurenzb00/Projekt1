@@ -1,28 +1,17 @@
 import subprocess
 import time
-import os
 from datetime import datetime, timedelta
+import BMKDATEN
+import Wechselrichter
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
-import sys
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import sys
 
 # Setze den Arbeitsbereich auf das Verzeichnis, in dem das Skript liegt
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 os.chdir(WORKING_DIRECTORY)
-
-# Pfade zu den Skripten
-BMKDATEN_SCRIPT = os.path.join(WORKING_DIRECTORY, "BMKDATEN.py")
-WECHSELRICHTER_SCRIPT = os.path.join(WORKING_DIRECTORY, "Wechselrichter.py")
-VISUALISIERUNG_SCRIPT = os.path.join(WORKING_DIRECTORY, "visualisierung.py")
-
-# Funktion zum Starten eines Skripts
-def start_script(script_path):
-    try:
-        process = subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return process
-    except Exception:
-        return None
 
 # Funktion zum Filtern der Daten der letzten 48 Stunden (zwei Kalendertage)
 def filter_data_last_48_hours(csv_file):
@@ -32,7 +21,8 @@ def filter_data_last_48_hours(csv_file):
         startzeit = (jetzt - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
         daten = daten[(daten["Zeitstempel"] >= startzeit) & (daten["Zeitstempel"] <= jetzt)]
         return daten
-    except Exception:
+    except Exception as e:
+        print(f"Fehler beim Filtern der Daten: {e}")
         return None
 
 # Funktion zum Erstellen der aktualisierten Grafiken für Fronius-Daten
@@ -79,6 +69,7 @@ def update_fronius_graphics():
 def update_bmk_graphics():
     daten = filter_data_last_48_hours(os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv"))
     if daten is None or daten.empty:
+        print("Keine Daten für Heizungstemperaturen verfügbar.")
         return
 
     try:
@@ -97,14 +88,28 @@ def update_bmk_graphics():
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png")
         plt.savefig(grafik_pfad, dpi=600)
         plt.close()
-    except KeyError:
-        pass
+        print("Heizungstemperaturen-Grafik aktualisiert.")
+    except KeyError as e:
+        print(f"Fehler beim Erstellen der Heizungstemperaturen-Grafik: {e}")
 
 # Funktion zum Erstellen der aktualisierten Zusammenfassungs-Grafiken
 def update_summary_graphics():
     try:
-        fronius_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv"))
-        heizung_daten = pd.read_csv(os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv"))
+        fronius_path = os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv")
+        heizung_path = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv")
+        background_image_path = os.path.join(WORKING_DIRECTORY, "icons", "background1.png")  # Hintergrundbild in icons-Ordner
+
+        if not os.path.exists(fronius_path) or not os.path.exists(heizung_path):
+            print("CSV-Dateien fehlen. Zusammenfassungsgrafik wird nicht aktualisiert.")
+            return
+
+        fronius_daten = pd.read_csv(fronius_path)
+        heizung_daten = pd.read_csv(heizung_path)
+
+        if fronius_daten.empty or heizung_daten.empty:
+            print("CSV-Dateien sind leer. Zusammenfassungsgrafik wird nicht aktualisiert.")
+            return
+
         fronius_daten.columns = fronius_daten.columns.str.strip()
         heizung_daten.columns = heizung_daten.columns.str.strip()
 
@@ -118,7 +123,19 @@ def update_summary_graphics():
         aktuelle_aussentemperatur = heizung_daten["Außentemperatur"].iloc[-1]
 
         fig, ax = plt.subplots(figsize=(10, 8))
-        ax.axis("off")
+
+        # Hintergrundbild hinzufügen
+        if os.path.exists(background_image_path):
+            try:
+                img = plt.imread(background_image_path)
+                print("Hintergrundbild erfolgreich geladen.")
+                ax.imshow(img, extent=[0, 1, 0, 1], aspect='auto')  # Bild als Hintergrund setzen
+            except Exception as e:
+                print(f"Fehler beim Laden des Hintergrundbilds: {e}")
+        else:
+            print(f"Hintergrundbild nicht gefunden: {background_image_path}")
+
+        ax.axis("off")  # Keine Achsen anzeigen
         daten = [
             ("Puffertemperatur Oben", f"{aktuelle_puffer_oben:.1f} °C", "temperature.png"),
             ("Puffertemperatur Mitte", f"{aktuelle_puffer_mitte:.1f} °C", "temperature.png"),
@@ -138,53 +155,63 @@ def update_summary_graphics():
                 imagebox = OffsetImage(image, zoom=icon_zoom)
                 ab = AnnotationBbox(imagebox, (0.2, y_pos), frameon=False)
                 ax.add_artist(ab)
-            ax.text(0.3, y_pos, label, fontsize=14, ha="left", va="center", color="black")
-            ax.text(0.7, y_pos, value, fontsize=14, ha="right", va="center", color="blue")
+            ax.text(0.3, y_pos, label, fontsize=14, fontweight="bold", ha="left", va="center", color="black")  # Fett und schwarz
+            ax.text(0.85, y_pos, value, fontsize=14, fontweight="bold", ha="right", va="center", color="white")  # Fett u
             y_pos -= 0.1
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
         plt.savefig(grafik_pfad, dpi=600, bbox_inches="tight")
         plt.close()
-    except Exception:
-        pass
+        print("Zusammenfassungsgrafik aktualisiert.")
+    except Exception as e:
+        print(f"Fehler beim Aktualisieren der Zusammenfassungsgrafik: {e}")
+
+# Funktion zum Starten eines Skripts als separaten Prozess
+def start_script(script_path):
+    try:
+        print(f"Starte Skript: {script_path}")
+        return subprocess.Popen([sys.executable, script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception as e:
+        print(f"Fehler beim Starten des Skripts {script_path}: {e}")
+        return None
 
 # Hauptprogramm
 def main():
-    bmkdaten_process = start_script(BMKDATEN_SCRIPT)
-    wechselrichter_process = start_script(WECHSELRICHTER_SCRIPT)
-    visualisierung_process = start_script(VISUALISIERUNG_SCRIPT)
+    # Starte die Visualisierung als separaten Prozess
+    visualisierung_process = start_script(os.path.join(WORKING_DIRECTORY, "visualisierung.py"))
 
     start_time = datetime.now()
-    last_fronius_update = start_time
     last_bmk_update = start_time
+    last_wechselrichter_update = start_time
     last_summary_update = start_time
 
     try:
         while True:
             current_time = datetime.now()
 
-            # Aktualisiere Fronius- und BMK-Grafiken alle 5 Minuten
-            if (current_time - last_fronius_update).total_seconds() >= 300:
-                update_fronius_graphics()
-                last_fronius_update = current_time
-
-            if (current_time - last_bmk_update).total_seconds() >= 300:
-                update_bmk_graphics()
+            # Aktualisiere BMK-Daten alle 1 Minute
+            if (current_time - last_bmk_update).total_seconds() >= 60:
+                print("BMK-Daten werden aktualisiert...")
+                BMKDATEN.abrufen_und_speichern()
                 last_bmk_update = current_time
+
+            # Aktualisiere Wechselrichter-Daten alle 1 Minute
+            if (current_time - last_wechselrichter_update).total_seconds() >= 60:
+                print("Wechselrichter-Daten werden aktualisiert...")
+                Wechselrichter.abrufen_und_speichern()
+                last_wechselrichter_update = current_time
 
             # Aktualisiere die Zusammenfassungsgrafik alle 30 Sekunden
             if (current_time - last_summary_update).total_seconds() >= 30:
+                print("Zusammenfassungsgrafik wird aktualisiert...")
                 update_summary_graphics()
                 last_summary_update = current_time
 
-            # Kurze Pause, um die CPU-Auslastung zu reduzieren
+            # Warte 1 Sekunde, um die CPU-Auslastung zu reduzieren
             time.sleep(1)
+
     except KeyboardInterrupt:
-        if bmkdaten_process:
-            bmkdaten_process.terminate()
-            bmkdaten_process.wait()
-        if wechselrichter_process:
-            wechselrichter_process.terminate()
-            wechselrichter_process.wait()
+        print("Programm wird beendet...")
+        # Beende den Visualisierungsprozess
         if visualisierung_process:
             visualisierung_process.terminate()
             visualisierung_process.wait()
