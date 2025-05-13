@@ -6,14 +6,11 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime  # Für Zeitstempel
-import sys
 
 def abrufen_und_speichern():
-    print("Funktion abrufen_und_speichern wird ausgeführt...")
     try:
         url = "http://192.168.1.85/daqdata.cgi"
         response = requests.get(url)
-        print(f"Statuscode: {response.status_code}")  # Debug-Ausgabe
 
         if response.status_code == 200:
             lines = response.text.split("\n")
@@ -48,20 +45,13 @@ def abrufen_und_speichern():
                 writer = csv.writer(file)
                 if not datei_existiert:
                     writer.writerow(daten.keys())  # Schreibe die Spaltenüberschriften
-                print(f"Schreibe folgende Daten in die CSV-Datei: {daten}")
                 writer.writerow(daten.values())  # Schreibe die Werte
-
-            print(f"Daten wurden in '{csv_datei}' gespeichert.")
-        else:
-            print("Fehler beim Abrufen der Daten.")
-    except Exception as e:
-        print(f"Ein Fehler ist aufgetreten: {e}")
+    except Exception:
+        pass
 
 def daten_visualisieren():
-    print("Funktion daten_visualisieren wurde aufgerufen.")
     csv_datei = "Heizungstemperaturen.csv"
     try:
-        print(f"CSV-Datei wird geladen: {csv_datei}")
         daten = pd.read_csv(csv_datei, parse_dates=["Zeitstempel"], dtype={
             "Kesseltemperatur": float,
             "Außentemperatur": float,
@@ -72,10 +62,7 @@ def daten_visualisieren():
         })
 
         if daten.empty:
-            print("Die CSV-Datei ist leer. Keine Daten zum Visualisieren.")
             return
-
-        print("Spalten in der CSV-Datei:", daten.columns)
 
         # Zeitlicher Verlauf aller Temperaturen darstellen
         plt.figure(figsize=(12, 8))
@@ -97,24 +84,18 @@ def daten_visualisieren():
         plt.xticks(rotation=45)
 
         # Grafik speichern
-        print("Speichere die Grafik als 'Heizungstemperaturen.png'")
         plt.savefig("Heizungstemperaturen.png")
-        print("Diagramm wurde als 'Heizungstemperaturen.png' gespeichert.")
+        plt.close()
 
     except FileNotFoundError:
-        print(f"Die Datei '{csv_datei}' wurde nicht gefunden.")
-    except Exception as e:
-        print(f"Ein Fehler ist aufgetreten: {e}")
+        pass
+    except Exception:
+        pass
 
 # Scheduler einrichten
-schedule.every(60).seconds.do(abrufen_und_speichern)  # Daten alle 5 Sekunden abrufen
-schedule.every(10).minutes.do(daten_visualisieren)  # Grafik alle 10 Sekunden aktualisieren
-
-print("Programm läuft erfolgreich.")
-print(f"Python-Version: {sys.version}")
-print(f"Python-Pfad: {sys.executable}")
+schedule.every(60).seconds.do(abrufen_und_speichern)  # Daten alle 60 Sekunden abrufen
+schedule.every(10).minutes.do(daten_visualisieren)  # Grafik alle 10 Minuten aktualisieren
 
 while True:
-    print("Scheduler läuft...")  # Debug-Ausgabe
     schedule.run_pending()
     time.sleep(1)
