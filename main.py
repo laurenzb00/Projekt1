@@ -210,7 +210,7 @@ def main():
                 last_summary_update = current_time
 
             # Warte 1 Sekunde, um die CPU-Auslastung zu reduzieren
-            time.sleep(1)
+            time.sleep(5)  # CPU-Auslastung reduzieren
 
     except KeyboardInterrupt:
         print("Programm wird beendet...")
