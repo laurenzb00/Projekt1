@@ -8,6 +8,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import sys
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
 
 # Setze den Arbeitsbereich auf das Verzeichnis, in dem das Skript liegt
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -216,5 +219,25 @@ def main():
             visualisierung_process.terminate()
             visualisierung_process.wait()
 
+class FullscreenWindow(QMainWindow):
+    def __init__(self, image_path):
+        super().__init__()
+        self.setWindowTitle("Zusammenfassungsgrafik")
+        self.setGeometry(0, 0, 800, 480)  # Standardgröße für Raspberry Pi
+
+        # Bild anzeigen
+        label = QLabel(self)
+        pixmap = QPixmap(image_path)
+        label.setPixmap(pixmap)
+        label.setAlignment(Qt.AlignCenter)
+        self.setCentralWidget(label)
+
+        # Vollbildmodus aktivieren
+        self.showFullScreen()
+
 if __name__ == "__main__":
     main()
+    app = QApplication(sys.argv)
+    grafik_pfad = "Zusammenfassung.png"  # Pfad zur Grafik
+    window = FullscreenWindow(grafik_pfad)
+    sys.exit(app.exec_())
