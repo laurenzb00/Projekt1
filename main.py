@@ -97,7 +97,7 @@ def update_summary_graphics():
     try:
         fronius_path = os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv")
         heizung_path = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv")
-        background_image_path = os.path.join(WORKING_DIRECTORY, "icons", "background1.png")  # Hintergrundbild in icons-Ordner
+        background_image_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")  # Hintergrundbild in icons-Ordner
 
         if not os.path.exists(fronius_path) or not os.path.exists(heizung_path):
             print("CSV-Dateien fehlen. Zusammenfassungsgrafik wird nicht aktualisiert.")
