@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.dates as mdates
+from matplotlib.dates import AutoDateLocator
+from matplotlib.ticker import MaxNLocator
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -11,8 +13,7 @@ def filter_data_last_48_hours(csv_file):
     try:
         daten = pd.read_csv(csv_file, parse_dates=["Zeitstempel"])
         jetzt = pd.Timestamp.now()
-        startzeit = (jetzt - pd.Timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0)
-        daten = daten[(daten["Zeitstempel"] >= startzeit) & (daten["Zeitstempel"] <= jetzt)]
+        daten = daten[daten["Zeitstempel"] >= (daten["Zeitstempel"].max() - pd.Timedelta(hours=48))]
         return daten
     except Exception as e:
         print(f"Fehler beim Filtern der Daten: {e}")
@@ -25,52 +26,76 @@ def update_fronius_graphics():
         print("Keine Daten für Fronius verfügbar.")
         return
 
-    produktion = daten["PV-Leistung (kW)"] * 1000
-    eigenverbrauch = daten["Hausverbrauch (kW)"] * 1000
-    verbrauch = daten["Netz-Leistung (kW)"] * 1000
+    try:
+        # Daten auf stündliche Mittelwerte aggregieren
+        daten["Zeitstempel"] = daten["Zeitstempel"].dt.floor("h")  # Runden auf volle Stunden
+        daten = daten.groupby("Zeitstempel").mean().reset_index()
 
-    plt.figure(figsize=(14, 8))
-    plt.stackplot(
-        daten["Zeitstempel"],
-        produktion,
-        eigenverbrauch,
-        labels=["Produktion", "Eigenverbrauch"],
-        colors=["yellow", "orange"],
-        alpha=0.8,
-    )
-    plt.plot(
-        daten["Zeitstempel"],
-        verbrauch,
-        label="Verbrauch",
-        color="blue",
-        linewidth=2,
-    )
-    plt.title("Fronius GEN24 Leistungsdaten (Letzte 48 Stunden)", fontsize=16, fontweight="bold")
-    plt.xlabel("Zeit", fontsize=14)
-    plt.ylabel("Leistung (W)", fontsize=14)
+        # Daten für die Grafik
+        pv_leistung = daten["PV-Leistung (kW)"] * 1000  # PV-Leistung in Watt
+        hausverbrauch = daten["Hausverbrauch (kW)"] * 1000  # Hausverbrauch in Watt
+        batterieladestand = daten["Batterieladestand (%)"]  # Batterieladestand in Prozent
 
-    # Zeitachse formatieren
-    ax = plt.gca()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m %H:%M"))  # Format: Tag.Monat Stunde:Minute
-    ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Alle 6 Stunden ein Label
-    plt.xticks(rotation=45, fontsize=12)
+        fig, ax1 = plt.subplots(figsize=(12, 6), dpi=100)
 
-    plt.yticks(fontsize=12)
-    plt.ylim(0, max(produktion.max(), eigenverbrauch.max(), verbrauch.max()) * 1.1)
-    plt.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
-    plt.legend(fontsize=12, loc="upper left", frameon=True, shadow=True)
-    plt.gca().set_facecolor("white")
+        # Erste y-Achse (Hausverbrauch und PV-Leistung)
+        ax1.plot(
+            daten["Zeitstempel"],
+            hausverbrauch,
+            label="Hausverbrauch (W)",
+            color="#3498DB",
+            linewidth=2,
+        )
+        ax1.plot(
+            daten["Zeitstempel"],
+            pv_leistung,
+            label="PV-Leistung (W)",
+            color="#F1C40F",
+            linewidth=2,
+        )
+        ax1.set_xlabel("Zeit", fontsize=12, color="#333333")
+        ax1.set_ylabel("Leistung (W)", fontsize=12, color="#333333")
+        ax1.tick_params(axis="y", labelcolor="#333333")
+        ax1.xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Alle 6 Stunden ein Label
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))  # Format: Stunde:Minute
+        plt.xticks(rotation=45, fontsize=10, color="#333333")
+        plt.yticks(fontsize=10, color="#333333")
 
-    # Zeitstempel hinzufügen
-    last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
-    plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=10, color="gray",
-             ha="right", va="bottom", transform=plt.gcf().transFigure)
+        # Zweite y-Achse (Batterieladestand)
+        ax2 = ax1.twinx()
+        ax2.plot(
+            daten["Zeitstempel"],
+            batterieladestand,
+            label="Batterieladestand (%)",
+            color="#9B59B6",
+            linewidth=2,
+            linestyle="--",
+        )
+        ax2.set_ylabel("Batterieladestand (%)", fontsize=12, color="#333333")
+        ax2.tick_params(axis="y", labelcolor="#333333")
+        plt.yticks(fontsize=10, color="#333333")
 
-    plt.tight_layout()
-    grafik_pfad = os.path.join(WORKING_DIRECTORY, "FroniusDaten.png")
-    plt.savefig(grafik_pfad, dpi=150)
-    plt.close()
-    print(f"Fronius-Grafik aktualisiert ({last_update}).")
+        # Titel und Gitterlinien
+        fig.suptitle("Fronius GEN24 Leistungsdaten (Letzte 48 Stunden)", fontsize=16, fontweight="bold", color="#333333")
+        ax1.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
+
+        # Legenden
+        ax1_lines, ax1_labels = ax1.get_legend_handles_labels()
+        ax2_lines, ax2_labels = ax2.get_legend_handles_labels()
+        ax1.legend(ax1_lines + ax2_lines, ax1_labels + ax2_labels, loc="upper left", fontsize=10, frameon=True, shadow=False, facecolor="white", edgecolor="gray")
+
+        # Zeitstempel hinzufügen (klein unten rechts)
+        last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
+        plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=8, color="gray",
+                 ha="right", va="bottom", transform=plt.gcf().transFigure)
+
+        plt.tight_layout()
+        grafik_pfad = os.path.join(WORKING_DIRECTORY, "FroniusDaten.png")
+        plt.savefig(grafik_pfad, dpi=100)
+        plt.close()
+        print(f"Fronius-Grafik aktualisiert ({last_update}).")
+    except Exception as e:
+        print(f"Fehler beim Erstellen der Fronius-Grafik: {e}")
 
 # Funktion zum Erstellen der Heizungstemperatur-Grafik
 def update_bmk_graphics():
@@ -80,23 +105,32 @@ def update_bmk_graphics():
         return
 
     try:
-        plt.figure(figsize=(12, 8))
-        plt.plot(daten["Zeitstempel"], daten["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="red", linewidth=2)
-        plt.plot(daten["Zeitstempel"], daten["Außentemperatur"], label="Außentemperatur (°C)", color="blue", linewidth=2)
-        plt.title("Heizungstemperaturen (Letzte 48 Stunden)", fontsize=16, fontweight="bold")
-        plt.xlabel("Zeit", fontsize=14)
-        plt.ylabel("Temperatur (°C)", fontsize=14)
+        # Daten auf stündliche Mittelwerte aggregieren
+        daten["Zeitstempel"] = daten["Zeitstempel"].dt.floor("h")  # Runden auf volle Stunden
+        daten = daten.groupby("Zeitstempel").mean().reset_index()
+
+        fig, ax = plt.subplots(figsize=(12, 6), dpi=100)
+
+        # Daten plotten
+        ax.plot(daten["Zeitstempel"], daten["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="#FF5733", linewidth=2)
+        ax.plot(daten["Zeitstempel"], daten["Außentemperatur"], label="Außentemperatur (°C)", color="#3498DB", linewidth=2)
+
+        # Titel und Achsenbeschriftungen
+        ax.set_title("Heizungstemperaturen (Letzte 48 Stunden)", fontsize=16, fontweight="bold", color="#333333")
+        ax.set_xlabel("Zeit", fontsize=12, color="#333333")
+        ax.set_ylabel("Temperatur (°C)", fontsize=12, color="#333333")
 
         # Zeitachse formatieren
-        ax = plt.gca()
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m %H:%M"))  # Format: Tag.Monat Stunde:Minute
-        ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Alle 6 Stunden ein Label
-        plt.xticks(rotation=45, fontsize=12)
+        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))  # Alle 1 Tage ein Label
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))  # Format: Tag.Monat
+        plt.xticks(rotation=45, fontsize=10, color="#333333")
+        plt.yticks(fontsize=10, color="#333333")
 
-        plt.yticks(fontsize=12)
-        plt.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
-        plt.legend(fontsize=12, loc="upper left", frameon=True, shadow=True)
-        plt.gca().set_facecolor("white")
+        # Gitterlinien
+        ax.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
+
+        # Legende
+        ax.legend(fontsize=10, loc="upper left", frameon=True, shadow=False, facecolor="white", edgecolor="gray")
 
         # Zeitstempel hinzufügen (klein unten rechts)
         last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
@@ -105,10 +139,10 @@ def update_bmk_graphics():
 
         plt.tight_layout()
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png")
-        plt.savefig(grafik_pfad, dpi=150)
+        plt.savefig(grafik_pfad, dpi=100)
         plt.close()
         print(f"Heizungstemperaturen-Grafik aktualisiert ({last_update}).")
-    except KeyError as e:
+    except Exception as e:
         print(f"Fehler beim Erstellen der Heizungstemperaturen-Grafik: {e}")
 
 # Funktion zum Erstellen der Zusammenfassungs-Grafik
@@ -141,7 +175,7 @@ def update_summary_graphics():
         aktuelle_kesseltemperatur = heizung_daten["Kesseltemperatur"].iloc[-1]
         aktuelle_aussentemperatur = heizung_daten["Außentemperatur"].iloc[-1]
 
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(10, 6), dpi=100)  # Optimiert für 1024x600
 
         # Hintergrundbild hinzufügen
         if os.path.exists(background_image_path):
@@ -149,7 +183,8 @@ def update_summary_graphics():
                 if not hasattr(update_summary_graphics, "background_image"):
                     update_summary_graphics.background_image = plt.imread(background_image_path)
                 img = update_summary_graphics.background_image
-                ax.imshow(img, extent=[0, 1, 0, 1], aspect='auto')
+                ax.imshow(img, extent=[0, 1, 0, 1], aspect='auto', zorder=-1)
+                print("Hintergrundbild erfolgreich geladen.")
             except Exception as e:
                 print(f"Fehler beim Laden des Hintergrundbilds: {e}")
         else:
@@ -175,17 +210,17 @@ def update_summary_graphics():
                 imagebox = OffsetImage(image, zoom=icon_zoom)
                 ab = AnnotationBbox(imagebox, (0.2, y_pos), frameon=False)
                 ax.add_artist(ab)
-            ax.text(0.3, y_pos, label, fontsize=14, fontweight="bold", ha="left", va="center", color="black")
+            ax.text(0.3, y_pos, label, fontsize=14, fontweight="bold", ha="left", va="center", color="white")
             ax.text(0.85, y_pos, value, fontsize=14, fontweight="bold", ha="right", va="center", color="white")
             y_pos -= 0.1
 
-        # Zeitstempel hinzufügen
+        # Zeitstempel hinzufügen (klein unten rechts)
         last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
-        plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=8, color="gray",
+        plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=8, color="white",
                  ha="right", va="bottom", transform=plt.gcf().transFigure)
 
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
-        plt.savefig(grafik_pfad, dpi=150, bbox_inches="tight")
+        plt.savefig(grafik_pfad, dpi=100, bbox_inches="tight")  # DPI auf 100 setzen
         plt.close()
         print(f"Zusammenfassungsgrafik aktualisiert ({last_update}).")
     except Exception as e:

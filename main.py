@@ -21,6 +21,14 @@ def main():
     )
     print("Visualisierung gestartet...")
 
+    def close_all():
+        """Beendet alle Prozesse und das Programm."""
+        print("Schließen-Button gedrückt. Beende alle Prozesse...")
+        visualisierung_process.terminate()  # Beende den Subprozess
+        visualisierung_process.wait()  # Warte, bis der Subprozess beendet ist
+        print("Visualisierung beendet.")
+        exit(0)  # Beende das Hauptprogramm
+
     try:
         while True:
             current_time = datetime.now()
@@ -47,11 +55,7 @@ def main():
             time.sleep(5)
 
     except KeyboardInterrupt:
-        print("Programm wird beendet...")
-        # Beende den Visualisierungsprozess
-        visualisierung_process.terminate()
-        visualisierung_process.wait()
-        print("Visualisierung beendet.")
+        close_all()  # Beende alles bei KeyboardInterrupt
 
 if __name__ == "__main__":
     main()

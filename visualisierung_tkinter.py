@@ -1,7 +1,7 @@
 import tkinter as tk
 from PIL import Image, ImageTk  # ImageTk is used for converting images to a format compatible with Tkinter
 import os
-from PIL import Image, ImageTk
+import signal
 
 # Funktion zum Anzeigen der aktuellen Grafik
 def show_image():
@@ -30,9 +30,10 @@ def previous_image(event=None):
     current_index = (current_index - 1) % len(grafik_pfade)  # Vorherige Grafik (zyklisch)
     show_image()
 
-# Funktion zum Beenden des Programms
 def close_program():
-    root.destroy()
+    """Sendet ein Signal an das Hauptprogramm, um alles zu beenden."""
+    print("Schließen-Button gedrückt.")
+    os.kill(os.getppid(), signal.SIGINT)  # Sendet SIGINT an das Hauptprogramm
 
 # Hauptprogramm
 if __name__ == "__main__":
