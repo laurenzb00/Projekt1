@@ -44,8 +44,7 @@ if __name__ == "__main__":
         os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png"),
         os.path.join(WORKING_DIRECTORY, "FroniusDaten.png"),
         os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png"),
-        os.path.join(WORKING_DIRECTORY, "KumulativeDaten.png"),
-    ]
+            ]
 
     # Index der aktuellen Grafik
     current_index = 0

@@ -10,7 +10,7 @@ import BMKDATEN
 def main():
     start_time = datetime.now()
     last_bmk_update = start_time
-    last_wechselrichter_update = start_time
+    last_fronius_update = start_time
     last_summary_update = start_time
 
     # Starte visualisierung_tkinter.py als separaten Prozess
@@ -25,17 +25,17 @@ def main():
         while True:
             current_time = datetime.now()
 
-            # Aktualisiere BMK-Daten alle 1 Minute
-            if (current_time - last_bmk_update).total_seconds() >= 60:
-                print("BMK-Daten werden aktualisiert...")
-                BMKDATEN.abrufen_und_speichern()
-                last_bmk_update = current_time
+            # Aktualisiere Fronius-Grafik alle 30 Sekunden
+            if (current_time - last_fronius_update).total_seconds() >= 30:
+                print("Fronius-Grafik wird aktualisiert...")
+                grafiken.update_fronius_graphics()
+                last_fronius_update = current_time
 
-            # Aktualisiere Wechselrichter-Daten alle 1 Minute
-            if (current_time - last_wechselrichter_update).total_seconds() >= 60:
-                print("Wechselrichter-Daten werden aktualisiert...")
-                Wechselrichter.abrufen_und_speichern()
-                last_wechselrichter_update = current_time
+            # Aktualisiere BMK-Grafik alle 30 Sekunden
+            if (current_time - last_bmk_update).total_seconds() >= 30:
+                print("BMK-Grafik wird aktualisiert...")
+                grafiken.update_bmk_graphics()
+                last_bmk_update = current_time
 
             # Aktualisiere die Zusammenfassungsgrafik alle 30 Sekunden
             if (current_time - last_summary_update).total_seconds() >= 30:

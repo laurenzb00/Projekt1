@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import matplotlib.dates as mdates
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,6 +22,7 @@ def filter_data_last_48_hours(csv_file):
 def update_fronius_graphics():
     daten = filter_data_last_48_hours(os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv"))
     if daten is None or daten.empty:
+        print("Keine Daten für Fronius verfügbar.")
         return
 
     produktion = daten["PV-Leistung (kW)"] * 1000
@@ -46,16 +48,29 @@ def update_fronius_graphics():
     plt.title("Fronius GEN24 Leistungsdaten (Letzte 48 Stunden)", fontsize=16, fontweight="bold")
     plt.xlabel("Zeit", fontsize=14)
     plt.ylabel("Leistung (W)", fontsize=14)
+
+    # Zeitachse formatieren
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m %H:%M"))  # Format: Tag.Monat Stunde:Minute
+    ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Alle 6 Stunden ein Label
     plt.xticks(rotation=45, fontsize=12)
+
     plt.yticks(fontsize=12)
     plt.ylim(0, max(produktion.max(), eigenverbrauch.max(), verbrauch.max()) * 1.1)
     plt.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
     plt.legend(fontsize=12, loc="upper left", frameon=True, shadow=True)
     plt.gca().set_facecolor("white")
+
+    # Zeitstempel hinzufügen
+    last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
+    plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=10, color="gray",
+             ha="right", va="bottom", transform=plt.gcf().transFigure)
+
     plt.tight_layout()
     grafik_pfad = os.path.join(WORKING_DIRECTORY, "FroniusDaten.png")
     plt.savefig(grafik_pfad, dpi=150)
     plt.close()
+    print(f"Fronius-Grafik aktualisiert ({last_update}).")
 
 # Funktion zum Erstellen der Heizungstemperatur-Grafik
 def update_bmk_graphics():
@@ -71,16 +86,28 @@ def update_bmk_graphics():
         plt.title("Heizungstemperaturen (Letzte 48 Stunden)", fontsize=16, fontweight="bold")
         plt.xlabel("Zeit", fontsize=14)
         plt.ylabel("Temperatur (°C)", fontsize=14)
+
+        # Zeitachse formatieren
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m %H:%M"))  # Format: Tag.Monat Stunde:Minute
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Alle 6 Stunden ein Label
         plt.xticks(rotation=45, fontsize=12)
+
         plt.yticks(fontsize=12)
         plt.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
         plt.legend(fontsize=12, loc="upper left", frameon=True, shadow=True)
         plt.gca().set_facecolor("white")
+
+        # Zeitstempel hinzufügen (klein unten rechts)
+        last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
+        plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=8, color="gray",
+                 ha="right", va="bottom", transform=plt.gcf().transFigure)
+
         plt.tight_layout()
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png")
         plt.savefig(grafik_pfad, dpi=150)
         plt.close()
-        print("Heizungstemperaturen-Grafik aktualisiert.")
+        print(f"Heizungstemperaturen-Grafik aktualisiert ({last_update}).")
     except KeyError as e:
         print(f"Fehler beim Erstellen der Heizungstemperaturen-Grafik: {e}")
 
@@ -151,9 +178,15 @@ def update_summary_graphics():
             ax.text(0.3, y_pos, label, fontsize=14, fontweight="bold", ha="left", va="center", color="black")
             ax.text(0.85, y_pos, value, fontsize=14, fontweight="bold", ha="right", va="center", color="white")
             y_pos -= 0.1
+
+        # Zeitstempel hinzufügen
+        last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
+        plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=8, color="gray",
+                 ha="right", va="bottom", transform=plt.gcf().transFigure)
+
         grafik_pfad = os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png")
         plt.savefig(grafik_pfad, dpi=150, bbox_inches="tight")
         plt.close()
-        print("Zusammenfassungsgrafik aktualisiert.")
+        print(f"Zusammenfassungsgrafik aktualisiert ({last_update}).")
     except Exception as e:
         print(f"Fehler beim Aktualisieren der Zusammenfassungsgrafik: {e}")
