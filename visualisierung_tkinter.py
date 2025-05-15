@@ -3,6 +3,22 @@ from PIL import Image, ImageTk  # ImageTk is used for converting images to a for
 import os
 import signal
 
+# Arbeitsverzeichnis setzen
+WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+
+# Liste der Grafiken (auf Modulebene!)
+grafik_pfade = [
+    os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png"),
+    os.path.join(WORKING_DIRECTORY, "FroniusDaten.png"),
+    os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png"),
+]
+
+# Index der aktuellen Grafik (auf Modulebene!)
+current_index = 0
+
+root = None
+label = None
+
 # Funktion zum Anzeigen der aktuellen Grafik
 def show_image():
     try:
@@ -35,37 +51,23 @@ def close_program():
     print("Schließen-Button gedrückt.")
     os.kill(os.getppid(), signal.SIGINT)  # Sendet SIGINT an das Hauptprogramm
 
+def init_gui():
+    global root, label
+    if root is None:
+        root = tk.Tk()
+        root.title("Grafik-Anzeige")
+        root.attributes("-fullscreen", True)
+        label = tk.Label(root, bg="black")
+        label.pack(fill=tk.BOTH, expand=True)
+        close_button = tk.Button(root, text="Schließen", command=close_program, font=("Arial", 14), bg="red", fg="white")
+        close_button.place(relx=0.9, rely=0.9, anchor="center")
+        root.bind("<Button-1>", next_image)
+        root.bind("<Button-3>", previous_image)
+
 # Hauptprogramm
 if __name__ == "__main__":
-    # Arbeitsverzeichnis setzen
-    WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-
-    # Liste der Grafiken
-    grafik_pfade = [
-        os.path.join(WORKING_DIRECTORY, "Zusammenfassung.png"),
-        os.path.join(WORKING_DIRECTORY, "FroniusDaten.png"),
-        os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.png"),
-            ]
-
-    # Index der aktuellen Grafik
-    current_index = 0
-
     # Tkinter-Fenster erstellen
-    root = tk.Tk()
-    root.title("Grafik-Anzeige")
-    root.attributes("-fullscreen", True)  # Vollbildmodus aktivieren
-
-    # Label für die Grafik
-    label = tk.Label(root, bg="black")
-    label.pack(fill=tk.BOTH, expand=True)
-
-    # Schließen-Button hinzufügen
-    close_button = tk.Button(root, text="Schließen", command=close_program, font=("Arial", 14), bg="red", fg="white")
-    close_button.place(relx=0.9, rely=0.9, anchor="center")  # Position: unten rechts
-
-    # Touchscreen-Bedienung: Tippen für nächste Grafik
-    root.bind("<Button-1>", next_image)  # Linksklick oder Touch für nächste Grafik
-    root.bind("<Button-3>", previous_image)  # Rechtsklick für vorherige Grafik
+    init_gui()
 
     # Erste Grafik anzeigen
     show_image()
