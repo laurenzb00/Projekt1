@@ -150,7 +150,7 @@ class LivePlotApp:
                 icon_path = os.path.join(WORKING_DIRECTORY, "icons", icon)
                 if os.path.exists(icon_path):
                     img = Image.open(icon_path)
-                    oi = OffsetImage(img, zoom=0.11)
+                    oi = OffsetImage(img, zoom=0.07)
                     ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5,0.5), zorder=2)
                     self.summary_ax.add_artist(ab)
                 # Label und Wert (Wert weiter rechts)
