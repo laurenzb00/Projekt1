@@ -1,0 +1,84 @@
+2025-05-15 15:04:41,480 [ERROR] Fehler beim Laden der Grafik: image "pyimage2" doesn't exist
+Traceback (most recent call last):
+  File "c:\Users\laure\OneDrive\Studium-SBG\SoS 25\Datenerfassung\eigenes projekt\visualisierung_tkinter.py", line 35, in show_image
+    label.config(image=photo)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1822, in configure
+    return self._configure('configure', cnf, kw)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1812, in _configure
+    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: image "pyimage2" doesn't exist
+2025-05-15 15:04:46,276 [ERROR] Fehler beim Laden der Grafik: image "pyimage3" doesn't exist
+Traceback (most recent call last):
+  File "c:\Users\laure\OneDrive\Studium-SBG\SoS 25\Datenerfassung\eigenes projekt\visualisierung_tkinter.py", line 35, in show_image
+    label.config(image=photo)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1822, in configure
+    return self._configure('configure', cnf, kw)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1812, in _configure
+    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: image "pyimage3" doesn't exist
+2025-05-15 15:04:46,854 [ERROR] Fehler beim Laden der Grafik: image "pyimage4" doesn't exist
+Traceback (most recent call last):
+  File "c:\Users\laure\OneDrive\Studium-SBG\SoS 25\Datenerfassung\eigenes projekt\visualisierung_tkinter.py", line 35, in show_image
+    label.config(image=photo)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1822, in configure
+    return self._configure('configure', cnf, kw)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1812, in _configure
+    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: image "pyimage4" doesn't exist
+2025-05-15 15:04:48,216 [ERROR] Fehler beim Laden der Grafik: image "pyimage5" doesn't exist
+Traceback (most recent call last):
+  File "c:\Users\laure\OneDrive\Studium-SBG\SoS 25\Datenerfassung\eigenes projekt\visualisierung_tkinter.py", line 35, in show_image
+    label.config(image=photo)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1822, in configure
+    return self._configure('configure', cnf, kw)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1812, in _configure
+    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: image "pyimage5" doesn't exist
+2025-05-15 15:04:48,629 [ERROR] Fehler beim Laden der Grafik: image "pyimage6" doesn't exist
+Traceback (most recent call last):
+  File "c:\Users\laure\OneDrive\Studium-SBG\SoS 25\Datenerfassung\eigenes projekt\visualisierung_tkinter.py", line 35, in show_image
+    label.config(image=photo)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1822, in configure
+    return self._configure('configure', cnf, kw)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1812, in _configure
+    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: image "pyimage6" doesn't exist
+2025-05-15 15:04:49,470 [ERROR] Fehler beim Laden der Grafik: image "pyimage7" doesn't exist
+Traceback (most recent call last):
+  File "c:\Users\laure\OneDrive\Studium-SBG\SoS 25\Datenerfassung\eigenes projekt\visualisierung_tkinter.py", line 35, in show_image
+    label.config(image=photo)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1822, in configure
+    return self._configure('configure', cnf, kw)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1812, in _configure
+    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: image "pyimage7" doesn't exist
+2025-05-15 15:04:50,445 [ERROR] Fehler beim Laden der Grafik: image "pyimage8" doesn't exist
+Traceback (most recent call last):
+  File "c:\Users\laure\OneDrive\Studium-SBG\SoS 25\Datenerfassung\eigenes projekt\visualisierung_tkinter.py", line 35, in show_image
+    label.config(image=photo)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1822, in configure
+    return self._configure('configure', cnf, kw)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\laure\AppData\Local\Programs\Python\Python313\Lib\tkinter\__init__.py", line 1812, in _configure
+    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: image "pyimage8" doesn't exist
