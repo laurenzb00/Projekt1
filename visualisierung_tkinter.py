@@ -64,6 +64,10 @@ def init_gui():
         root.bind("<Button-1>", next_image)
         root.bind("<Button-3>", previous_image)
 
+def auto_reload():
+    show_image()
+    root.after(60000, auto_reload)  # alle 60.000 ms = 1 Minute
+
 # Hauptprogramm
 if __name__ == "__main__":
     # Tkinter-Fenster erstellen
@@ -71,6 +75,9 @@ if __name__ == "__main__":
 
     # Erste Grafik anzeigen
     show_image()
+
+    # Automatisches Neuladen starten
+    auto_reload()
 
     # Tkinter-Hauptschleife starten
     root.mainloop()

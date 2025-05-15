@@ -2,6 +2,7 @@ import requests
 import csv
 import os
 from datetime import datetime  # Für Zeitstempel
+import time
 
 def abrufen_und_speichern():
     try:
@@ -47,7 +48,9 @@ def abrufen_und_speichern():
 
 # Hauptfunktion für den direkten Aufruf
 def main():
-    abrufen_und_speichern()
+    while True:
+        abrufen_und_speichern()
+        time.sleep(60)
 
 if __name__ == "__main__":
     main()
