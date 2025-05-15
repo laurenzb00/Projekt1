@@ -27,64 +27,37 @@ def update_fronius_graphics():
         return
 
     try:
-        # Daten auf stündliche Mittelwerte aggregieren
-        daten["Zeitstempel"] = daten["Zeitstempel"].dt.floor("h")  # Runden auf volle Stunden
+        daten["Zeitstempel"] = daten["Zeitstempel"].dt.floor("5min")  # Runden auf 5-Minuten-Intervalle
         daten = daten.groupby("Zeitstempel").mean().reset_index()
 
-        # Daten für die Grafik
-        pv_leistung = daten["PV-Leistung (kW)"] * 1000  # PV-Leistung in Watt
-        hausverbrauch = daten["Hausverbrauch (kW)"] * 1000  # Hausverbrauch in Watt
-        batterieladestand = daten["Batterieladestand (%)"]  # Batterieladestand in Prozent
+        pv_leistung = daten["PV-Leistung (kW)"] * 1000
+        hausverbrauch = daten["Hausverbrauch (kW)"] * 1000
+        batterieladestand = daten["Batterieladestand (%)"]
 
         fig, ax1 = plt.subplots(figsize=(12, 6), dpi=100)
-
-        # Erste y-Achse (Hausverbrauch und PV-Leistung)
-        ax1.plot(
-            daten["Zeitstempel"],
-            hausverbrauch,
-            label="Hausverbrauch (W)",
-            color="#3498DB",
-            linewidth=2,
-        )
-        ax1.plot(
-            daten["Zeitstempel"],
-            pv_leistung,
-            label="PV-Leistung (W)",
-            color="#F1C40F",
-            linewidth=2,
-        )
+        ax1.plot(daten["Zeitstempel"], hausverbrauch, label="Hausverbrauch (W)", color="#3498DB", linewidth=2)
+        ax1.plot(daten["Zeitstempel"], pv_leistung, label="PV-Leistung (W)", color="#F1C40F", linewidth=2)
         ax1.set_xlabel("Zeit", fontsize=12, color="#333333")
         ax1.set_ylabel("Leistung (W)", fontsize=12, color="#333333")
         ax1.tick_params(axis="y", labelcolor="#333333")
-        ax1.xaxis.set_major_locator(mdates.HourLocator(interval=6))  # Alle 6 Stunden ein Label
-        ax1.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))  # Format: Stunde:Minute
+        ax1.xaxis.set_major_locator(mdates.HourLocator(interval=3))
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
         plt.xticks(rotation=45, fontsize=10, color="#333333")
         plt.yticks(fontsize=10, color="#333333")
 
-        # Zweite y-Achse (Batterieladestand)
         ax2 = ax1.twinx()
-        ax2.plot(
-            daten["Zeitstempel"],
-            batterieladestand,
-            label="Batterieladestand (%)",
-            color="#9B59B6",
-            linewidth=2,
-            linestyle="--",
-        )
+        ax2.plot(daten["Zeitstempel"], batterieladestand, label="Batterieladestand (%)", color="#9B59B6", linewidth=2, linestyle="--")
         ax2.set_ylabel("Batterieladestand (%)", fontsize=12, color="#333333")
         ax2.tick_params(axis="y", labelcolor="#333333")
         plt.yticks(fontsize=10, color="#333333")
 
-        # Titel und Gitterlinien
         fig.suptitle("Fronius GEN24 Leistungsdaten (Letzte 48 Stunden)", fontsize=16, fontweight="bold", color="#333333")
         ax1.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
 
-        # Legenden
         ax1_lines, ax1_labels = ax1.get_legend_handles_labels()
         ax2_lines, ax2_labels = ax2.get_legend_handles_labels()
         ax1.legend(ax1_lines + ax2_lines, ax1_labels + ax2_labels, loc="upper left", fontsize=10, frameon=True, shadow=False, facecolor="white", edgecolor="gray")
 
-        # Zeitstempel hinzufügen (klein unten rechts)
         last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
         plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=8, color="gray",
                  ha="right", va="bottom", transform=plt.gcf().transFigure)
@@ -105,34 +78,22 @@ def update_bmk_graphics():
         return
 
     try:
-        # Daten auf stündliche Mittelwerte aggregieren
-        daten["Zeitstempel"] = daten["Zeitstempel"].dt.floor("h")  # Runden auf volle Stunden
+        daten["Zeitstempel"] = daten["Zeitstempel"].dt.floor("5min")  # Runden auf 5-Minuten-Intervalle
         daten = daten.groupby("Zeitstempel").mean().reset_index()
 
         fig, ax = plt.subplots(figsize=(12, 6), dpi=100)
-
-        # Daten plotten
         ax.plot(daten["Zeitstempel"], daten["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="#FF5733", linewidth=2)
         ax.plot(daten["Zeitstempel"], daten["Außentemperatur"], label="Außentemperatur (°C)", color="#3498DB", linewidth=2)
-
-        # Titel und Achsenbeschriftungen
         ax.set_title("Heizungstemperaturen (Letzte 48 Stunden)", fontsize=16, fontweight="bold", color="#333333")
         ax.set_xlabel("Zeit", fontsize=12, color="#333333")
         ax.set_ylabel("Temperatur (°C)", fontsize=12, color="#333333")
-
-        # Zeitachse formatieren
-        ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))  # Alle 1 Tage ein Label
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))  # Format: Tag.Monat
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=3))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m %H:%M"))
         plt.xticks(rotation=45, fontsize=10, color="#333333")
         plt.yticks(fontsize=10, color="#333333")
-
-        # Gitterlinien
         ax.grid(color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
-
-        # Legende
         ax.legend(fontsize=10, loc="upper left", frameon=True, shadow=False, facecolor="white", edgecolor="gray")
 
-        # Zeitstempel hinzufügen (klein unten rechts)
         last_update = pd.Timestamp.now().strftime("%d.%m.%Y %H:%M:%S")
         plt.text(0.99, 0.01, f"Letzte Aktualisierung: {last_update}", fontsize=8, color="gray",
                  ha="right", va="bottom", transform=plt.gcf().transFigure)
