@@ -141,12 +141,12 @@ class LivePlotApp:
                 icon_path = os.path.join(WORKING_DIRECTORY, "icons", icon)
                 if os.path.exists(icon_path):
                     img = Image.open(icon_path)
-                    oi = OffsetImage(img, zoom=0.11)  # vorher 0.18, jetzt ca. 60%
+                    oi = OffsetImage(img, zoom=0.11)
                     ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5,0.5), zorder=2)
                     self.summary_ax.add_artist(ab)
-                # Label und Wert (Schriftgröße ca. 60% der bisherigen)
+                # Label und Wert (Wert weiter rechts)
                 self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="black", va="center", ha="left", weight="bold", zorder=3)
-                self.summary_ax.text(x + 0.48, y, value, fontsize=19, color="black", va="center", ha="left", weight="bold", zorder=3)
+                self.summary_ax.text(x + 0.65, y, value, fontsize=19, color="black", va="center", ha="left", weight="bold", zorder=3)
 
             self.summary_ax.set_xlim(0, 1)
             self.summary_ax.set_ylim(-0.3, 1)
