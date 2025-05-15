@@ -5,6 +5,7 @@ import Wechselrichter
 import BMKDATEN
 import visualisierung_tkinter
 import grafiken
+import requests  # Hinzugefügt für die Verwendung von requests
 
 logging.basicConfig(filename="datenerfassung.log", level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -29,6 +30,14 @@ def run_grafik_updates():
         except Exception as e:
             logging.error(f"Fehler beim Aktualisieren der Grafiken: {e}")
         time.sleep(20)  # z.B. alle 20 Sekunden
+
+def fetch_data(url):
+    try:
+        response = requests.get(url, timeout=10)
+    except requests.RequestException as e:
+        logging.error(f"Fehler beim Abrufen der Daten: {e}", exc_info=True)
+        return
+    # Verarbeite die Antwort hier weiter...
 
 def main():
     threads = [

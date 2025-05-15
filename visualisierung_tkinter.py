@@ -2,6 +2,7 @@ import tkinter as tk
 from PIL import Image, ImageTk  # ImageTk is used for converting images to a format compatible with Tkinter
 import os
 import signal
+import logging
 
 # Arbeitsverzeichnis setzen
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -23,20 +24,16 @@ label = None
 def show_image():
     global label
     try:
-        # Lade die aktuelle Grafik
         image_path = grafik_pfade[current_index]
-        img = Image.open(image_path)
-        img = img.resize((root.winfo_screenwidth(), root.winfo_screenheight()), Image.LANCZOS)
-        photo = ImageTk.PhotoImage(img)
-
-        # Zeige die Grafik im Label an
-        label.config(image=photo)
-        label.image = photo  # Nur diese eine Referenz!
-        img.close()  # Bilddatei schließen (optional, aber sauber)
-        del img
-        del photo
+        with Image.open(image_path) as img:
+            img = img.resize((root.winfo_screenwidth(), root.winfo_screenheight()), Image.LANCZOS)
+            photo = ImageTk.PhotoImage(img)
+            if hasattr(label, "image"):
+                label.image = None
+            label.config(image=photo)
+            label.image = photo
     except Exception as e:
-        print(f"Fehler beim Laden der Grafik: {e}")
+        logging.error(f"Fehler beim Laden der Grafik: {e}", exc_info=True)
 
 # Funktion zum Anzeigen der nächsten Grafik
 def next_image(event=None):
