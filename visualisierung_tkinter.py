@@ -21,6 +21,7 @@ label = None
 
 # Funktion zum Anzeigen der aktuellen Grafik
 def show_image():
+    global label
     try:
         # Lade die aktuelle Grafik
         image_path = grafik_pfade[current_index]
@@ -30,7 +31,10 @@ def show_image():
 
         # Zeige die Grafik im Label an
         label.config(image=photo)
-        label.image = photo
+        label.image = photo  # Nur diese eine Referenz!
+        img.close()  # Bilddatei schließen (optional, aber sauber)
+        del img
+        del photo
     except Exception as e:
         print(f"Fehler beim Laden der Grafik: {e}")
 
@@ -47,16 +51,25 @@ def previous_image(event=None):
     show_image()
 
 def close_program():
-    """Sendet ein Signal an das Hauptprogramm, um alles zu beenden."""
     print("Schließen-Button gedrückt.")
-    os.kill(os.getppid(), signal.SIGINT)  # Sendet SIGINT an das Hauptprogramm
+    root.destroy()
 
 def init_gui():
     global root, label
     if root is None:
         root = tk.Tk()
         root.title("Grafik-Anzeige")
+        # Versuche zuerst Fullscreen
         root.attributes("-fullscreen", True)
+        # Für Windows: Maximiert das Fenster (optional, schadet aber nicht auf Linux)
+        try:
+            root.state("zoomed")
+        except Exception:
+            pass
+        # Fallback: Setze Fenstergröße auf Bildschirmgröße
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        root.geometry(f"{screen_width}x{screen_height}")
         label = tk.Label(root, bg="black")
         label.pack(fill=tk.BOTH, expand=True)
         close_button = tk.Button(root, text="Schließen", command=close_program, font=("Arial", 14), bg="red", fg="white")
