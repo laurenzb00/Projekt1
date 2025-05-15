@@ -3,8 +3,6 @@ import csv
 import time
 import schedule
 import os
-import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 def abrufen_und_speichern():
@@ -55,98 +53,8 @@ def abrufen_und_speichern():
     except Exception as e:
         print(f"Ein Fehler ist aufgetreten: {e}")
 
-def daten_visualisieren():
-    print("Funktion daten_visualisieren wurde aufgerufen.")
-    csv_datei = "FroniusDaten.csv"
-    try:
-        print(f"CSV-Datei wird geladen: {csv_datei}")
-        daten = pd.read_csv(csv_datei, parse_dates=["Zeitstempel"], dtype={
-            "PV-Leistung (kW)": float,
-            "Netz-Leistung (kW)": float,
-            "Batterie-Leistung (kW)": float,
-            "Hausverbrauch (kW)": float,
-            "Batterieladestand (%)": float
-        })
-
-        if daten.empty:
-            print("Die CSV-Datei ist leer. Keine Daten zum Visualisieren.")
-            return
-
-        print("Geladene Daten:")
-        print(daten.head())
-
-        # Berechne die kumulierte Produktion und den Verbrauch
-        daten["Kumulative Produktion (kWh)"] = daten["PV-Leistung (kW)"].cumsum() / 60  # Annahme: 1 Minute Intervalle
-        daten["Kumulativer Verbrauch (kWh)"] = daten["Hausverbrauch (kW)"].cumsum() / 60  # Annahme: 1 Minute Intervalle
-
-        # Zeitlicher Verlauf aller Werte darstellen (ohne Batterieladestand)
-        print("Erstelle Diagramm für Leistungsdaten...")
-        plt.figure(figsize=(12, 8))
-        plt.plot(daten["Zeitstempel"], abs(daten["PV-Leistung (kW)"]), label="PV-Leistung (kW)", marker="o")
-        plt.plot(daten["Zeitstempel"], abs(daten["Netz-Leistung (kW)"]), label="Netz-Leistung (kW)", marker="x")
-        plt.plot(daten["Zeitstempel"], abs(daten["Batterie-Leistung (kW)"]), label="Batterie-Leistung (kW)", marker="s")
-        plt.plot(daten["Zeitstempel"], abs(daten["Hausverbrauch (kW)"]), label="Hausverbrauch (kW)", marker="^")
-
-        # Diagramm beschriften
-        plt.title("Fronius GEN24 Leistungsdaten (positiver Bereich)")
-        plt.xlabel("Zeit")
-        plt.ylabel("Leistung (kW)")
-        plt.legend()
-        plt.grid()
-
-        # X-Achse rotieren für bessere Lesbarkeit
-        plt.xticks(rotation=45)
-
-        # Grafik speichern
-        print("Speichere Diagramm als 'FroniusDaten.png'...")
-        plt.savefig("FroniusDaten.png")
-        print("Diagramm wurde als 'FroniusDaten.png' gespeichert.")
-
-        # Kumulative Produktion und Verbrauch darstellen
-        print("Erstelle Diagramm für kumulative Daten...")
-        plt.figure(figsize=(12, 8))
-        plt.plot(daten["Zeitstempel"], daten["Kumulative Produktion (kWh)"], label="Kumulative Produktion (kWh)", marker="o")
-        plt.plot(daten["Zeitstempel"], daten["Kumulativer Verbrauch (kWh)"], label="Kumulativer Verbrauch (kWh)", marker="x")
-
-        # Diagramm beschriften
-        plt.title("Kumulative Produktion und Verbrauch")
-        plt.xlabel("Zeit")
-        plt.ylabel("Energie (kWh)")
-        plt.legend()
-        plt.grid()
-
-        # X-Achse rotieren für bessere Lesbarkeit
-        plt.xticks(rotation=45)
-
-        # Grafik speichern
-        print("Speichere Diagramm als 'KumulativeDaten.png'...")
-        plt.savefig("KumulativeDaten.png")
-        print("Diagramm wurde als 'KumulativeDaten.png' gespeichert.")
-
-        # Erstelle eine Batterie-Grafik für den Batterieladestand
-        print("Erstelle Diagramm für Batterieladestand...")
-        aktueller_batterieladestand = daten["Batterieladestand (%)"].iloc[-1]  # Letzter Wert
-        plt.figure(figsize=(4, 8))
-        plt.barh([0], aktueller_batterieladestand, color="green", height=0.5)
-        plt.xlim(0, 100)
-        plt.title("Batterieladestand")
-        plt.xlabel("Ladestand (%)")
-        plt.yticks([])
-        plt.grid(axis="x")
-
-        # Grafik speichern
-        print("Speichere Diagramm als 'Batterieladestand.png'...")
-        plt.savefig("Batterieladestand.png")
-        print("Diagramm wurde als 'Batterieladestand.png' gespeichert.")
-
-    except FileNotFoundError:
-        print(f"Die Datei '{csv_datei}' wurde nicht gefunden.")
-    except Exception as e:
-        print(f"Ein Fehler ist aufgetreten: {e}")
-
 # Scheduler einrichten
-schedule.every(10).seconds.do(abrufen_und_speichern)  # Daten alle 60 Sekunden abrufen
-schedule.every(1).minutes.do(daten_visualisieren)  # Grafik alle 10 Minuten aktualisieren
+schedule.every(60).seconds.do(abrufen_und_speichern)  # Daten alle 10 Sekunden abrufen
 
 print("Programm läuft erfolgreich.")
 
