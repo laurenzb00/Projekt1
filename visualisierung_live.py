@@ -119,9 +119,8 @@ class LivePlotApp:
             bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
             if os.path.exists(bg_path):
                 bg_img = Image.open(bg_path)
-                # Auf die Plotgröße skalieren (z.B. 1024x600 Pixel)
                 bg_img = bg_img.resize((1024, 600), Image.LANCZOS)
-                self.summary_ax.imshow(bg_img, extent=[0, 1, -0.3, 1], aspect='auto', zorder=0)
+                self.summary_ax.imshow(bg_img, extent=[-0.5, 1.5, -0.5, 1.3], aspect='auto', zorder=0)
 
             # Werte extrahieren
             puffer_oben = last_bmk.get("Pufferspeicher Oben", 0)
@@ -158,8 +157,8 @@ class LivePlotApp:
                 self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="black", va="center", ha="left", weight="bold", zorder=3)
                 self.summary_ax.text(x + 0.65, y, value, fontsize=19, color="black", va="center", ha="left", weight="bold", zorder=3)
 
-            self.summary_ax.set_xlim(0.08, 0.92)
-            self.summary_ax.set_ylim(-0.15, 0.98)
+            self.summary_ax.set_xlim(0, 1)
+            self.summary_ax.set_ylim(-0.25, 1.05)
             self.summary_canvas.draw()
         except Exception as e:
             self.summary_ax.clear()
