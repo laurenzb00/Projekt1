@@ -6,6 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from PIL import Image
 import os
+import datetime
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -56,22 +57,27 @@ class LivePlotApp:
         # Fronius-Daten plotten
         try:
             df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
-            df = df.sort_values("Zeitstempel").tail(288)
+            # Nur die letzten 48h
+            now = pd.Timestamp.now()
+            df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.fronius_ax.clear()
             self.fronius_ax.plot(df["Zeitstempel"], df["PV-Leistung (kW)"], label="PV-Leistung (kW)", color="gold")
             self.fronius_ax.plot(df["Zeitstempel"], df["Hausverbrauch (kW)"], label="Hausverbrauch (kW)", color="blue")
             self.fronius_ax.set_ylabel("Leistung (kW)")
             self.fronius_ax.set_xlabel("Zeit")
-            self.fronius_ax.set_ylim(0, 10)  # y-Achse fest auf 0-10 kW
+            self.fronius_ax.set_ylim(0, 10)
             self.fronius_ax.grid(True, which='both', linestyle='--', alpha=0.5)
             self.fronius_ax.legend(loc="upper left")
             self.fronius_ax2 = self.fronius_ax.twinx()
             self.fronius_ax2.plot(df["Zeitstempel"], df["Batterieladestand (%)"], label="Batterieladestand (%)", color="purple", linestyle="--")
             self.fronius_ax2.set_ylabel("Batterieladestand (%)")
-            self.fronius_ax2.set_ylim(0, 100)  # y-Achse fest auf 0-100 %
+            self.fronius_ax2.set_ylim(0, 100)
             self.fronius_ax2.grid(False)
             self.fronius_ax2.legend(loc="upper right")
             self.fronius_fig.autofmt_xdate()
+            # X-Achsen-Beschriftung größer
+            for label in self.fronius_ax.get_xticklabels():
+                label.set_fontsize(13)
             self.fronius_canvas.draw()
         except Exception as e:
             self.fronius_ax.clear()
@@ -81,7 +87,8 @@ class LivePlotApp:
         # BMK-Daten plotten
         try:
             df = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
-            df = df.sort_values("Zeitstempel").tail(288)
+            now = pd.Timestamp.now()
+            df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.bmk_ax.clear()
             self.bmk_ax.plot(df["Zeitstempel"], df["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="red")
             self.bmk_ax.plot(df["Zeitstempel"], df["Außentemperatur"], label="Außentemperatur (°C)", color="cyan")
@@ -90,6 +97,9 @@ class LivePlotApp:
             self.bmk_ax.grid(True, which='both', linestyle='--', alpha=0.5)
             self.bmk_ax.legend()
             self.bmk_fig.autofmt_xdate()
+            # X-Achsen-Beschriftung größer
+            for label in self.bmk_ax.get_xticklabels():
+                label.set_fontsize(13)
             self.bmk_canvas.draw()
         except Exception as e:
             self.bmk_ax.clear()
@@ -148,8 +158,8 @@ class LivePlotApp:
                 self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="black", va="center", ha="left", weight="bold", zorder=3)
                 self.summary_ax.text(x + 0.65, y, value, fontsize=19, color="black", va="center", ha="left", weight="bold", zorder=3)
 
-            self.summary_ax.set_xlim(0, 1)
-            self.summary_ax.set_ylim(-0.3, 1)
+            self.summary_ax.set_xlim(0.08, 0.92)
+            self.summary_ax.set_ylim(-0.15, 0.98)
             self.summary_canvas.draw()
         except Exception as e:
             self.summary_ax.clear()
