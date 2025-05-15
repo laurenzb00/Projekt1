@@ -43,8 +43,11 @@ def abrufen_und_speichern():
     except Exception as e:
         print(f"Fehler beim Abrufen und Speichern der Wechselrichter-Daten: {e}")
 
-# Nur ausführen, wenn die Datei direkt gestartet wird
-if __name__ == "__main__":
+def run():
     while True:
         abrufen_und_speichern()
         time.sleep(1)
+
+# Nur ausführen, wenn die Datei direkt gestartet wird
+if __name__ == "__main__":
+    run()

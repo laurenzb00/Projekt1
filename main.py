@@ -3,15 +3,28 @@ import time
 from datetime import datetime
 import os
 import grafiken  
+import threading
 import Wechselrichter
 import BMKDATEN
 
+
+def run_wechselrichter():
+    Wechselrichter.run()
+
+def run_bmkdaten():
+    BMKDATEN.main()  
 
 def main():
     start_time = datetime.now()
     last_bmk_update = start_time
     last_fronius_update = start_time
     last_summary_update = start_time
+
+    # Starte Datenerfassung in eigenen Threads
+    wr_thread = threading.Thread(target=run_wechselrichter, daemon=True)
+    bmk_thread = threading.Thread(target=run_bmkdaten, daemon=True)
+    wr_thread.start()
+    bmk_thread.start()
 
     # Starte visualisierung_tkinter.py als separaten Prozess
     visualisierung_process = subprocess.Popen(
