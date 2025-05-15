@@ -136,18 +136,17 @@ class LivePlotApp:
                 ("power.png",       0.18, -0.20, f"{netz:.1f} kW", "Netz-Leistung"),
             ]
 
-            # Werte und Beschriftungen rechts anzeigen
             for i, (icon, x, y, value, label) in enumerate(icon_positions):
                 # Icon
                 icon_path = os.path.join(WORKING_DIRECTORY, "icons", icon)
                 if os.path.exists(icon_path):
                     img = Image.open(icon_path)
-                    oi = OffsetImage(img, zoom=0.12)
+                    oi = OffsetImage(img, zoom=0.11)  # vorher 0.18, jetzt ca. 60%
                     ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5,0.5), zorder=2)
                     self.summary_ax.add_artist(ab)
-                # Wert und Label (größere Schrift, Zahlen näher an Label)
-                self.summary_ax.text(x + 0.09, y, label, fontsize=26, color="black", va="center", ha="left", weight="bold", zorder=3)
-                self.summary_ax.text(x + 0.45, y, value, fontsize=26, color="black", va="center", ha="left", weight="bold", zorder=3)
+                # Label und Wert (Schriftgröße ca. 60% der bisherigen)
+                self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="black", va="center", ha="left", weight="bold", zorder=3)
+                self.summary_ax.text(x + 0.48, y, value, fontsize=19, color="black", va="center", ha="left", weight="bold", zorder=3)
 
             self.summary_ax.set_xlim(0, 1)
             self.summary_ax.set_ylim(-0.3, 1)
