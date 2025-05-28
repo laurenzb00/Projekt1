@@ -7,6 +7,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from PIL import Image
 import os
 import datetime
+from matplotlib.patches import Rectangle
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -61,8 +62,10 @@ class LivePlotApp:
             now = pd.Timestamp.now()
             df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.fronius_ax.clear()
-            self.fronius_ax.plot(df["Zeitstempel"], df["PV-Leistung (kW)"], label="PV-Leistung (kW)", color="gold")
-            self.fronius_ax.plot(df["Zeitstempel"], df["Hausverbrauch (kW)"], label="Hausverbrauch (kW)", color="blue")
+            pv_smooth = df["PV-Leistung (kW)"].rolling(window=5, min_periods=1, center=True).mean()
+            haus_smooth = df["Hausverbrauch (kW)"].rolling(window=5, min_periods=1, center=True).mean()
+            self.fronius_ax.plot(df["Zeitstempel"], pv_smooth, label="PV-Leistung (kW, geglättet)", color="orange")
+            self.fronius_ax.plot(df["Zeitstempel"], haus_smooth, label="Hausverbrauch (kW, geglättet)", color="lightblue")
             self.fronius_ax.set_ylabel("Leistung (kW)")
             self.fronius_ax.set_xlabel("Zeit")
             self.fronius_ax.set_ylim(0, 10)
@@ -115,12 +118,25 @@ class LivePlotApp:
             self.summary_ax.clear()
             self.summary_ax.axis('off')
 
-            # Hintergrundbild
+            # Hintergrundbild (randlos)
             bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
             if os.path.exists(bg_path):
                 bg_img = Image.open(bg_path)
                 bg_img = bg_img.resize((1024, 600), Image.LANCZOS)
-                self.summary_ax.imshow(bg_img, extent=[-0.5, 1.5, -0.5, 1.3], aspect='auto', zorder=0)
+                self.summary_ax.imshow(bg_img, extent=[0, 1, -0.25, 1.05], aspect='auto', zorder=0)
+
+            # Halbtransparenter Kasten
+            rect = Rectangle(
+                (0, -0.25),    # Start unten links (x, y)
+                1,             # Breite (x-Richtung)
+                1.3,           # Höhe (y-Richtung, etwas mehr als 1.05-(-0.25))
+                linewidth=0,
+                edgecolor=None,
+                facecolor='white',
+                alpha=0.6,
+                zorder=1
+            )
+            self.summary_ax.add_patch(rect)
 
             # Werte extrahieren
             puffer_oben = last_bmk.get("Pufferspeicher Oben", 0)
@@ -145,15 +161,13 @@ class LivePlotApp:
                 ("power.png",       0.18, -0.20, f"{netz:.1f} kW", "Netz-Leistung"),
             ]
 
-            for i, (icon, x, y, value, label) in enumerate(icon_positions):
-                # Icon
+            for icon, x, y, value, label in icon_positions:
                 icon_path = os.path.join(WORKING_DIRECTORY, "icons", icon)
                 if os.path.exists(icon_path):
                     img = Image.open(icon_path)
                     oi = OffsetImage(img, zoom=0.07)
                     ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5,0.5), zorder=2)
                     self.summary_ax.add_artist(ab)
-                # Label und Wert (Wert weiter rechts)
                 self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="black", va="center", ha="left", weight="bold", zorder=3)
                 self.summary_ax.text(x + 0.65, y, value, fontsize=19, color="black", va="center", ha="left", weight="bold", zorder=3)
 
