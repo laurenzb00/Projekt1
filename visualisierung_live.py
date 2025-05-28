@@ -31,6 +31,7 @@ class LivePlotApp:
         self.fronius_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.fronius_frame, text="Fronius")
         self.fronius_fig, self.fronius_ax = plt.subplots(figsize=(8, 3))
+        self.fronius_ax2 = self.fronius_ax.twinx()
         self.fronius_canvas = FigureCanvasTkAgg(self.fronius_fig, master=self.fronius_frame)
         self.fronius_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
@@ -62,6 +63,7 @@ class LivePlotApp:
             now = pd.Timestamp.now()
             df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.fronius_ax.clear()
+            self.fronius_ax2.clear()
             pv_smooth = df["PV-Leistung (kW)"].rolling(window=5, min_periods=1, center=True).mean()
             haus_smooth = df["Hausverbrauch (kW)"].rolling(window=5, min_periods=1, center=True).mean()
             self.fronius_ax.plot(df["Zeitstempel"], pv_smooth, label="PV-Leistung (kW, geglättet)", color="orange")
@@ -71,7 +73,6 @@ class LivePlotApp:
             self.fronius_ax.set_ylim(0, 10)
             self.fronius_ax.grid(True, which='both', linestyle='--', alpha=0.5)
             self.fronius_ax.legend(loc="upper left")
-            self.fronius_ax2 = self.fronius_ax.twinx()
             self.fronius_ax2.plot(df["Zeitstempel"], df["Batterieladestand (%)"], label="Batterieladestand (%)", color="purple", linestyle="--")
             self.fronius_ax2.set_ylabel("Batterieladestand (%)")
             self.fronius_ax2.set_ylim(0, 100)
