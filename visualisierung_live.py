@@ -53,11 +53,20 @@ class LivePlotApp:
         self.close_button = tk.Button(root, text="Schließen", command=self.root.destroy, font=("Arial", 14), bg="red", fg="white")
         self.close_button.pack(side=tk.BOTTOM, pady=10)
 
+        # Bilder einmal laden
+        self.icons = {}
+        for icon in ["temperature.png", "outdoor.png", "battery.png", "house.png", "power.png"]:
+            path = os.path.join(WORKING_DIRECTORY, "icons", icon)
+            if os.path.exists(path):
+                self.icons[icon] = Image.open(path)
+        bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
+        self.bg_img = Image.open(bg_path).resize((1024, 600), Image.LANCZOS) if os.path.exists(bg_path) else None
+
         self.update_plots()
 
     def update_plots(self):
-        # Fronius-Daten plotten
         try:
+            # Fronius-Daten plotten
             df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             # Nur die letzten 48h
             now = pd.Timestamp.now()
@@ -79,7 +88,6 @@ class LivePlotApp:
             self.fronius_ax2.grid(False)
             self.fronius_ax2.legend(loc="upper right")
             self.fronius_fig.autofmt_xdate()
-            # X-Achsen-Beschriftung größer
             for label in self.fronius_ax.get_xticklabels():
                 label.set_fontsize(13)
             self.fronius_canvas.draw()
@@ -96,6 +104,10 @@ class LivePlotApp:
             self.bmk_ax.clear()
             self.bmk_ax.plot(df["Zeitstempel"], df["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="red")
             self.bmk_ax.plot(df["Zeitstempel"], df["Außentemperatur"], label="Außentemperatur (°C)", color="cyan")
+            if "Pufferspeicher Oben" in df.columns:
+                self.bmk_ax.plot(df["Zeitstempel"], df["Pufferspeicher Oben"], label="Pufferspeicher Oben (°C)", color="orange")
+            if "Warmwasser" in df.columns:
+                self.bmk_ax.plot(df["Zeitstempel"], df["Warmwasser"], label="Warmwasser (°C)", color="green")
             self.bmk_ax.set_ylabel("Temperatur (°C)")
             self.bmk_ax.set_xlabel("Zeit")
             self.bmk_ax.grid(True, which='both', linestyle='--', alpha=0.5)
@@ -120,11 +132,8 @@ class LivePlotApp:
             self.summary_ax.axis('off')
 
             # Hintergrundbild (randlos)
-            bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
-            if os.path.exists(bg_path):
-                bg_img = Image.open(bg_path)
-                bg_img = bg_img.resize((1024, 600), Image.LANCZOS)
-                self.summary_ax.imshow(bg_img, extent=[0, 1, -0.25, 1.05], aspect='auto', zorder=0)
+            if self.bg_img:
+                self.summary_ax.imshow(self.bg_img, extent=[0, 1, -0.25, 1.05], aspect='auto', zorder=0)
 
             # Halbtransparenter Kasten
             rect = Rectangle(
@@ -163,10 +172,8 @@ class LivePlotApp:
             ]
 
             for icon, x, y, value, label in icon_positions:
-                icon_path = os.path.join(WORKING_DIRECTORY, "icons", icon)
-                if os.path.exists(icon_path):
-                    img = Image.open(icon_path)
-                    oi = OffsetImage(img, zoom=0.07)
+                if icon in self.icons:
+                    oi = OffsetImage(self.icons[icon], zoom=0.07)
                     ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5,0.5), zorder=2)
                     self.summary_ax.add_artist(ab)
                 self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="black", va="center", ha="left", weight="bold", zorder=3)
@@ -179,9 +186,9 @@ class LivePlotApp:
             self.summary_ax.clear()
             self.summary_ax.text(0.5, 0.5, f"Fehler beim Laden der Zusammenfassung:\n{e}", ha="center", va="center", color="white")
             self.summary_canvas.draw()
-
-        # Automatisch nach Intervall neu laden
-        self.root.after(UPDATE_INTERVAL, self.update_plots)
+        finally:
+            # Automatisch nach Intervall neu laden
+            self.root.after(UPDATE_INTERVAL, self.update_plots)
 
 if __name__ == "__main__":
     root = tk.Tk()
