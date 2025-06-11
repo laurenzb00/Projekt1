@@ -9,6 +9,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib.patches import Rectangle
 import matplotlib.dates as mdates
 import numpy as np
+import matplotlib.ticker as mticker  # Am Anfang der Datei ergänzen
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -106,7 +107,7 @@ class LivePlotApp:
             self.fronius_ax.set_ylabel("Leistung (kW)")
             self.fronius_ax.set_xlabel("Zeit")
             self.fronius_ax.set_ylim(0, 10)
-            self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
+            self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.5)  
             self.fronius_ax.legend(loc="upper left")
             self.fronius_ax2.plot(df["Zeitstempel"], df["Batterieladestand (%)"], label="Batterieladestand (%)", color="purple", linestyle="--")
             self.fronius_ax2.set_ylabel("Batterieladestand (%)")
@@ -116,6 +117,9 @@ class LivePlotApp:
             self.fronius_fig.autofmt_xdate()
             for label in self.fronius_ax.get_xticklabels():
                 label.set_fontsize(13)
+            self.fronius_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            self.fronius_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
+            self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')
             self.fronius_canvas.draw()
         except Exception as e:
             self.fronius_ax.clear()
@@ -142,6 +146,9 @@ class LivePlotApp:
             # X-Achsen-Beschriftung größer
             for label in self.bmk_ax.get_xticklabels():
                 label.set_fontsize(13)
+            self.bmk_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            self.bmk_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
+            self.bmk_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')
             self.bmk_canvas.draw()
         except Exception as e:
             self.bmk_ax.clear()
@@ -239,7 +246,9 @@ class LivePlotApp:
             self.pv_ertrag_ax.set_xlabel("Datum")
             self.pv_ertrag_ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
             self.pv_ertrag_ax.legend()
-            self.pv_ertrag_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
+            self.pv_ertrag_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            self.pv_ertrag_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
+            self.pv_ertrag_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')  # <--- HIER
             self.pv_ertrag_fig.autofmt_xdate()
             self.pv_ertrag_canvas.draw()
         except Exception as e:
@@ -256,7 +265,9 @@ class LivePlotApp:
             self.batt_ax.set_title("Batterieladestand Verlauf")
             self.batt_ax.set_xlabel("Zeit")
             self.batt_ax.set_ylim(0, 100)
-            self.batt_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
+            self.batt_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+            self.batt_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
+            self.batt_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')  # <--- HIER
             self.batt_fig.autofmt_xdate()
             self.batt_canvas.draw()
         except Exception as e:
