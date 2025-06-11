@@ -65,9 +65,17 @@ class LivePlotApp:
         self.summary_canvas = FigureCanvasTkAgg(self.summary_fig, master=self.summary_frame)
         self.summary_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+        # Button-Frame
+        self.button_frame = tk.Frame(root)
+        self.button_frame.pack(side=tk.BOTTOM, pady=10)
+
         # Button zum Beenden
-        self.close_button = tk.Button(root, text="Schließen", command=self.root.destroy, font=("Arial", 14), bg="red", fg="white")
-        self.close_button.pack(side=tk.BOTTOM, pady=10)
+        self.close_button = tk.Button(self.button_frame, text="Schließen", command=self.root.destroy, font=("Arial", 14), bg="red", fg="white")
+        self.close_button.pack(side=tk.LEFT, padx=10)
+
+        # Button zum Minimieren
+        self.minimize_button = tk.Button(self.button_frame, text="Minimieren", command=self.minimize_window, font=("Arial", 14), bg="gray", fg="white")
+        self.minimize_button.pack(side=tk.LEFT, padx=10)
 
         # Bilder einmal laden
         self.icons = {}
@@ -274,3 +282,6 @@ class LivePlotApp:
             self.batt_ax.clear()
             self.batt_ax.text(0.5, 0.5, f"Fehler beim Laden der Batterie-Daten:\n{e}", ha="center", va="center")
             self.batt_canvas.draw()
+
+    def minimize_window(self):
+        self.root.iconify()  # Fenster minimieren
