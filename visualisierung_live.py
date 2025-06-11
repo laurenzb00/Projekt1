@@ -36,14 +36,14 @@ class LivePlotApp:
         self.fronius_canvas = FigureCanvasTkAgg(self.fronius_fig, master=self.fronius_frame)
         self.fronius_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # BMK Tab
+        # BMK Tab (umbenannt)
         self.bmk_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.bmk_frame, text="Heizung")
+        self.notebook.add(self.bmk_frame, text="Temperaturen 2 Tage")
         self.bmk_fig, self.bmk_ax = plt.subplots(figsize=(8, 3))
         self.bmk_canvas = FigureCanvasTkAgg(self.bmk_fig, master=self.bmk_frame)
         self.bmk_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # 1. PV-Ertrag Tab (Tagesbalken)
+        # 1. PV-Ertrag Tab (jetzt Liniendiagramm)
         self.pv_ertrag_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.pv_ertrag_frame, text="PV-Ertrag (Tage)")
         self.pv_ertrag_fig, self.pv_ertrag_ax = plt.subplots(figsize=(8, 3))
@@ -56,13 +56,6 @@ class LivePlotApp:
         self.batt_fig, self.batt_ax = plt.subplots(figsize=(8, 3))
         self.batt_canvas = FigureCanvasTkAgg(self.batt_fig, master=self.batt_frame)
         self.batt_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        # 4. Pufferspeicher Temperaturverlauf Tab
-        self.puffer_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.puffer_frame, text="Pufferspeicher Verlauf")
-        self.puffer_fig, self.puffer_ax = plt.subplots(figsize=(8, 3))
-        self.puffer_canvas = FigureCanvasTkAgg(self.puffer_fig, master=self.puffer_frame)
-        self.puffer_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
         # Zusammenfassung Tab (aktuelle Werte als große Zahlen)
         self.summary_frame = ttk.Frame(self.notebook)
@@ -88,6 +81,15 @@ class LivePlotApp:
         # *** HIER erst aufrufen: ***
         self.update_plots()
 
+    def new_method(self, icon):
+        # Caching für OffsetImage, damit nicht jedes Mal neu erzeugt wird
+        if not hasattr(self, "offset_images_cache"):
+            self.offset_images_cache = {}
+        if icon not in self.offset_images_cache:
+            # Transparenz erhalten!
+            self.offset_images_cache[icon] = OffsetImage(np.array(self.icons[icon].convert("RGBA")), zoom=0.07)
+        return self.offset_images_cache[icon]
+
     def update_plots(self):
         try:
             # Fronius-Daten plotten
@@ -97,14 +99,14 @@ class LivePlotApp:
             df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.fronius_ax.clear()
             self.fronius_ax2.clear()
-            pv_smooth = df["PV-Leistung (kW)"].rolling(window=5, min_periods=1, center=True).mean()
-            haus_smooth = df["Hausverbrauch (kW)"].rolling(window=5, min_periods=1, center=True).mean()
+            pv_smooth = df["PV-Leistung (kW)"].rolling(window=15, min_periods=1, center=True).mean()
+            haus_smooth = df["Hausverbrauch (kW)"].rolling(window=15, min_periods=1, center=True).mean()
             self.fronius_ax.plot(df["Zeitstempel"], pv_smooth, label="PV-Leistung (kW, geglättet)", color="orange")
             self.fronius_ax.plot(df["Zeitstempel"], haus_smooth, label="Hausverbrauch (kW, geglättet)", color="lightblue")
             self.fronius_ax.set_ylabel("Leistung (kW)")
             self.fronius_ax.set_xlabel("Zeit")
             self.fronius_ax.set_ylim(0, 10)
-            self.fronius_ax.grid(True, which='both', linestyle='--', alpha=0.5)
+            self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
             self.fronius_ax.legend(loc="upper left")
             self.fronius_ax2.plot(df["Zeitstempel"], df["Batterieladestand (%)"], label="Batterieladestand (%)", color="purple", linestyle="--")
             self.fronius_ax2.set_ylabel("Batterieladestand (%)")
@@ -134,7 +136,7 @@ class LivePlotApp:
                 self.bmk_ax.plot(df["Zeitstempel"], df["Warmwasser"], label="Warmwasser (°C)", color="green")
             self.bmk_ax.set_ylabel("Temperatur (°C)")
             self.bmk_ax.set_xlabel("Zeit")
-            self.bmk_ax.grid(True, which='both', linestyle='--', alpha=0.5)
+            self.bmk_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
             self.bmk_ax.legend()
             self.bmk_fig.autofmt_xdate()
             # X-Achsen-Beschriftung größer
@@ -224,19 +226,20 @@ class LivePlotApp:
             # Automatisch nach Intervall neu laden
             self.root.after(UPDATE_INTERVAL, self.update_plots)
 
-        # 1. PV-Ertrag (Tagesbalken)
+        # 1. PV-Ertrag (Tage) als Liniendiagramm
         try:
             df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             df = df.set_index("Zeitstempel")
-            # PV-Ertrag pro Tag (Summe der PV-Leistung in kWh, Annahme: Messung jede Minute)
             df["PV_kWh"] = df["PV-Leistung (kW)"] / 60  # kWh pro Minute
             pv_per_day = df["PV_kWh"].resample("D").sum()
             self.pv_ertrag_ax.clear()
-            pv_per_day.plot(kind="bar", ax=self.pv_ertrag_ax, color="orange")
+            self.pv_ertrag_ax.plot(pv_per_day.index, pv_per_day.values, marker="o", color="orange", label="PV-Ertrag (kWh)")
             self.pv_ertrag_ax.set_ylabel("PV-Ertrag (kWh)")
             self.pv_ertrag_ax.set_title("PV-Ertrag pro Tag")
             self.pv_ertrag_ax.set_xlabel("Datum")
             self.pv_ertrag_ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
+            self.pv_ertrag_ax.legend()
+            self.pv_ertrag_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
             self.pv_ertrag_fig.autofmt_xdate()
             self.pv_ertrag_canvas.draw()
         except Exception as e:
@@ -253,43 +256,10 @@ class LivePlotApp:
             self.batt_ax.set_title("Batterieladestand Verlauf")
             self.batt_ax.set_xlabel("Zeit")
             self.batt_ax.set_ylim(0, 100)
+            self.batt_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
             self.batt_fig.autofmt_xdate()
             self.batt_canvas.draw()
         except Exception as e:
             self.batt_ax.clear()
             self.batt_ax.text(0.5, 0.5, f"Fehler beim Laden der Batterie-Daten:\n{e}", ha="center", va="center")
             self.batt_canvas.draw()
-
-        # 4. Pufferspeicher Temperaturverlauf
-        try:
-            df = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
-            self.puffer_ax.clear()
-            if "Pufferspeicher Oben" in df.columns:
-                self.puffer_ax.plot(df["Zeitstempel"], df["Pufferspeicher Oben"], label="Oben", color="red")
-            if "Pufferspeicher Mitte" in df.columns:
-                self.puffer_ax.plot(df["Zeitstempel"], df["Pufferspeicher Mitte"], label="Mitte", color="orange")
-            if "Pufferspeicher Unten" in df.columns:
-                self.puffer_ax.plot(df["Zeitstempel"], df["Pufferspeicher Unten"], label="Unten", color="blue")
-            if "Warmwasser" in df.columns:
-                self.puffer_ax.plot(df["Zeitstempel"], df["Warmwasser"], label="Warmwasser", color="green")
-            self.puffer_ax.set_ylabel("Temperatur (°C)")
-            self.puffer_ax.set_title("Pufferspeicher Temperaturverlauf")
-            self.puffer_ax.set_xlabel("Zeit")
-            self.puffer_ax.legend()
-            self.puffer_fig.autofmt_xdate()
-            self.puffer_canvas.draw()
-        except Exception as e:
-            self.puffer_ax.clear()
-            self.puffer_ax.text(0.5, 0.5, f"Fehler beim Laden der Pufferspeicher-Daten:\n{e}", ha="center", va="center")
-            self.puffer_canvas.draw()
-
-    def new_method(self, icon):
-        if icon not in self.offset_images_cache:
-            # Transparenz erhalten!
-            self.offset_images_cache[icon] = OffsetImage(np.array(self.icons[icon].convert("RGBA")), zoom=0.07)
-        return self.offset_images_cache[icon]
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = LivePlotApp(root)
-    root.mainloop()
