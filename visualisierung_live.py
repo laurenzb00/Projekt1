@@ -1,13 +1,14 @@
-import tkinter as tk
-from tkinter import ttk
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from PIL import Image
+from tkinter import ttk
+import tkinter as tk
 import os
-import datetime
+from PIL import Image
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib.patches import Rectangle
+import matplotlib.dates as mdates
+import numpy as np
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -42,7 +43,28 @@ class LivePlotApp:
         self.bmk_canvas = FigureCanvasTkAgg(self.bmk_fig, master=self.bmk_frame)
         self.bmk_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # Zusammenfassung Tab
+        # 1. PV-Ertrag Tab (Tagesbalken)
+        self.pv_ertrag_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.pv_ertrag_frame, text="PV-Ertrag (Tage)")
+        self.pv_ertrag_fig, self.pv_ertrag_ax = plt.subplots(figsize=(8, 3))
+        self.pv_ertrag_canvas = FigureCanvasTkAgg(self.pv_ertrag_fig, master=self.pv_ertrag_frame)
+        self.pv_ertrag_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        # 2. Batterie-Ladestand Verlauf Tab
+        self.batt_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.batt_frame, text="Batterie Verlauf")
+        self.batt_fig, self.batt_ax = plt.subplots(figsize=(8, 3))
+        self.batt_canvas = FigureCanvasTkAgg(self.batt_fig, master=self.batt_frame)
+        self.batt_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        # 4. Pufferspeicher Temperaturverlauf Tab
+        self.puffer_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.puffer_frame, text="Pufferspeicher Verlauf")
+        self.puffer_fig, self.puffer_ax = plt.subplots(figsize=(8, 3))
+        self.puffer_canvas = FigureCanvasTkAgg(self.puffer_fig, master=self.puffer_frame)
+        self.puffer_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        # Zusammenfassung Tab (aktuelle Werte als große Zahlen)
         self.summary_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.summary_frame, text="Zusammenfassung")
         self.summary_fig, self.summary_ax = plt.subplots(figsize=(8, 3))
@@ -55,6 +77,7 @@ class LivePlotApp:
 
         # Bilder einmal laden
         self.icons = {}
+        self.offset_images_cache = {}
         for icon in ["temperature.png", "outdoor.png", "battery.png", "house.png", "power.png"]:
             path = os.path.join(WORKING_DIRECTORY, "icons", icon)
             if os.path.exists(path):
@@ -62,6 +85,7 @@ class LivePlotApp:
         bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
         self.bg_img = Image.open(bg_path).resize((1024, 600), Image.LANCZOS) if os.path.exists(bg_path) else None
 
+        # *** HIER erst aufrufen: ***
         self.update_plots()
 
     def update_plots(self):
@@ -126,54 +150,64 @@ class LivePlotApp:
         try:
             df_fronius = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             df_bmk = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
-            last_fronius = df_fronius.sort_values("Zeitstempel").iloc[-1]
-            last_bmk = df_bmk.sort_values("Zeitstempel").iloc[-1]
+            if not df_fronius.empty:
+                last_fronius = df_fronius.sort_values("Zeitstempel").iloc[-1]
+            else:
+                last_fronius = {}
+            if not df_bmk.empty:
+                last_bmk = df_bmk.sort_values("Zeitstempel").iloc[-1]
+            else:
+                last_bmk = {}
+
             self.summary_ax.clear()
             self.summary_ax.axis('off')
 
             # Hintergrundbild (randlos)
-            if self.bg_img:
+            if self.bg_img is not None:
                 self.summary_ax.imshow(self.bg_img, extent=[0, 1, -0.25, 1.05], aspect='auto', zorder=0)
 
             # Halbtransparenter Kasten
             rect = Rectangle(
-                (0, -0.25),    # Start unten links (x, y)
-                1,             # Breite (x-Richtung)
-                1.3,           # Höhe (y-Richtung, etwas mehr als 1.05-(-0.25))
-                linewidth=0,
-                edgecolor=None,
-                facecolor='white',
-                alpha=0.6,
-                zorder=1
+                (0, -0.25), 1, 1.3,
+                facecolor='white', alpha=0.3, zorder=1
             )
             self.summary_ax.add_patch(rect)
 
             # Werte extrahieren
-            puffer_oben = last_bmk.get("Pufferspeicher Oben", 0)
-            puffer_mitte = last_bmk.get("Pufferspeicher Mitte", 0)
-            puffer_unten = last_bmk.get("Pufferspeicher Unten", 0)
-            kessel = last_bmk.get("Kesseltemperatur", 0)
-            aussen = last_bmk.get("Außentemperatur", 0)
-            soc = last_fronius.get("Batterieladestand (%)", 0)
-            haus = last_fronius.get("Hausverbrauch (kW)", 0)
-            netz = last_fronius.get("Netz-Leistung (kW)", 0)
-            warmwasser = last_bmk.get("Warmwasser", 0)
+            puffer_oben = last_bmk.get("Pufferspeicher Oben", "n/a")
+            puffer_mitte = last_bmk.get("Pufferspeicher Mitte", "n/a")
+            puffer_unten = last_bmk.get("Pufferspeicher Unten", "n/a")
+            kessel = last_bmk.get("Kesseltemperatur", "n/a")
+            aussen = last_bmk.get("Außentemperatur", "n/a")
+            soc = last_fronius.get("Batterieladestand (%)", "n/a")
 
-            # Positionen für Icons und Werte (x, y)
+            haus = last_fronius.get("Hausverbrauch (kW)", "n/a")
+            netz = last_fronius.get("Netz-Leistung (kW)", "n/a")
+
+            # Auf 2 Nachkommastellen runden, falls Wert vorhanden und Zahl
+            def fmt2(val):
+                try:
+                    return f"{float(val):.2f}"
+                except:
+                    return val
+
+            haus = fmt2(haus)
+            netz = fmt2(netz)
+
             icon_positions = [
-                ("temperature.png", 0.18, 0.85, f"{puffer_oben:.1f} °C", "Puffertemperatur Oben"),
-                ("temperature.png", 0.18, 0.70, f"{puffer_mitte:.1f} °C", "Puffertemperatur Mitte"),
-                ("temperature.png", 0.18, 0.55, f"{puffer_unten:.1f} °C", "Puffertemperatur Unten"),
-                ("temperature.png", 0.18, 0.40, f"{kessel:.1f} °C", "Kesseltemperatur"),
-                ("outdoor.png",     0.18, 0.25, f"{aussen:.1f} °C", "Außentemperatur"),
-                ("battery.png",     0.18, 0.10, f"{soc:.1f} %", "Batterieladestand"),
-                ("house.png",       0.18, -0.05, f"{haus:.1f} kW", "Hausverbrauch"),
-                ("power.png",       0.18, -0.20, f"{netz:.1f} kW", "Netz-Leistung"),
+                ("temperature.png", 0.18, 0.85, f"{puffer_oben} °C", "Puffertemperatur Oben"),
+                ("temperature.png", 0.18, 0.70, f"{puffer_mitte} °C", "Puffertemperatur Mitte"),
+                ("temperature.png", 0.18, 0.55, f"{puffer_unten} °C", "Puffertemperatur Unten"),
+                ("temperature.png", 0.18, 0.40, f"{kessel} °C", "Kesseltemperatur"),
+                ("outdoor.png",     0.18, 0.25, f"{aussen} °C", "Außentemperatur"),
+                ("battery.png",     0.18, 0.10, f"{soc} %", "Batterieladestand"),
+                ("house.png",       0.18, -0.05, f"{haus} kW", "Hausverbrauch"),
+                ("power.png",       0.18, -0.20, f"{netz} kW", "Netz-Leistung"),
             ]
 
             for icon, x, y, value, label in icon_positions:
                 if icon in self.icons:
-                    oi = OffsetImage(self.icons[icon], zoom=0.07)
+                    oi = self.new_method(icon)
                     ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5,0.5), zorder=2)
                     self.summary_ax.add_artist(ab)
                 self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="black", va="center", ha="left", weight="bold", zorder=3)
@@ -189,6 +223,71 @@ class LivePlotApp:
         finally:
             # Automatisch nach Intervall neu laden
             self.root.after(UPDATE_INTERVAL, self.update_plots)
+
+        # 1. PV-Ertrag (Tagesbalken)
+        try:
+            df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
+            df = df.set_index("Zeitstempel")
+            # PV-Ertrag pro Tag (Summe der PV-Leistung in kWh, Annahme: Messung jede Minute)
+            df["PV_kWh"] = df["PV-Leistung (kW)"] / 60  # kWh pro Minute
+            pv_per_day = df["PV_kWh"].resample("D").sum()
+            self.pv_ertrag_ax.clear()
+            pv_per_day.plot(kind="bar", ax=self.pv_ertrag_ax, color="orange")
+            self.pv_ertrag_ax.set_ylabel("PV-Ertrag (kWh)")
+            self.pv_ertrag_ax.set_title("PV-Ertrag pro Tag")
+            self.pv_ertrag_ax.set_xlabel("Datum")
+            self.pv_ertrag_ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
+            self.pv_ertrag_fig.autofmt_xdate()
+            self.pv_ertrag_canvas.draw()
+        except Exception as e:
+            self.pv_ertrag_ax.clear()
+            self.pv_ertrag_ax.text(0.5, 0.5, f"Fehler beim Laden der PV-Ertragsdaten:\n{e}", ha="center", va="center")
+            self.pv_ertrag_canvas.draw()
+
+        # 2. Batterie-Ladestand Verlauf
+        try:
+            df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
+            self.batt_ax.clear()
+            self.batt_ax.plot(df["Zeitstempel"], df["Batterieladestand (%)"], color="purple")
+            self.batt_ax.set_ylabel("Batterieladestand (%)")
+            self.batt_ax.set_title("Batterieladestand Verlauf")
+            self.batt_ax.set_xlabel("Zeit")
+            self.batt_ax.set_ylim(0, 100)
+            self.batt_fig.autofmt_xdate()
+            self.batt_canvas.draw()
+        except Exception as e:
+            self.batt_ax.clear()
+            self.batt_ax.text(0.5, 0.5, f"Fehler beim Laden der Batterie-Daten:\n{e}", ha="center", va="center")
+            self.batt_canvas.draw()
+
+        # 4. Pufferspeicher Temperaturverlauf
+        try:
+            df = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
+            self.puffer_ax.clear()
+            if "Pufferspeicher Oben" in df.columns:
+                self.puffer_ax.plot(df["Zeitstempel"], df["Pufferspeicher Oben"], label="Oben", color="red")
+            if "Pufferspeicher Mitte" in df.columns:
+                self.puffer_ax.plot(df["Zeitstempel"], df["Pufferspeicher Mitte"], label="Mitte", color="orange")
+            if "Pufferspeicher Unten" in df.columns:
+                self.puffer_ax.plot(df["Zeitstempel"], df["Pufferspeicher Unten"], label="Unten", color="blue")
+            if "Warmwasser" in df.columns:
+                self.puffer_ax.plot(df["Zeitstempel"], df["Warmwasser"], label="Warmwasser", color="green")
+            self.puffer_ax.set_ylabel("Temperatur (°C)")
+            self.puffer_ax.set_title("Pufferspeicher Temperaturverlauf")
+            self.puffer_ax.set_xlabel("Zeit")
+            self.puffer_ax.legend()
+            self.puffer_fig.autofmt_xdate()
+            self.puffer_canvas.draw()
+        except Exception as e:
+            self.puffer_ax.clear()
+            self.puffer_ax.text(0.5, 0.5, f"Fehler beim Laden der Pufferspeicher-Daten:\n{e}", ha="center", va="center")
+            self.puffer_canvas.draw()
+
+    def new_method(self, icon):
+        if icon not in self.offset_images_cache:
+            # Transparenz erhalten!
+            self.offset_images_cache[icon] = OffsetImage(np.array(self.icons[icon].convert("RGBA")), zoom=0.07)
+        return self.offset_images_cache[icon]
 
 if __name__ == "__main__":
     root = tk.Tk()
