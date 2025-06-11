@@ -99,8 +99,8 @@ class LivePlotApp:
             df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.fronius_ax.clear()
             self.fronius_ax2.clear()
-            pv_smooth = df["PV-Leistung (kW)"].rolling(window=15, min_periods=1, center=True).mean()
-            haus_smooth = df["Hausverbrauch (kW)"].rolling(window=15, min_periods=1, center=True).mean()
+            pv_smooth = df["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
+            haus_smooth = df["Hausverbrauch (kW)"].rolling(window=20, min_periods=1, center=True).mean()
             self.fronius_ax.plot(df["Zeitstempel"], pv_smooth, label="PV-Leistung (kW, geglättet)", color="orange")
             self.fronius_ax.plot(df["Zeitstempel"], haus_smooth, label="Hausverbrauch (kW, geglättet)", color="lightblue")
             self.fronius_ax.set_ylabel("Leistung (kW)")
