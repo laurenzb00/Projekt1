@@ -10,6 +10,8 @@ from matplotlib.patches import Rectangle
 import matplotlib.dates as mdates
 import numpy as np
 import matplotlib.ticker as mticker  # Am Anfang der Datei ergänzen
+from tkinter import StringVar
+from datetime import datetime
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -87,7 +89,25 @@ class LivePlotApp:
         bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
         self.bg_img = Image.open(bg_path).resize((1024, 600), Image.LANCZOS) if os.path.exists(bg_path) else None
 
-        # *** HIER erst aufrufen: ***
+        # Zeitbereich Auswahl
+        self.time_range_var = StringVar(value="48h")
+        self.time_range_box = ttk.Combobox(
+            root,
+            textvariable=self.time_range_var,
+            values=["24h", "48h", "7d", "30d"],
+            state="readonly",
+            font=("Arial", 12),
+            width=7
+        )
+        self.time_range_box.pack(side=tk.TOP, pady=5)
+        self.time_range_box.bind("<<ComboboxSelected>>", lambda e: self.update_plots())
+
+        # Direkt nach self.button_frame.pack(...) im Konstruktor einfügen:
+        self.status_var = StringVar(value="Letztes Update: -")
+        self.status_label = tk.Label(self.root, textvariable=self.status_var, font=("Arial", 10), anchor="w")
+        self.status_label.pack(side=tk.TOP, fill=tk.X)
+
+        # Dann erst:
         self.update_plots()
 
     def new_method(self, icon):
@@ -100,12 +120,15 @@ class LivePlotApp:
         return self.offset_images_cache[icon]
 
     def update_plots(self):
+        self.status_var.set(f"Letztes Update: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
         try:
             # Fronius-Daten plotten
             df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             # Nur die letzten 48h
+            range_map = {"24h": 24, "48h": 48, "7d": 24*7, "30d": 24*30}
+            hours = range_map.get(self.time_range_var.get(), 48)
             now = pd.Timestamp.now()
-            df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
+            df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=hours)]
             self.fronius_ax.clear()
             self.fronius_ax2.clear()
             pv_smooth = df["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
