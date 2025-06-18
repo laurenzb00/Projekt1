@@ -189,6 +189,9 @@ class LivePlotApp:
         try:
             df_fronius = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             df_bmk = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
+            now = pd.Timestamp.now()
+            df_fronius = df_fronius[df_fronius["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
+            df_bmk = df_bmk[df_bmk["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             if not df_fronius.empty:
                 last_fronius = df_fronius.sort_values("Zeitstempel").iloc[-1]
             else:
