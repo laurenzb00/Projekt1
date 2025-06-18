@@ -90,17 +90,17 @@ class LivePlotApp:
         self.bg_img = Image.open(bg_path).resize((1024, 600), Image.LANCZOS) if os.path.exists(bg_path) else None
 
         # Zeitbereich Auswahl
-        self.time_range_var = StringVar(value="48h")
-        self.time_range_box = ttk.Combobox(
-            root,
-            textvariable=self.time_range_var,
-            values=["24h", "48h", "7d", "30d"],
-            state="readonly",
-            font=("Arial", 12),
-            width=7
-        )
-        self.time_range_box.pack(side=tk.TOP, pady=5)
-        self.time_range_box.bind("<<ComboboxSelected>>", lambda e: self.update_plots())
+        # self.time_range_var = StringVar(value="48h")
+        # self.time_range_box = ttk.Combobox(
+        #     root,
+        #     textvariable=self.time_range_var,
+        #     values=["24h", "48h", "7d", "30d"],
+        #     state="readonly",
+        #     font=("Arial", 12),
+        #     width=7
+        # )
+        # self.time_range_box.pack(side=tk.TOP, pady=5)
+        # self.time_range_box.bind("<<ComboboxSelected>>", lambda e: self.update_plots())
 
         # Direkt nach self.button_frame.pack(...) im Konstruktor einfügen:
         self.status_var = StringVar(value="Letztes Update: -")
@@ -124,9 +124,8 @@ class LivePlotApp:
         try:
             # Fronius-Daten plotten
             df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
-            # Nur die letzten 48h
-            range_map = {"24h": 24, "48h": 48, "7d": 24*7, "30d": 24*30}
-            hours = range_map.get(self.time_range_var.get(), 48)
+            # Immer die letzten 48h anzeigen
+            hours = 48
             now = pd.Timestamp.now()
             df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=hours)]
             self.fronius_ax.clear()
