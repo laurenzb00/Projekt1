@@ -89,18 +89,7 @@ class LivePlotApp:
         bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
         self.bg_img = Image.open(bg_path).resize((1024, 600), Image.LANCZOS) if os.path.exists(bg_path) else None
 
-        # Zeitbereich Auswahl
-        # self.time_range_var = StringVar(value="48h")
-        # self.time_range_box = ttk.Combobox(
-        #     root,
-        #     textvariable=self.time_range_var,
-        #     values=["24h", "48h", "7d", "30d"],
-        #     state="readonly",
-        #     font=("Arial", 12),
-        #     width=7
-        # )
-        # self.time_range_box.pack(side=tk.TOP, pady=5)
-        # self.time_range_box.bind("<<ComboboxSelected>>", lambda e: self.update_plots())
+       
 
         # Direkt nach self.button_frame.pack(...) im Konstruktor einfügen:
         self.status_var = StringVar(value="Letztes Update: -")
@@ -270,10 +259,24 @@ class LivePlotApp:
         try:
             df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             df = df.set_index("Zeitstempel")
-            df["PV_kWh"] = df["PV-Leistung (kW)"] / 60  # kWh pro Minute
-            pv_per_day = df["PV_kWh"].resample("D").sum()
+            df = df.sort_index()
+            # Nur die letzten 30 Tage anzeigen (optional)
+            df = df[df.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
+            # Tagesertrag mit Trapezregel berechnen
+            pv_per_day = []
+            for day, group in df.groupby(df.index.date):
+                if len(group) > 1:
+                    # Zeit in Stunden seit Tagesbeginn
+                    t = (group.index - group.index[0]).total_seconds() / 3600
+                    y = group["PV-Leistung (kW)"].values
+                    kwh = np.trapz(y, t)
+                    pv_per_day.append((pd.Timestamp(day), kwh))
+            if pv_per_day:
+                days, kwhs = zip(*pv_per_day)
+            else:
+                days, kwhs = [], []
             self.pv_ertrag_ax.clear()
-            self.pv_ertrag_ax.plot(pv_per_day.index, pv_per_day.values, marker="o", color="orange", label="PV-Ertrag (kWh)")
+            self.pv_ertrag_ax.plot(days, kwhs, marker="o", color="orange", label="PV-Ertrag (kWh)")
             self.pv_ertrag_ax.set_ylabel("PV-Ertrag (kWh)")
             self.pv_ertrag_ax.set_title("PV-Ertrag pro Tag")
             self.pv_ertrag_ax.set_xlabel("Datum")
@@ -281,7 +284,7 @@ class LivePlotApp:
             self.pv_ertrag_ax.legend()
             self.pv_ertrag_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
             self.pv_ertrag_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
-            self.pv_ertrag_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')  # <--- HIER
+            self.pv_ertrag_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')
             self.pv_ertrag_fig.autofmt_xdate()
             self.pv_ertrag_canvas.draw()
         except Exception as e:

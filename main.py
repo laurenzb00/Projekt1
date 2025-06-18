@@ -3,7 +3,7 @@ import logging
 import time
 import Wechselrichter
 import BMKDATEN
-import visualisierung_live  # <--- NEU: Live-Visualisierung importieren
+import visualisierung_live  
 
 logging.basicConfig(filename="datenerfassung.log", level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
