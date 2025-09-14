@@ -29,6 +29,8 @@ def main():
 
     # Starte die Live-Visualisierung im Hauptthread
     root = visualisierung_live.tk.Tk()
+    root.attributes("-fullscreen", True)
+    root.overrideredirect(True)  # Taskbar und Fensterrahmen ausblenden
     app = visualisierung_live.LivePlotApp(root)
 
     # --- Spotify Integration ---
@@ -197,6 +199,18 @@ def main():
     shuffle_btn.config(command=set_shuffle)
     repeat_btn.config(command=set_repeat)
     volume_scale.config(command=set_volume)
+
+    def resize_elements(event):
+        w = event.width
+        h = event.height
+        # Beispiel: Albumcover dynamisch skalieren
+        size = min(w, h) // 3
+        album_img_label.config(width=size, height=size)
+        progress_bar.config(length=int(w * 0.4))
+        volume_scale.config(length=int(w * 0.4))
+        device_box.config(width=int(w // 30))
+
+    root.bind("<Configure>", resize_elements)
 
     update_spotify()
     # --- Ende Spotify Integration ---
