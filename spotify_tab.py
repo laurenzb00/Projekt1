@@ -1,18 +1,21 @@
 import logging
 import threading
 import queue
+import os
+import webbrowser
+import time
 
 import visualisierung_live
 
 
 class SpotifyTab:
     """
-    Spotify-Integration als eigener Tab:
-    - Authentifizierung asynchron
-    - Anzeige von Cover/Titel/Künstler/Album + Fortschritt
-    - Gerätewahl, Play/Pause, Next/Prev, Shuffle/Repeat
-    - Schöne Lautstärke-Steuerung (Mute, +/-10, Prozentanzeige, Debounce)
-    - Suche über Tracks/Alben/Playlists und korrektes Abspielen
+    Spotify-Tab mit stabiler OAuth:
+    - Kein automatisches Browser-Poppen mehr (open_browser=False)
+    - Einmaliger Login via Button, Token in .cache-spotify gespeichert
+    - Danach nie wieder Browser nötig
+    - Suche Tracks/Alben/Playlists + korrektes Abspielen (mit device_id)
+    - Lautstärke UI (Mute/±10/Debounce/Label)
     """
 
     def __init__(self, root, notebook):
@@ -23,10 +26,12 @@ class SpotifyTab:
         self.alive = True
         self.ready = False
         self.sp = None
+        self.oauth = None
         self.device_ids = []
+        self.current_device_id = None
         self.image_queue = queue.Queue()
 
-        # Lautstärke-Steuerung / Debounce
+        # Lautstärke/Debounce
         self._vol_after = None
         self._user_adjusting = False
         self._pre_mute_volume = 30
@@ -46,59 +51,52 @@ class SpotifyTab:
         # Tab-Placeholder
         self.tab_frame = visualisierung_live.ttk.Frame(self.notebook, style="Dark.TFrame")
         self.notebook.add(self.tab_frame, text="Spotify")
+        self._build_prelogin_ui()
 
-        info = visualisierung_live.ttk.Label(
-            self.tab_frame,
-            text="Spotify wird verbunden…",
-            style="Dark.TLabel",
-            anchor="center",
-            justify="center"
-        )
-        info.pack(padx=20, pady=20, fill="x")
-
-        # Auth in separatem Thread
-        threading.Thread(target=self._auth_thread, daemon=True).start()
+        # OAuth in separatem Thread initialisieren
+        threading.Thread(target=self._oauth_init_thread, daemon=True).start()
 
     def stop(self):
         self.alive = False
 
-    # ---------- Auth ----------
-    def _auth_thread(self):
-        try:
-            import spotipy
-            from spotipy.oauth2 import SpotifyOAuth
-
-            self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-                client_id="8cff12b3245a4e4088d5751360f62705",
-                client_secret="af9ecfa466504d7795416a3f2c66f5c5",
-                redirect_uri="http://127.0.0.1:8888/callback",
-                scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
-                open_browser=True
-            ))
-            self.ready = True
-            logging.info("Spotify: Authentifizierung erfolgreich.")
-            self.root.after(0, self._build_ui)
-            self.root.after(0, self.update_spotify)
-        except Exception as e:
-            logging.error(f"Spotify-Authentifizierung fehlgeschlagen: {e}")
-            self.root.after(0, self._auth_failed_ui, str(e))
-
-    def _auth_failed_ui(self, msg):
+    # ---------- UI-Abschnitte ----------
+    def _clear_tab(self):
         for w in self.tab_frame.winfo_children():
             w.destroy()
-        label = visualisierung_live.ttk.Label(
-            self.tab_frame,
-            text=f"Spotify-Login fehlgeschlagen:\n{msg}\nGUI läuft weiter.",
-            style="Dark.TLabel",
-            anchor="center",
-            justify="center"
+
+    def _build_prelogin_ui(self, error_msg=None):
+        self._clear_tab()
+        wrapper = visualisierung_live.tk.Frame(self.tab_frame, bg="#222")
+        wrapper.pack(fill="both", expand=True)
+        title = visualisierung_live.ttk.Label(wrapper, text="Spotify", style="Dark.TLabel", font=("Arial", 18, "bold"))
+        title.pack(pady=(24, 8))
+
+        info_txt = "Noch nicht bei Spotify angemeldet."
+        if error_msg:
+            info_txt = f"Spotify-Login fehlgeschlagen:\n{error_msg}"
+
+        info = visualisierung_live.ttk.Label(wrapper, text=info_txt, style="Dark.TLabel", anchor="center", justify="center")
+        info.pack(pady=6)
+
+        self.login_btn = visualisierung_live.ttk.Button(
+            wrapper, text="🔐 Login im Browser öffnen", style="Dark.TButton",
+            command=self._open_login_in_browser
         )
-        label.pack(padx=20, pady=20, fill="x")
+        self.login_btn.pack(pady=10)
 
-    # ---------- UI ----------
+        hint = visualisierung_live.ttk.Label(
+            wrapper,
+            text="Nach dem Login dieses Fenster geöffnet lassen.\nDer Token wird gespeichert und künftig automatisch verwendet.",
+            style="Dark.TLabel"
+        )
+        hint.pack(pady=(4, 12))
+
+        self.status_lbl_var = visualisierung_live.tk.StringVar(value="Status: warte auf Login…")
+        status_lbl = visualisierung_live.ttk.Label(wrapper, textvariable=self.status_lbl_var, style="Dark.TLabel")
+        status_lbl.pack(pady=(4, 10))
+
     def _build_ui(self):
-        for w in self.tab_frame.winfo_children():
-            w.destroy()
+        self._clear_tab()
 
         main = visualisierung_live.tk.Frame(self.tab_frame, bg="#222")
         main.pack(fill="both", expand=True)
@@ -115,9 +113,8 @@ class SpotifyTab:
 
         # Titel/Artist/Album
         song_label = visualisierung_live.ttk.Label(
-            right, textvariable=self.song_var,
-            style="Dark.TLabel", anchor="center", justify="center",
-            font=("Arial", 20, "bold")
+            right, textvariable=self.song_var, style="Dark.TLabel",
+            anchor="center", justify="center", font=("Arial", 20, "bold")
         )
         song_label.pack(pady=10, fill="x")
 
@@ -129,13 +126,12 @@ class SpotifyTab:
 
         # Geräte
         self.device_box = visualisierung_live.ttk.Combobox(
-            right, textvariable=self.device_var, font=("Arial", 14),
-            width=30, state="readonly"
+            right, textvariable=self.device_var, font=("Arial", 14), width=30, state="readonly"
         )
         self.device_box.pack(pady=10)
         self.device_box.bind("<<ComboboxSelected>>", self.set_device)
 
-        # Transport-Buttons
+        # Transport
         btns = visualisierung_live.tk.Frame(right, bg="#222")
         btns.pack(pady=16)
         self.prev_btn = visualisierung_live.ttk.Button(btns, text="⏮", style="Dark.TButton", width=6, command=self.prev_track)
@@ -149,7 +145,7 @@ class SpotifyTab:
         self.shuffle_btn.grid(row=1, column=0, columnspan=2, pady=8)
         self.repeat_btn.grid(row=1, column=2, pady=8)
 
-        # Lautstärke-Steuerung
+        # Lautstärke
         vol_container = visualisierung_live.tk.Frame(right, bg="#222")
         vol_container.pack(pady=6, fill="x")
         self.mute_btn = visualisierung_live.ttk.Button(vol_container, text="🔇", style="Dark.TButton", width=4, command=self.toggle_mute)
@@ -178,28 +174,134 @@ class SpotifyTab:
         self.result_box.pack(pady=8)
         self.result_box.bind("<<ComboboxSelected>>", self.play_selected)
 
+    # ---------- OAuth / Login ----------
+    def _oauth_init_thread(self):
+        """Initialisiert SpotifyOAuth ohne Browser-Popup & prüft Cache."""
+        try:
+            import spotipy
+            from spotipy.oauth2 import SpotifyOAuth
+
+            cache_path = os.path.join(os.path.abspath(os.getcwd()), ".cache-spotify")
+            self.oauth = SpotifyOAuth(
+                client_id="8cff12b3245a4e4088d5751360f62705",
+                client_secret="af9ecfa466504d7795416a3f2c66f5c5",
+                redirect_uri="http://127.0.0.1:8888/callback",
+                scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
+                cache_path=cache_path,
+                open_browser=False,    # <<< verhindert das flackernde Chromium-Fenster
+                show_dialog=False
+            )
+
+            # 1) Token aus Cache?
+            token_info = self.oauth.get_cached_token()
+            if token_info:
+                self.sp = spotipy.Spotify(auth_manager=self.oauth)
+                self.ready = True
+                logging.info("Spotify: Token aus Cache geladen.")
+                self.root.after(0, self._build_ui)
+                self.root.after(0, self.update_spotify)
+                return
+
+            # 2) Kein Token → Pre-Login-UI bleibt, wir warten asynchron auf Login
+            #    (der User klickt den Button; wir blockieren hier nicht)
+            logging.info("Spotify: kein Token im Cache. Warte auf Login…")
+
+        except Exception as e:
+            logging.error(f"Spotify-OAuth Initialisierung fehlgeschlagen: {e}")
+            self.root.after(0, self._build_prelogin_ui, str(e))
+
+    def _open_login_in_browser(self):
+        """Öffnet die Login-Seite einmalig und wartet in einem Thread auf den Token."""
+        if not self.oauth:
+            return
+        try:
+            url = self.oauth.get_authorize_url()
+            webbrowser.open_new(url)
+            if hasattr(self, "status_lbl_var"):
+                self.status_lbl_var.set("Status: Browser geöffnet. Bitte Login abschließen…")
+
+            # In Thread auf Token warten (blockiert nicht die GUI)
+            threading.Thread(target=self._wait_for_token_thread, daemon=True).start()
+        except Exception as e:
+            logging.error(f"Login-URL öffnen fehlgeschlagen: {e}")
+            if hasattr(self, "status_lbl_var"):
+                self.status_lbl_var.set(f"Fehler: {e}")
+
+    def _wait_for_token_thread(self):
+        """Wartet auf den Access-Token (lokaler Callback nach Login)."""
+        try:
+            # get_access_token öffnet KEINEN Browser, startet aber den lokalen Callback-Server
+            token_info = self.oauth.get_access_token(as_dict=True)
+            if token_info and token_info.get("access_token"):
+                import spotipy
+                self.sp = spotipy.Spotify(auth_manager=self.oauth)
+                self.ready = True
+                logging.info("Spotify: Login erfolgreich, Token gespeichert.")
+                self.root.after(0, self._build_ui)
+                self.root.after(0, self.update_spotify)
+            else:
+                raise RuntimeError("Konnte keinen Access-Token erhalten.")
+        except Exception as e:
+            logging.error(f"Spotify-Login fehlgeschlagen: {e}")
+            self.root.after(0, self._build_prelogin_ui, str(e))
+
     # ---------- Geräte ----------
     def _update_devices(self):
+        if not self.sp:
+            return
         try:
             devices = self.sp.devices().get("devices", [])
             names = [f"{d.get('name','?')} ({d.get('type','?')})" for d in devices]
-            self.device_ids = [d.get("id") for d in devices]
+            ids = [d.get("id") for d in devices]
+            self.device_ids = ids
             self.device_box["values"] = names
-            if names and (self.device_var.get() not in names):
-                self.device_var.set(names[0])
+
+            try:
+                pb = self.sp.current_playback()
+                active_dev = (pb or {}).get("device") or {}
+                active_id = active_dev.get("id")
+                if active_id:
+                    self.current_device_id = active_id
+                    for i, did in enumerate(ids):
+                        if did == active_id and i < len(names):
+                            self.device_var.set(names[i])
+                            break
+            except Exception:
+                pass
+
+            if not self.current_device_id and ids:
+                self.current_device_id = ids[0]
+                if names:
+                    self.device_var.set(names[0])
+
             if not names:
                 self.device_var.set("Kein Gerät gefunden")
+
         except Exception as e:
             logging.error(f"Spotify Geräte Fehler: {e}")
             self.device_box["values"] = []
             self.device_var.set("Kein Gerät gefunden")
             self.device_ids = []
+            self.current_device_id = None
+
+    def _ensure_active_device(self):
+        self._update_devices()
+        if not self.current_device_id and self.device_ids:
+            self.current_device_id = self.device_ids[0]
+        if self.current_device_id and self.sp:
+            try:
+                self.sp.transfer_playback(self.current_device_id, force_play=True)
+            except Exception as e:
+                logging.debug(f"transfer_playback Hinweis: {e}")
+        return self.current_device_id
 
     def set_device(self, event=None):
         idx = self.device_box.current()
         if 0 <= idx < len(self.device_ids) and self.device_ids[idx]:
+            self.current_device_id = self.device_ids[idx]
             try:
-                self.sp.transfer_playback(self.device_ids[idx], force_play=True)
+                if self.sp:
+                    self.sp.transfer_playback(self.current_device_id, force_play=True)
             except Exception as e:
                 logging.error(f"Spotify set_device Fehler: {e}")
 
@@ -217,7 +319,9 @@ class SpotifyTab:
 
     # ---------- Update ----------
     def update_spotify(self):
-        if not self.alive or not self.ready:
+        if not self.alive or not self.ready or not self.sp:
+            # in 5 s erneut probieren, falls ready später wird
+            self.root.after(5000, self.update_spotify)
             return
         try:
             pb = self.sp.current_playback()
@@ -227,14 +331,17 @@ class SpotifyTab:
                 artist = item.get("artists", [{}])[0].get("name", "?")
                 album = item.get("album", {}).get("name", "?")
                 self.song_var.set(f"{name}\n{artist}\nAlbum: {album}")
+
                 images = item.get("album", {}).get("images", [])
                 if images:
                     img_url = images[0].get("url")
                     if img_url:
                         threading.Thread(target=self.fetch_cover, args=(img_url,), daemon=True).start()
+
                 duration = item.get("duration_ms") or 0
                 progress = pb.get("progress_ms") or 0
                 self.progress_var.set((progress / duration * 100) if duration else 0)
+
                 dev = pb.get("device") or {}
                 vol = dev.get("volume_percent")
                 if vol is not None:
@@ -245,57 +352,88 @@ class SpotifyTab:
                     self._update_mute_icon(int(vol))
                     if int(vol) > 0:
                         self._pre_mute_volume = int(vol)
+
+                did = (pb.get("device") or {}).get("id")
+                if did:
+                    self.current_device_id = did
             else:
                 self.song_var.set("Kein Song läuft")
                 self.progress_var.set(0.0)
+
         except Exception as e:
             logging.error(f"Spotify Update Fehler: {e}")
             self.song_var.set("Spotify Fehler")
+
         if not self.image_queue.empty():
             tk_img = self.image_queue.get()
             self.album_img_label.configure(image=tk_img)
             self.album_img_label.image = tk_img
+
         self._update_devices()
         if self.alive:
             self.root.after(5000, self.update_spotify)
 
     # ---------- Controls ----------
+    def _start_playback(self, *, uris=None, context_uri=None):
+        device_id = self._ensure_active_device()
+        if not device_id or not self.sp:
+            self.song_var.set("Kein Gerät verfügbar – Spotify am Handy/PC öffnen.")
+            return
+        try:
+            if uris:
+                self.sp.start_playback(device_id=device_id, uris=uris)
+            elif context_uri:
+                self.sp.start_playback(device_id=device_id, context_uri=context_uri)
+            else:
+                self.sp.start_playback(device_id=device_id)
+        except Exception as e:
+            logging.error(f"start_playback Fehler: {e}")
+            self.song_var.set(f"Abspielen fehlgeschlagen ({e})")
+
     def play_pause(self):
         try:
+            if not self.sp:
+                return
             pb = self.sp.current_playback()
             if pb and pb.get("is_playing"):
-                self.sp.pause_playback()
+                self.sp.pause_playback(device_id=self.current_device_id or None)
             else:
-                self.sp.start_playback()
+                self._start_playback()
         except Exception as e:
             logging.error(f"Spotify play/pause Fehler: {e}")
 
     def next_track(self):
         try:
-            self.sp.next_track()
+            if self.sp:
+                self.sp.next_track(device_id=self.current_device_id or None)
         except Exception as e:
             logging.error(f"Spotify next Fehler: {e}")
 
     def prev_track(self):
         try:
-            self.sp.previous_track()
+            if self.sp:
+                self.sp.previous_track(device_id=self.current_device_id or None)
         except Exception as e:
             logging.error(f"Spotify prev Fehler: {e}")
 
     def set_shuffle(self):
         try:
+            if not self.sp:
+                return
             pb = self.sp.current_playback()
             state = pb.get("shuffle_state", False) if pb else False
-            self.sp.shuffle(not state)
+            self.sp.shuffle(not state, device_id=self.current_device_id or None)
         except Exception as e:
             logging.error(f"Spotify shuffle Fehler: {e}")
 
     def set_repeat(self):
         try:
+            if not self.sp:
+                return
             pb = self.sp.current_playback()
             state = pb.get("repeat_state", "off") if pb else "off"
             new_state = "track" if state == "off" else "off"
-            self.sp.repeat(new_state)
+            self.sp.repeat(new_state, device_id=self.current_device_id or None)
         except Exception as e:
             logging.error(f"Spotify repeat Fehler: {e}")
 
@@ -305,7 +443,8 @@ class SpotifyTab:
 
     def _send_volume(self, vol_int):
         try:
-            self.sp.volume(int(vol_int))
+            if self.sp:
+                self.sp.volume(int(vol_int), device_id=self.current_device_id or None)
         except Exception as e:
             logging.error(f"Spotify volume Fehler: {e}")
 
@@ -368,15 +507,13 @@ class SpotifyTab:
 
     # ---------- Suche ----------
     def do_search(self):
-        if not self.ready:
+        if not self.ready or not self.sp:
             return
         q = (self.search_entry_var.get() or "").strip()
         if not q:
             return
         try:
-            # Ein Call für alle Typen; robust gegen None
             res = self.sp.search(q=q, type="track,album,playlist", limit=10) or {}
-
             tracks = ((res.get("tracks") or {}).get("items")) or []
             albums = ((res.get("albums") or {}).get("items")) or []
             playlists = ((res.get("playlists") or {}).get("items")) or []
@@ -428,3 +565,17 @@ class SpotifyTab:
             logging.error(f"Spotify Suche Fehler: {e}")
             self.result_box["values"] = ["Suche fehlgeschlagen (Netzwerk/Rate-Limit?)"]
             self.search_var.set("Suche fehlgeschlagen (Netzwerk/Rate-Limit?)")
+
+    def play_selected(self, event=None):
+        if not self.ready or not self.sp:
+            return
+        disp = self.search_var.get()
+        meta = self.result_cache.get(disp)
+        if not meta:
+            return
+        if meta["type"] == "track" and meta.get("uri"):
+            self._start_playback(uris=[meta["uri"]])
+            self.song_var.set(f"Spiele: {disp}")
+        elif meta["type"] in ("album", "playlist") and meta.get("context_uri"):
+            self._start_playback(context_uri=meta["context_uri"])
+            self.song_var.set(f"Spiele aus: {disp}")

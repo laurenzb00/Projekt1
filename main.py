@@ -1,12 +1,10 @@
-
 import threading
 import logging
-import queue
 import visualisierung_live
 import Wechselrichter
 import BMKDATEN
 
-from spotify_tab import SpotifyTab  # <--- NEU
+from spotify_tab import SpotifyTab
 
 # --- Logging: Datei + Konsole ---
 logging.basicConfig(
@@ -50,6 +48,7 @@ def main():
     # --- GUI ---
     root = visualisierung_live.tk.Tk()
     root.geometry("1024x600")  # feste Auflösung
+    root.resizable(False, False)
     app = visualisierung_live.LivePlotApp(root)
 
     # --- Spotify-Tab (eigene Datei) ---
@@ -59,7 +58,7 @@ def main():
         logging.info("Programm wird beendet…")
         shutdown_event.set()
         try:
-            spotify.stop()  # Update-Schleifen sauber beenden
+            spotify.stop()
         except Exception:
             pass
         root.destroy()
