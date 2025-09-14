@@ -82,3 +82,205 @@ Traceback (most recent call last):
     self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _tkinter.TclError: image "pyimage8" doesn't exist
+2025-09-14 09:48:44,005 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 09:48:44,005 [WARNING] Using 'localhost' as a redirect URI is being deprecated. Use a loopback IP address such as 127.0.0.1 to ensure your app remains functional.
+2025-09-14 09:48:44,069 [INFO] Opened https://accounts.spotify.com/authorize?client_id=DEINE_CLIENT_ID&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fcallback&scope=user-read-currently-playing in your browser
+2025-09-14 09:49:38,608 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 09:49:38,609 [WARNING] Using 'localhost' as a redirect URI is being deprecated. Use a loopback IP address such as 127.0.0.1 to ensure your app remains functional.
+2025-09-14 09:49:38,664 [INFO] Opened https://accounts.spotify.com/authorize?client_id=DEINE_CLIENT_ID&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fcallback&scope=user-read-currently-playing in your browser
+2025-09-14 09:53:50,046 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 09:53:50,102 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing in your browser
+2025-09-14 09:54:09,776 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 09:54:09,834 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing in your browser
+2025-09-14 09:55:56,077 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 09:55:56,137 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing in your browser
+2025-09-14 09:56:13,450 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 09:56:13,504 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing in your browser
+2025-09-14 09:57:32,042 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 09:57:32,098 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing in your browser
+2025-09-14 09:59:55,442 [ERROR] HTTP Error for POST to https://api.spotify.com/v1/me/player/next with Params: {} returned 401 due to Permissions missing
+2025-09-14 09:59:58,055 [ERROR] HTTP Error for POST to https://api.spotify.com/v1/me/player/next with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:00:09,390 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player with Params: {'market': None, 'additional_types': None} returned 401 due to Permissions missing
+2025-09-14 10:18:42,181 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:47,470 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,560 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=50 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,600 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=51 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,642 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=52 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,690 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=53 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,732 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=54 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,771 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=54 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,813 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=54 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:48,858 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=55 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:49,027 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=55 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:49,068 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=55 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:49,109 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=56 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:49,157 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=58 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:50,535 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=59 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:52,196 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=60 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:52,715 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:52,756 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=61 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:53,105 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=62 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:53,411 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=63 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:53,522 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=64 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:53,626 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=65 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:53,736 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=66 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:53,839 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=67 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:53,943 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=68 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:54,054 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=69 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:54,156 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=70 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:54,266 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=71 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:54,376 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=72 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:55,865 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=72 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:55,914 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=71 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:55,954 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=69 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:55,993 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=65 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,034 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=57 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,075 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=50 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,118 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=47 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,159 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=46 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,199 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=45 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,244 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=39 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,283 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=28 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,325 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=24 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,367 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=23 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,412 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=21 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,455 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=18 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,494 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=17 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,536 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=14 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,578 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=12 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,617 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=11 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,679 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=11 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,721 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=11 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,761 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=12 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,801 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=20 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,839 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=40 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,881 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=65 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,921 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=85 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:56,962 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=91 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,001 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=91 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,039 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=92 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,370 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=92 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,410 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=88 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,450 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=77 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,492 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=65 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,533 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=49 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,572 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=37 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,612 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=30 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,655 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=27 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,710 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=27 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,757 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=27 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,950 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:57,992 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=51 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,031 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=54 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,072 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=56 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,111 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=57 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,154 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=58 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,193 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=61 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,233 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=63 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,274 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=64 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,316 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=66 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,356 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=67 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,394 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=69 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,437 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=73 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,476 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=76 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,518 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=80 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,559 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=87 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,603 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=94 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,643 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=98 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,680 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,719 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,762 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,802 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,846 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,888 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,932 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:58,970 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,170 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,209 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=100 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,255 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=97 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,296 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=87 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,339 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=79 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,381 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=67 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,423 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=61 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,463 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=61 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,507 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=60 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,551 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=60 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,593 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=60 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,637 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=59 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:18:59,692 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=59 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:01,119 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=59 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:01,164 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=57 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:01,205 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=52 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:01,245 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=48 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:01,288 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=45 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:01,329 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=42 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:01,398 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=42 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:02,129 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player with Params: {'market': None, 'additional_types': None} returned 401 due to Permissions missing
+2025-09-14 10:19:02,929 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player with Params: {'market': None, 'additional_types': None} returned 401 due to Permissions missing
+2025-09-14 10:19:03,212 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:04,136 [ERROR] HTTP Error for POST to https://api.spotify.com/v1/me/player/next with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:04,918 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player with Params: {'market': None, 'additional_types': None} returned 401 due to Permissions missing
+2025-09-14 10:19:05,675 [ERROR] HTTP Error for POST to https://api.spotify.com/v1/me/player/previous with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:08,454 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:09,689 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player with Params: {'market': None, 'additional_types': None} returned 401 due to Permissions missing
+2025-09-14 10:19:13,704 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:15,873 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=44 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:15,912 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=45 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:15,972 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=49 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:16,019 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=52 with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:18,971 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:24,197 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:29,476 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:34,762 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:39,972 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:19:45,205 [ERROR] HTTP Error for GET to https://api.spotify.com/v1/me/player/devices with Params: {} returned 401 due to Permissions missing
+2025-09-14 10:20:20,007 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 10:20:20,063 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing+user-modify-playback-state+user-read-playback-state in your browser
+2025-09-14 10:20:52,383 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 10:20:52,442 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing+user-modify-playback-state+user-read-playback-state in your browser
+2025-09-14 10:21:26,228 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 10:21:26,282 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing+user-modify-playback-state+user-read-playback-state in your browser
+2025-09-14 11:00:12,605 [INFO] User authentication requires interaction with your web browser. Once you enter your credentials and give authorization, you will be redirected to a url.  Paste that url you were directed to to complete the authorization.
+2025-09-14 11:00:12,662 [INFO] Opened https://accounts.spotify.com/authorize?client_id=8cff12b3245a4e4088d5751360f62705&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback&scope=user-read-currently-playing+user-modify-playback-state+user-read-playback-state in your browser
+2025-09-14 11:43:09,380 [INFO] Spotify: Authentifizierung erfolgreich.
+2025-09-14 11:44:26,516 [INFO] Programm wird beendet…
+2025-09-14 11:51:31,310 [INFO] Spotify: Authentifizierung erfolgreich.
+2025-09-14 11:56:36,920 [INFO] Programm wird beendet…
+2025-09-14 12:04:17,799 [INFO] Spotify: Authentifizierung erfolgreich.
+2025-09-14 12:04:39,365 [ERROR] Spotify Suche Fehler: 'NoneType' object has no attribute 'get'
+2025-09-14 12:04:40,844 [ERROR] Spotify Suche Fehler: 'NoneType' object has no attribute 'get'
+2025-09-14 12:04:45,149 [ERROR] Spotify Suche Fehler: 'NoneType' object has no attribute 'get'
+2025-09-14 12:05:00,991 [ERROR] Spotify Suche Fehler: 'NoneType' object has no attribute 'get'
+2025-09-14 12:05:02,548 [ERROR] Spotify Suche Fehler: 'NoneType' object has no attribute 'get'
+2025-09-14 12:05:04,038 [ERROR] Spotify Suche Fehler: 'NoneType' object has no attribute 'get'
+2025-09-14 12:05:21,987 [INFO] Programm wird beendet…
+2025-09-14 12:09:30,005 [INFO] Spotify: Authentifizierung erfolgreich.
+2025-09-14 12:29:26,044 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/play with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:29:26,045 [ERROR] Spotify play/pause Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/play:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:00,909 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/play with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:00,909 [ERROR] Spotify play/pause Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/play:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:03,528 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=19 with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:03,528 [ERROR] Spotify volume Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/volume?volume_percent=19:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:03,650 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=19 with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:03,651 [ERROR] Spotify volume Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/volume?volume_percent=19:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:06,100 [ERROR] HTTP Error for POST to https://api.spotify.com/v1/me/player/next with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:06,100 [ERROR] Spotify next Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/next:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:10,971 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=0 with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:10,975 [ERROR] Spotify volume Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/volume?volume_percent=0:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:11,775 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=10 with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:11,775 [ERROR] Spotify volume Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/volume?volume_percent=10:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:12,161 [ERROR] HTTP Error for PUT to https://api.spotify.com/v1/me/player/volume?volume_percent=20 with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:12,161 [ERROR] Spotify volume Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/volume?volume_percent=20:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:13,537 [ERROR] HTTP Error for POST to https://api.spotify.com/v1/me/player/next with Params: {} returned 404 due to Player command failed: No active device found
+2025-09-14 12:30:13,537 [ERROR] Spotify next Fehler: http status: 404, code: -1 - https://api.spotify.com/v1/me/player/next:
+ Player command failed: No active device found, reason: NO_ACTIVE_DEVICE
+2025-09-14 12:30:21,474 [INFO] Programm wird beendet…
+2025-09-14 13:04:49,653 [INFO] Spotify: kein Token im Cache. Warte auf Login…
