@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.style.use('dark_background')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import ttk
 import tkinter as tk
@@ -109,26 +110,28 @@ class LivePlotApp:
         return self.offset_images_cache[icon]
 
     def update_plots(self):
-        self.status_var.set(f"Letztes Update: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
         try:
+            # CSVs nur einmal laden!
+            df_fronius = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"]).copy()
+            df_bmk = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"]).copy()
+            
             # Fronius-Daten plotten
-            df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             # Immer die letzten 48h anzeigen
             hours = 48
             now = pd.Timestamp.now()
-            df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=hours)]
+            df_fronius = df_fronius[df_fronius["Zeitstempel"] >= now - pd.Timedelta(hours=hours)]
             self.fronius_ax.clear()
             self.fronius_ax2.clear()
-            pv_smooth = df["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
-            haus_smooth = df["Hausverbrauch (kW)"].rolling(window=20, min_periods=1, center=True).mean()
-            self.fronius_ax.plot(df["Zeitstempel"], pv_smooth, label="PV-Leistung (kW, geglättet)", color="orange")
-            self.fronius_ax.plot(df["Zeitstempel"], haus_smooth, label="Hausverbrauch (kW, geglättet)", color="lightblue")
+            pv_smooth = df_fronius["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
+            haus_smooth = df_fronius["Hausverbrauch (kW)"].rolling(window=20, min_periods=1, center=True).mean()
+            self.fronius_ax.plot(df_fronius["Zeitstempel"], pv_smooth, label="PV-Leistung (kW, geglättet)", color="orange")
+            self.fronius_ax.plot(df_fronius["Zeitstempel"], haus_smooth, label="Hausverbrauch (kW, geglättet)", color="lightblue")
             self.fronius_ax.set_ylabel("Leistung (kW)")
             self.fronius_ax.set_xlabel("Zeit")
             self.fronius_ax.set_ylim(0, 10)
             self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.5)  
             self.fronius_ax.legend(loc="upper left")
-            self.fronius_ax2.plot(df["Zeitstempel"], df["Batterieladestand (%)"], label="Batterieladestand (%)", color="purple", linestyle="--")
+            self.fronius_ax2.plot(df_fronius["Zeitstempel"], df_fronius["Batterieladestand (%)"], label="Batterieladestand (%)", color="purple", linestyle="--")
             self.fronius_ax2.set_ylabel("Batterieladestand (%)")
             self.fronius_ax2.set_ylim(0, 100)
             self.fronius_ax2.grid(False)
@@ -147,16 +150,15 @@ class LivePlotApp:
 
         # BMK-Daten plotten
         try:
-            df = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
             now = pd.Timestamp.now()
-            df = df[df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
+            df_bmk = df_bmk[df_bmk["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.bmk_ax.clear()
-            self.bmk_ax.plot(df["Zeitstempel"], df["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="red")
-            self.bmk_ax.plot(df["Zeitstempel"], df["Außentemperatur"], label="Außentemperatur (°C)", color="cyan")
-            if "Pufferspeicher Oben" in df.columns:
-                self.bmk_ax.plot(df["Zeitstempel"], df["Pufferspeicher Oben"], label="Pufferspeicher Oben (°C)", color="orange")
-            if "Warmwasser" in df.columns:
-                self.bmk_ax.plot(df["Zeitstempel"], df["Warmwasser"], label="Warmwasser (°C)", color="green")
+            self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="red")
+            self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Außentemperatur"], label="Außentemperatur (°C)", color="cyan")
+            if "Pufferspeicher Oben" in df_bmk.columns:
+                self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Pufferspeicher Oben"], label="Pufferspeicher Oben (°C)", color="orange")
+            if "Warmwasser" in df_bmk.columns:
+                self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Warmwasser"], label="Warmwasser (°C)", color="green")
             self.bmk_ax.set_ylabel("Temperatur (°C)")
             self.bmk_ax.set_xlabel("Zeit")
             self.bmk_ax.grid(True, which='major', linestyle='--', alpha=0.5)  # <--- HIER
