@@ -21,6 +21,53 @@ BMK_CSV = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv")
 
 UPDATE_INTERVAL = 60 * 1000  # 1 Minute
 
+# Wie viele Zeilen maximal aus den CSVs gelesen werden (Tail)
+# Fronius: 1 s Takt, ~7 Tage ≈ 7 * 24 * 3600 = 604800 Zeilen
+MAX_FRONIUS_ROWS = 700_000
+# BMK: 60 s Takt, 7 Tage ≈ 10080 Zeilen -> 20k ist locker
+MAX_BMK_ROWS = 20_000
+
+FRONIUS_DISPLAY_HOURS = 48
+PV_ERTRAG_DAYS = 7  # statt 30 Tage, um RAM zu sparen
+
+
+def read_csv_tail(path: str, max_rows: int, **kwargs) -> pd.DataFrame:
+    """
+    Liest nur die letzten max_rows Datenzeilen einer CSV (Header bleibt erhalten),
+    ohne alles in den RAM zu laden und ohne skiprows-Liste mit Millionen Indizes.
+    """
+    # 1) Zeilen zählen
+    try:
+        total_lines = 0
+        with open(path, "r", encoding="utf-8") as f:
+            for total_lines, _ in enumerate(f, start=1):
+                pass
+    except FileNotFoundError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Fehler beim Lesen von {path}: {e}")
+
+    if total_lines == 0:
+        return pd.DataFrame()
+
+    # Wenn Datei ohnehin klein ist: komplett lesen
+    # 1 Header + max_rows Datenzeilen
+    if total_lines <= max_rows + 1:
+        return pd.read_csv(path, **kwargs)
+
+    # Ansonsten: alles vor (total_lines - max_rows) verwerfen (außer Header)
+    first_data_line = 1  # Header ist Zeile 0
+    cut_from = max(first_data_line + 1, total_lines - max_rows)
+
+    def _skiprows(i: int) -> bool:
+        # i == 0 -> Header behalten
+        if i == 0:
+            return False
+        # alle Zeilen kleiner cut_from überspringen
+        return i < cut_from
+
+    return pd.read_csv(path, skiprows=_skiprows, **kwargs)
+
 
 class LivePlotApp:
     def __init__(self, root, fullscreen=True):
@@ -62,7 +109,7 @@ class LivePlotApp:
 
         # PV-Ertrag Tab
         self.pv_ertrag_frame = ttk.Frame(self.notebook, style="Dark.TFrame")
-        self.notebook.add(self.pv_ertrag_frame, text="PV-Ertrag (Tage)")
+        self.notebook.add(self.pv_ertrag_frame, text=f"PV-Ertrag ({PV_ERTRAG_DAYS} Tage)")
         self.pv_ertrag_fig, self.pv_ertrag_ax = plt.subplots(figsize=(8, 3))
         self.pv_ertrag_canvas = FigureCanvasTkAgg(self.pv_ertrag_fig, master=self.pv_ertrag_frame)
         self.pv_ertrag_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -111,7 +158,9 @@ class LivePlotApp:
         if not hasattr(self, "offset_images_cache"):
             self.offset_images_cache = {}
         if icon not in self.offset_images_cache and icon in self.icons:
-            self.offset_images_cache[icon] = OffsetImage(np.array(self.icons[icon].convert("RGBA")), zoom=0.07)
+            self.offset_images_cache[icon] = OffsetImage(
+                np.array(self.icons[icon].convert("RGBA")), zoom=0.07
+            )
         return self.offset_images_cache.get(icon)
 
     def _downsample(self, df, time_col, max_points=2000):
@@ -135,10 +184,12 @@ class LivePlotApp:
         # Fronius-Daten
         if os.path.exists(FRONIUS_CSV):
             try:
-                fronius_df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
+                fronius_df = read_csv_tail(
+                    FRONIUS_CSV,
+                    MAX_FRONIUS_ROWS,
+                    parse_dates=["Zeitstempel"],
+                )
                 fronius_df = fronius_df.sort_values("Zeitstempel")
-                # Begrenzung auf die letzten 30 Tage
-                fronius_df = fronius_df[fronius_df["Zeitstempel"] >= now - pd.Timedelta(days=30)]
             except Exception as e:
                 fronius_df = None
                 fronius_error = e
@@ -148,10 +199,12 @@ class LivePlotApp:
         # BMK-Daten
         if os.path.exists(BMK_CSV):
             try:
-                bmk_df = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
+                bmk_df = read_csv_tail(
+                    BMK_CSV,
+                    MAX_BMK_ROWS,
+                    parse_dates=["Zeitstempel"],
+                )
                 bmk_df = bmk_df.sort_values("Zeitstempel")
-                # optional: auf 30 Tage begrenzen
-                bmk_df = bmk_df[bmk_df["Zeitstempel"] >= now - pd.Timedelta(days=30)]
             except Exception as e:
                 bmk_df = None
                 bmk_error = e
@@ -168,11 +221,10 @@ class LivePlotApp:
             elif fronius_df is None or fronius_df.empty:
                 self.fronius_ax.text(0.5, 0.5, "Keine Fronius-Daten in den letzten 48h", ha="center", va="center")
             else:
-                df_48 = fronius_df[fronius_df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
+                df_48 = fronius_df[fronius_df["Zeitstempel"] >= now - pd.Timedelta(hours=FRONIUS_DISPLAY_HOURS)]
                 if df_48.empty:
                     self.fronius_ax.text(0.5, 0.5, "Keine Fronius-Daten in den letzten 48h", ha="center", va="center")
                 else:
-                    # Downsampling für schnellere Plots
                     df_48 = self._downsample(df_48, "Zeitstempel", max_points=2000)
 
                     pv_smooth = df_48["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
@@ -225,7 +277,6 @@ class LivePlotApp:
                 if df_bmk_48.empty:
                     self.bmk_ax.text(0.5, 0.5, "Keine BMK-Daten in den letzten 48h", ha="center", va="center")
                 else:
-                    # Downsampling
                     df_bmk_48 = self._downsample(df_bmk_48, "Zeitstempel", max_points=2000)
 
                     if "Kesseltemperatur" in df_bmk_48.columns:
@@ -261,10 +312,10 @@ class LivePlotApp:
             self.pv_ertrag_ax.clear()
 
             if fronius_error is not None or fronius_df is None or fronius_df.empty:
-                self.pv_ertrag_ax.text(0.5, 0.5, "Keine PV-Ertragsdaten (30 Tage)", ha="center", va="center")
+                self.pv_ertrag_ax.text(0.5, 0.5, f"Keine PV-Ertragsdaten ({PV_ERTRAG_DAYS} Tage)", ha="center", va="center")
             else:
                 df_pv = fronius_df.set_index("Zeitstempel")
-                df_pv = df_pv[df_pv.index >= now - pd.Timedelta(days=30)]
+                df_pv = df_pv[df_pv.index >= now - pd.Timedelta(days=PV_ERTRAG_DAYS)]
 
                 pv_per_day = []
                 if not df_pv.empty:
@@ -280,10 +331,10 @@ class LivePlotApp:
                     self.pv_ertrag_ax.plot(days, kwhs, marker="o", color="orange", label="PV-Ertrag (kWh)")
                     self.pv_ertrag_ax.legend()
                 else:
-                    self.pv_ertrag_ax.text(0.5, 0.5, "Keine PV-Ertragsdaten (30 Tage)", ha="center", va="center")
+                    self.pv_ertrag_ax.text(0.5, 0.5, f"Keine PV-Ertragsdaten ({PV_ERTRAG_DAYS} Tage)", ha="center", va="center")
 
             self.pv_ertrag_ax.set_ylabel("PV-Ertrag (kWh)")
-            self.pv_ertrag_ax.set_title("PV-Ertrag pro Tag")
+            self.pv_ertrag_ax.set_title(f"PV-Ertrag pro Tag (letzte {PV_ERTRAG_DAYS} Tage)")
             self.pv_ertrag_ax.set_xlabel("Datum")
             self.pv_ertrag_ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
             self.pv_ertrag_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
