@@ -277,7 +277,6 @@ class LivePlotApp:
                  font=("Arial", 16, "bold")).pack(anchor="w")
         tk.Label(weather_frame, textvariable=self.dashboard_aussen_var, bg=self.bg_color, fg=self.fg_color,
                  font=("Arial", 24)).pack(anchor="w", pady=(5, 0))
-        # Optional: „Wetter-Icon“: einfach Text (Sonne / Wolkig) aus Tendenz
         self.dashboard_weather_label = tk.Label(weather_frame, text="", bg=self.bg_color, fg=self.fg_color,
                                                 font=("Arial", 14))
         self.dashboard_weather_label.pack(anchor="w")
@@ -301,13 +300,23 @@ class LivePlotApp:
 
     # ---------- Hilfsfunktionen ----------
     def new_method(self, icon):
+        """
+        Liefert für ein Icon einen NEUEN OffsetImage-Artist.
+        Es wird nur das Bild-Array gecached, nicht der Artist selbst,
+        damit wir das Icon in mehreren Figuren/Achsen verwenden können.
+        """
         if not hasattr(self, "offset_images_cache"):
             self.offset_images_cache = {}
-        if icon not in self.offset_images_cache and icon in self.icons:
-            self.offset_images_cache[icon] = OffsetImage(
-                np.array(self.icons[icon].convert("RGBA")), zoom=0.07
-            )
-        return self.offset_images_cache.get(icon)
+
+        if icon in self.icons:
+            # Bilddaten einmal cachen
+            if icon not in self.offset_images_cache:
+                self.offset_images_cache[icon] = np.array(self.icons[icon].convert("RGBA"))
+            img_arr = self.offset_images_cache[icon]
+            # Für jeden Einsatz neuen Artist erzeugen
+            return OffsetImage(img_arr, zoom=0.07)
+
+        return None
 
     def _downsample(self, df, time_col, max_points=2000):
         """Reduziert die Anzahl der Datenpunkte für schnelleres Plotten."""
@@ -341,6 +350,7 @@ class LivePlotApp:
         haus_today_kwh = None
         eigenverbrauch_quote = None
         autarkie = None
+        day_label = None  # Tag, für den wir die Statistik berechnen
 
         # Fronius-Daten
         if os.path.exists(FRONIUS_CSV):
@@ -352,9 +362,12 @@ class LivePlotApp:
                 )
                 fronius_df = fronius_df.sort_values("Zeitstempel")
 
-                # Tageswerte PV / Haus / Eigenverbrauch
                 if not fronius_df.empty:
-                    df_today_f = fronius_df[fronius_df["Zeitstempel"].dt.date == now.date()].copy()
+                    # Referenztag = letzter Tag im Datensatz (funktioniert auch,
+                    # wenn die Daten z.B. von April sind und heute ein anderer Tag ist)
+                    day_label = fronius_df["Zeitstempel"].dt.date.iloc[-1]
+                    df_today_f = fronius_df[fronius_df["Zeitstempel"].dt.date == day_label].copy()
+
                     if len(df_today_f) > 1:
                         t_hours = (df_today_f["Zeitstempel"] - df_today_f["Zeitstempel"].iloc[0]).dt.total_seconds() / 3600.0
                         pv_y = df_today_f["PV-Leistung (kW)"].values
@@ -538,7 +551,16 @@ class LivePlotApp:
                                            va="center", color=self.fg_color)
 
             self.pv_ertrag_ax.set_ylabel("PV-Ertrag (kWh)", color=self.fg_color)
-            self.pv_ertrag_ax.set_title(f"PV-Ertrag pro Tag (letzte {PV_ERTRAG_DAYS} Tage)", color=self.fg_color)
+            if day_label is not None:
+                self.pv_ertrag_ax.set_title(
+                    f"PV-Ertrag pro Tag (letzte {PV_ERTRAG_DAYS} Tage, letzte Daten: {day_label})",
+                    color=self.fg_color
+                )
+            else:
+                self.pv_ertrag_ax.set_title(
+                    f"PV-Ertrag pro Tag (letzte {PV_ERTRAG_DAYS} Tage)",
+                    color=self.fg_color
+                )
             self.pv_ertrag_ax.set_xlabel("Datum", color=self.fg_color)
             self.pv_ertrag_ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
             self.pv_ertrag_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
@@ -900,7 +922,13 @@ class LivePlotApp:
                     quality = "ein guter PV-Tag"
                 else:
                     quality = "ein sehr guter PV-Tag"
-                line1 = f"Heute war bisher {quality}. Bis jetzt wurden {pv_today_kwh:.1f} kWh PV-Energie erzeugt."
+
+                if day_label is not None:
+                    date_str = pd.Timestamp(day_label).strftime("%d.%m.%Y")
+                    line1 = f"Für den Tag {date_str} war es {quality}. Es wurden {pv_today_kwh:.1f} kWh PV-Energie erzeugt."
+                else:
+                    line1 = f"Heute war bisher {quality}. Bis jetzt wurden {pv_today_kwh:.1f} kWh PV-Energie erzeugt."
+
                 line2 = f"Der Hausverbrauch liegt bei {haus_today_kwh:.1f} kWh."
                 if eigenverbrauch_quote is not None:
                     line2 += f" Davon wurden etwa {eigenverbrauch_quote * 100:,.0f}% direkt aus PV gedeckt."
