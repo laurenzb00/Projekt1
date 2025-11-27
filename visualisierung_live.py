@@ -114,6 +114,15 @@ class LivePlotApp:
             self.offset_images_cache[icon] = OffsetImage(np.array(self.icons[icon].convert("RGBA")), zoom=0.07)
         return self.offset_images_cache.get(icon)
 
+    def _downsample(self, df, time_col, max_points=2000):
+        """Reduziert die Anzahl der Datenpunkte für schnelleres Plotten."""
+        if df is None or df.empty:
+            return df
+        if len(df) <= max_points:
+            return df
+        step = max(len(df) // max_points, 1)
+        return df.iloc[::step].reset_index(drop=True)
+
     def update_plots(self):
         now = pd.Timestamp.now()
 
@@ -163,6 +172,9 @@ class LivePlotApp:
                 if df_48.empty:
                     self.fronius_ax.text(0.5, 0.5, "Keine Fronius-Daten in den letzten 48h", ha="center", va="center")
                 else:
+                    # Downsampling für schnellere Plots
+                    df_48 = self._downsample(df_48, "Zeitstempel", max_points=2000)
+
                     pv_smooth = df_48["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
                     haus_smooth = df_48["Hausverbrauch (kW)"].rolling(window=20, min_periods=1, center=True).mean()
 
@@ -213,6 +225,9 @@ class LivePlotApp:
                 if df_bmk_48.empty:
                     self.bmk_ax.text(0.5, 0.5, "Keine BMK-Daten in den letzten 48h", ha="center", va="center")
                 else:
+                    # Downsampling
+                    df_bmk_48 = self._downsample(df_bmk_48, "Zeitstempel", max_points=2000)
+
                     if "Kesseltemperatur" in df_bmk_48.columns:
                         self.bmk_ax.plot(df_bmk_48["Zeitstempel"], df_bmk_48["Kesseltemperatur"],
                                          label="Kesseltemperatur (°C)", color="red")
@@ -289,7 +304,8 @@ class LivePlotApp:
                 self.batt_ax.text(0.5, 0.5, "Keine Batteriedaten vorhanden", ha="center", va="center")
             else:
                 if "Batterieladestand (%)" in fronius_df.columns:
-                    self.batt_ax.plot(fronius_df["Zeitstempel"], fronius_df["Batterieladestand (%)"], color="purple")
+                    df_batt = self._downsample(fronius_df, "Zeitstempel", max_points=2000)
+                    self.batt_ax.plot(df_batt["Zeitstempel"], df_batt["Batterieladestand (%)"], color="purple")
                     self.batt_ax.set_ylim(0, 100)
                 else:
                     self.batt_ax.text(0.5, 0.5, "Keine Batteriedaten vorhanden", ha="center", va="center")
