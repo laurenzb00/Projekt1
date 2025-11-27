@@ -1,17 +1,18 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-plt.style.use('dark_background')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from tkinter import ttk
-import tkinter as tk
 import os
-from PIL import Image
+from tkinter import StringVar
+import tkinter as tk
+from tkinter import ttk
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+plt.style.use("dark_background")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib.patches import Rectangle
 import matplotlib.dates as mdates
-import numpy as np
 import matplotlib.ticker as mticker
-from tkinter import StringVar
+from PIL import Image
 
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
@@ -105,6 +106,7 @@ class LivePlotApp:
 
         self.update_plots()
 
+    # Icon-Caching für die Zusammenfassung
     def new_method(self, icon):
         if not hasattr(self, "offset_images_cache"):
             self.offset_images_cache = {}
@@ -113,98 +115,158 @@ class LivePlotApp:
         return self.offset_images_cache.get(icon)
 
     def update_plots(self):
-        # --- Fronius ---
+        now = pd.Timestamp.now()
+
+        # ---------- CSVs nur EINMAL einlesen ----------
+        fronius_df = None
+        bmk_df = None
+        fronius_error = None
+        bmk_error = None
+
+        # Fronius-Daten
+        if os.path.exists(FRONIUS_CSV):
+            try:
+                fronius_df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
+                fronius_df = fronius_df.sort_values("Zeitstempel")
+                # Begrenzung auf die letzten 30 Tage
+                fronius_df = fronius_df[fronius_df["Zeitstempel"] >= now - pd.Timedelta(days=30)]
+            except Exception as e:
+                fronius_df = None
+                fronius_error = e
+        else:
+            fronius_error = FileNotFoundError(f"{FRONIUS_CSV} nicht gefunden")
+
+        # BMK-Daten
+        if os.path.exists(BMK_CSV):
+            try:
+                bmk_df = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
+                bmk_df = bmk_df.sort_values("Zeitstempel")
+                # optional: auf 30 Tage begrenzen
+                bmk_df = bmk_df[bmk_df["Zeitstempel"] >= now - pd.Timedelta(days=30)]
+            except Exception as e:
+                bmk_df = None
+                bmk_error = e
+        else:
+            bmk_error = FileNotFoundError(f"{BMK_CSV} nicht gefunden")
+
+        # ---------- Fronius-Tab (48h) ----------
         try:
-            if not os.path.exists(FRONIUS_CSV):
-                raise FileNotFoundError(f"{FRONIUS_CSV} nicht gefunden")
-            df_fronius = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"]).copy()
-            hours = 48
-            now = pd.Timestamp.now()
-            df_fronius = df_fronius[df_fronius["Zeitstempel"] >= now - pd.Timedelta(hours=hours)]
             self.fronius_ax.clear()
             self.fronius_ax2.clear()
-            if not df_fronius.empty:
-                pv_smooth = df_fronius["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
-                haus_smooth = df_fronius["Hausverbrauch (kW)"].rolling(window=20, min_periods=1, center=True).mean()
-                self.fronius_ax.plot(df_fronius["Zeitstempel"], pv_smooth, label="PV-Leistung (kW, geglättet)", color="orange")
-                self.fronius_ax.plot(df_fronius["Zeitstempel"], haus_smooth, label="Hausverbrauch (kW, geglättet)", color="lightblue")
-                self.fronius_ax.set_ylabel("Leistung (kW)")
-                self.fronius_ax.set_xlabel("Zeit")
-                self.fronius_ax.set_ylim(0, max(10, float(pv_smooth.max() or 0) * 1.2))
-                self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.5)
-                self.fronius_ax.legend(loc="upper left")
-                self.fronius_ax2.plot(df_fronius["Zeitstempel"], df_fronius["Batterieladestand (%)"], label="Batterieladestand (%)", color="purple", linestyle="--")
-                self.fronius_ax2.set_ylabel("Batterieladestand (%)")
-                self.fronius_ax2.set_ylim(0, 100)
-                self.fronius_ax2.grid(False)
-                self.fronius_ax2.legend(loc="upper right")
-                self.fronius_fig.autofmt_xdate()
-                self.fronius_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-                self.fronius_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
-                self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')
-            else:
-                self.fronius_ax.clear()
+
+            if fronius_error is not None:
+                self.fronius_ax.text(0.5, 0.5, f"Fehler Fronius:\n{fronius_error}", ha="center", va="center")
+            elif fronius_df is None or fronius_df.empty:
                 self.fronius_ax.text(0.5, 0.5, "Keine Fronius-Daten in den letzten 48h", ha="center", va="center")
+            else:
+                df_48 = fronius_df[fronius_df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
+                if df_48.empty:
+                    self.fronius_ax.text(0.5, 0.5, "Keine Fronius-Daten in den letzten 48h", ha="center", va="center")
+                else:
+                    pv_smooth = df_48["PV-Leistung (kW)"].rolling(window=20, min_periods=1, center=True).mean()
+                    haus_smooth = df_48["Hausverbrauch (kW)"].rolling(window=20, min_periods=1, center=True).mean()
+
+                    self.fronius_ax.plot(df_48["Zeitstempel"], pv_smooth,
+                                         label="PV-Leistung (kW, geglättet)", color="orange")
+                    self.fronius_ax.plot(df_48["Zeitstempel"], haus_smooth,
+                                         label="Hausverbrauch (kW, geglättet)", color="lightblue")
+                    self.fronius_ax.set_ylabel("Leistung (kW)")
+                    self.fronius_ax.set_xlabel("Zeit")
+
+                    max_pv_value = pv_smooth.max()
+                    if pd.isna(max_pv_value):
+                        max_pv_value = 0.0
+                    self.fronius_ax.set_ylim(0, max(10, float(max_pv_value) * 1.2))
+
+                    self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.5)
+                    self.fronius_ax.legend(loc="upper left")
+
+                    if "Batterieladestand (%)" in df_48.columns:
+                        self.fronius_ax2.plot(df_48["Zeitstempel"], df_48["Batterieladestand (%)"],
+                                              label="Batterieladestand (%)", color="purple", linestyle="--")
+                        self.fronius_ax2.set_ylabel("Batterieladestand (%)")
+                        self.fronius_ax2.set_ylim(0, 100)
+                        self.fronius_ax2.grid(False)
+                        self.fronius_ax2.legend(loc="upper right")
+
+                    self.fronius_fig.autofmt_xdate()
+                    self.fronius_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+                    self.fronius_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
+                    self.fronius_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')
+
             self.fronius_canvas.draw()
         except Exception as e:
             self.fronius_ax.clear()
             self.fronius_ax.text(0.5, 0.5, f"Fehler Fronius:\n{e}", ha="center", va="center")
             self.fronius_canvas.draw()
 
-        # --- BMK ---
+        # ---------- BMK-Tab (48h) ----------
         try:
-            if not os.path.exists(BMK_CSV):
-                raise FileNotFoundError(f"{BMK_CSV} nicht gefunden")
-            df_bmk = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"]).copy()
-            now = pd.Timestamp.now()
-            df_bmk = df_bmk[df_bmk["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
             self.bmk_ax.clear()
-            if not df_bmk.empty:
-                if "Kesseltemperatur" in df_bmk.columns:
-                    self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Kesseltemperatur"], label="Kesseltemperatur (°C)", color="red")
-                if "Außentemperatur" in df_bmk.columns:
-                    self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Außentemperatur"], label="Außentemperatur (°C)", color="cyan")
-                if "Pufferspeicher Oben" in df_bmk.columns:
-                    self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Pufferspeicher Oben"], label="Pufferspeicher Oben (°C)", color="orange")
-                if "Warmwasser" in df_bmk.columns:
-                    self.bmk_ax.plot(df_bmk["Zeitstempel"], df_bmk["Warmwasser"], label="Warmwasser (°C)", color="green")
-                self.bmk_ax.set_ylabel("Temperatur (°C)")
-                self.bmk_ax.set_xlabel("Zeit")
-                self.bmk_ax.grid(True, which='major', linestyle='--', alpha=0.5)
-                self.bmk_ax.legend()
-                self.bmk_fig.autofmt_xdate()
-                self.bmk_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-                self.bmk_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
-                self.bmk_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')
-            else:
+
+            if bmk_error is not None:
+                self.bmk_ax.text(0.5, 0.5, f"Fehler BMK:\n{bmk_error}", ha="center", va="center")
+            elif bmk_df is None or bmk_df.empty:
                 self.bmk_ax.text(0.5, 0.5, "Keine BMK-Daten in den letzten 48h", ha="center", va="center")
+            else:
+                df_bmk_48 = bmk_df[bmk_df["Zeitstempel"] >= now - pd.Timedelta(hours=48)]
+                if df_bmk_48.empty:
+                    self.bmk_ax.text(0.5, 0.5, "Keine BMK-Daten in den letzten 48h", ha="center", va="center")
+                else:
+                    if "Kesseltemperatur" in df_bmk_48.columns:
+                        self.bmk_ax.plot(df_bmk_48["Zeitstempel"], df_bmk_48["Kesseltemperatur"],
+                                         label="Kesseltemperatur (°C)", color="red")
+                    if "Außentemperatur" in df_bmk_48.columns:
+                        self.bmk_ax.plot(df_bmk_48["Zeitstempel"], df_bmk_48["Außentemperatur"],
+                                         label="Außentemperatur (°C)", color="cyan")
+                    if "Pufferspeicher Oben" in df_bmk_48.columns:
+                        self.bmk_ax.plot(df_bmk_48["Zeitstempel"], df_bmk_48["Pufferspeicher Oben"],
+                                         label="Pufferspeicher Oben (°C)", color="orange")
+                    if "Warmwasser" in df_bmk_48.columns:
+                        self.bmk_ax.plot(df_bmk_48["Zeitstempel"], df_bmk_48["Warmwasser"],
+                                         label="Warmwasser (°C)", color="green")
+
+                    self.bmk_ax.set_ylabel("Temperatur (°C)")
+                    self.bmk_ax.set_xlabel("Zeit")
+                    self.bmk_ax.grid(True, which='major', linestyle='--', alpha=0.5)
+                    self.bmk_ax.legend()
+                    self.bmk_fig.autofmt_xdate()
+                    self.bmk_ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+                    self.bmk_ax.yaxis.set_major_locator(mticker.MaxNLocator(6))
+                    self.bmk_ax.grid(True, which='major', linestyle='--', alpha=0.7, color='#444444')
+
             self.bmk_canvas.draw()
         except Exception as e:
             self.bmk_ax.clear()
             self.bmk_ax.text(0.5, 0.5, f"Fehler BMK:\n{e}", ha="center", va="center")
             self.bmk_canvas.draw()
 
-        # --- PV-Ertrag (Tage) ---
+        # ---------- PV-Ertrag (Tage, aus Fronius) ----------
         try:
-            if not os.path.exists(FRONIUS_CSV):
-                raise FileNotFoundError(f"{FRONIUS_CSV} nicht gefunden")
-            df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
-            df = df.set_index("Zeitstempel").sort_index()
-            df = df[df.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
-            pv_per_day = []
-            for day, group in df.groupby(df.index.date):
-                if len(group) > 1:
-                    t = (group.index - group.index[0]).total_seconds() / 3600
-                    y = group["PV-Leistung (kW)"].values
-                    kwh = np.trapz(y, t)
-                    pv_per_day.append((pd.Timestamp(day), kwh))
             self.pv_ertrag_ax.clear()
-            if pv_per_day:
-                days, kwhs = zip(*pv_per_day)
-                self.pv_ertrag_ax.plot(days, kwhs, marker="o", color="orange", label="PV-Ertrag (kWh)")
-                self.pv_ertrag_ax.legend()
-            else:
+
+            if fronius_error is not None or fronius_df is None or fronius_df.empty:
                 self.pv_ertrag_ax.text(0.5, 0.5, "Keine PV-Ertragsdaten (30 Tage)", ha="center", va="center")
+            else:
+                df_pv = fronius_df.set_index("Zeitstempel")
+                df_pv = df_pv[df_pv.index >= now - pd.Timedelta(days=30)]
+
+                pv_per_day = []
+                if not df_pv.empty:
+                    for day, group in df_pv.groupby(df_pv.index.date):
+                        if len(group) > 1:
+                            t = (group.index - group.index[0]).total_seconds() / 3600
+                            y = group["PV-Leistung (kW)"].values
+                            kwh = np.trapz(y, t)
+                            pv_per_day.append((pd.Timestamp(day), kwh))
+
+                if pv_per_day:
+                    days, kwhs = zip(*pv_per_day)
+                    self.pv_ertrag_ax.plot(days, kwhs, marker="o", color="orange", label="PV-Ertrag (kWh)")
+                    self.pv_ertrag_ax.legend()
+                else:
+                    self.pv_ertrag_ax.text(0.5, 0.5, "Keine PV-Ertragsdaten (30 Tage)", ha="center", va="center")
+
             self.pv_ertrag_ax.set_ylabel("PV-Ertrag (kWh)")
             self.pv_ertrag_ax.set_title("PV-Ertrag pro Tag")
             self.pv_ertrag_ax.set_xlabel("Datum")
@@ -219,17 +281,19 @@ class LivePlotApp:
             self.pv_ertrag_ax.text(0.5, 0.5, f"Fehler PV-Ertrag:\n{e}", ha="center", va="center")
             self.pv_ertrag_canvas.draw()
 
-        # --- Batterie Verlauf ---
+        # ---------- Batterie-Verlauf ----------
         try:
-            if not os.path.exists(FRONIUS_CSV):
-                raise FileNotFoundError(f"{FRONIUS_CSV} nicht gefunden")
-            df = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
             self.batt_ax.clear()
-            if not df.empty and "Batterieladestand (%)" in df.columns:
-                self.batt_ax.plot(df["Zeitstempel"], df["Batterieladestand (%)"], color="purple")
-                self.batt_ax.set_ylim(0, 100)
-            else:
+
+            if fronius_error is not None or fronius_df is None or fronius_df.empty:
                 self.batt_ax.text(0.5, 0.5, "Keine Batteriedaten vorhanden", ha="center", va="center")
+            else:
+                if "Batterieladestand (%)" in fronius_df.columns:
+                    self.batt_ax.plot(fronius_df["Zeitstempel"], fronius_df["Batterieladestand (%)"], color="purple")
+                    self.batt_ax.set_ylim(0, 100)
+                else:
+                    self.batt_ax.text(0.5, 0.5, "Keine Batteriedaten vorhanden", ha="center", va="center")
+
             self.batt_ax.set_ylabel("Batterieladestand (%)")
             self.batt_ax.set_title("Batterieladestand Verlauf")
             self.batt_ax.set_xlabel("Zeit")
@@ -243,15 +307,14 @@ class LivePlotApp:
             self.batt_ax.text(0.5, 0.5, f"Fehler Batterie:\n{e}", ha="center", va="center")
             self.batt_canvas.draw()
 
-        # --- Zusammenfassung ---
+        # ---------- Zusammenfassung ----------
         try:
-            fr_ok = os.path.exists(FRONIUS_CSV)
-            bmk_ok = os.path.exists(BMK_CSV)
             self.summary_ax.clear()
-            self.summary_ax.axis('off')
+            self.summary_ax.axis("off")
+
             if self.bg_img is not None:
-                self.summary_ax.imshow(self.bg_img, extent=[0, 1, -0.25, 1.05], aspect='auto', zorder=0)
-            rect = Rectangle((0, -0.25), 1, 1.3, facecolor='white', alpha=0.15, zorder=1)
+                self.summary_ax.imshow(self.bg_img, extent=[0, 1, -0.25, 1.05], aspect="auto", zorder=0)
+            rect = Rectangle((0, -0.25), 1, 1.3, facecolor="white", alpha=0.15, zorder=1)
             self.summary_ax.add_patch(rect)
 
             def fmt2(val):
@@ -260,27 +323,22 @@ class LivePlotApp:
                 except Exception:
                     return val
 
-            if fr_ok:
-                df_f = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"])
-                df_f = df_f.sort_values("Zeitstempel")
-                last_f = df_f.iloc[-1] if not df_f.empty else {}
+            soc = haus = netz = "n/a"
+            puffer_oben = puffer_mitte = puffer_unten = kessel = aussen = "n/a"
+
+            if fronius_df is not None and not fronius_df.empty:
+                last_f = fronius_df.iloc[-1]
                 soc = last_f.get("Batterieladestand (%)", "n/a")
                 haus = fmt2(last_f.get("Hausverbrauch (kW)", "n/a"))
                 netz = fmt2(last_f.get("Netz-Leistung (kW)", "n/a"))
-            else:
-                soc = haus = netz = "n/a"
 
-            if bmk_ok:
-                df_b = pd.read_csv(BMK_CSV, parse_dates=["Zeitstempel"])
-                df_b = df_b.sort_values("Zeitstempel")
-                last_b = df_b.iloc[-1] if not df_b.empty else {}
+            if bmk_df is not None and not bmk_df.empty:
+                last_b = bmk_df.iloc[-1]
                 puffer_oben = last_b.get("Pufferspeicher Oben", "n/a")
                 puffer_mitte = last_b.get("Pufferspeicher Mitte", "n/a")
                 puffer_unten = last_b.get("Pufferspeicher Unten", "n/a")
                 kessel = last_b.get("Kesseltemperatur", "n/a")
                 aussen = last_b.get("Außentemperatur", "n/a")
-            else:
-                puffer_oben = puffer_mitte = puffer_unten = kessel = aussen = "n/a"
 
             icon_positions = [
                 ("temperature.png", 0.18, 0.85, f"{puffer_oben} °C", "Puffertemperatur Oben"),
@@ -298,8 +356,16 @@ class LivePlotApp:
                 if oi is not None:
                     ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5, 0.5), zorder=2)
                     self.summary_ax.add_artist(ab)
-                self.summary_ax.text(x + 0.11, y, label, fontsize=17, color="white", va="center", ha="left", weight="bold", zorder=3)
-                self.summary_ax.text(x + 0.65, y, value, fontsize=19, color="white", va="center", ha="left", weight="bold", zorder=3)
+                self.summary_ax.text(
+                    x + 0.11, y, label,
+                    fontsize=17, color="white",
+                    va="center", ha="left", weight="bold", zorder=3
+                )
+                self.summary_ax.text(
+                    x + 0.65, y, value,
+                    fontsize=19, color="white",
+                    va="center", ha="left", weight="bold", zorder=3
+                )
 
             self.summary_ax.set_xlim(0, 1)
             self.summary_ax.set_ylim(-0.25, 1.05)
@@ -314,3 +380,9 @@ class LivePlotApp:
 
     def minimize_window(self):
         self.root.iconify()
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = LivePlotApp(root)
+    root.mainloop()
