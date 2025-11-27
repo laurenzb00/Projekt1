@@ -14,6 +14,16 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 from PIL import Image
 
+import shutil
+
+# psutil ist optional – falls nicht installiert, zeigen wir es im Systemstatus-Tab an
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    psutil = None
+    HAS_PSUTIL = False
+
 WORKING_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 FRONIUS_CSV = os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv")
@@ -23,7 +33,7 @@ UPDATE_INTERVAL = 60 * 1000  # 1 Minute
 
 # CSV-Limits für RAM-schonendes Einlesen
 MAX_FRONIUS_ROWS = 700_000   # ca. 7 Tage bei 1s Takt
-MAX_BMK_ROWS = 20_000        # locker genug für viele Tage bei 60s Takt
+MAX_BMK_ROWS = 20_000        # viele Tage bei 60s Takt
 
 FRONIUS_DISPLAY_HOURS = 48
 PV_ERTRAG_DAYS = 7  # PV-Ertrag für letzte X Tage
@@ -60,6 +70,27 @@ def read_csv_tail(path: str, max_rows: int, **kwargs) -> pd.DataFrame:
         return i < cut_from
 
     return pd.read_csv(path, skiprows=_skiprows, **kwargs)
+
+
+def get_cpu_temperature() -> float | None:
+    """
+    Versucht, die CPU-/SoC-Temperatur des Systems (z. B. Raspberry Pi) auszulesen.
+    Liefert °C oder None.
+    """
+    candidates = [
+        "/sys/class/thermal/thermal_zone0/temp",
+        "/sys/class/hwmon/hwmon0/temp1_input",
+    ]
+    for p in candidates:
+        try:
+            if os.path.exists(p):
+                with open(p, "r") as f:
+                    v = f.read().strip()
+                    temp_c = int(v) / 1000.0
+                    return temp_c
+        except Exception:
+            continue
+    return None
 
 
 class LivePlotApp:
@@ -135,20 +166,42 @@ class LivePlotApp:
         self.info_canvas = FigureCanvasTkAgg(self.info_fig, master=self.info_frame)
         self.info_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+        # Systemstatus Tab
+        self.sys_frame = ttk.Frame(self.notebook, style="Dark.TFrame")
+        self.notebook.add(self.sys_frame, text="Systemstatus")
+
         # Statuszeile
         self.status_var = StringVar(value="Letztes Update: -")
         self.status_label = ttk.Label(self.root, textvariable=self.status_var, style="Dark.TLabel", anchor="w")
         self.status_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
 
-        # Button-Leiste
+        # Button-Leiste unten (touchfreundlich)
         self.button_frame = ttk.Frame(root, style="Dark.TFrame")
         self.button_frame.pack(side=tk.BOTTOM, pady=10)
-        self.close_button = ttk.Button(self.button_frame, text="Schließen", command=self.root.destroy, style="Dark.TButton")
-        self.close_button.pack(side=tk.LEFT, padx=10)
-        self.minimize_button = ttk.Button(self.button_frame, text="Minimieren", command=self.minimize_window, style="Dark.TButton")
-        self.minimize_button.pack(side=tk.LEFT, padx=10)
-        self.theme_button = ttk.Button(self.button_frame, text="Light Mode", command=self.toggle_theme, style="Dark.TButton")
-        self.theme_button.pack(side=tk.LEFT, padx=10)
+
+        self.close_button = ttk.Button(
+            self.button_frame,
+            text="Schließen",
+            command=self.root.destroy,
+            style="Dark.TButton"
+        )
+        self.close_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=6)
+
+        self.minimize_button = ttk.Button(
+            self.button_frame,
+            text="Minimieren",
+            command=self.minimize_window,
+            style="Dark.TButton"
+        )
+        self.minimize_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=6)
+
+        self.theme_button = ttk.Button(
+            self.button_frame,
+            text="Light Mode",
+            command=self.toggle_theme,
+            style="Dark.TButton"
+        )
+        self.theme_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=6)
 
         # Bilder
         self.icons = {}
@@ -172,7 +225,19 @@ class LivePlotApp:
         self.dashboard_heizstatus_var = StringVar(value="-")
         self.daily_summary_var = StringVar(value="Noch keine Auswertung verfügbar.")
 
+        # Systemstatus-Variablen
+        self.sys_cpu_var = StringVar(value="-")
+        self.sys_ram_var = StringVar(value="-")
+        self.sys_swap_var = StringVar(value="-")
+        self.sys_disk_var = StringVar(value="-")
+        self.sys_temp_var = StringVar(value="-")
+        self.sys_note_var = StringVar(
+            value="psutil nicht installiert – Systeminfos eingeschränkt."
+            if not HAS_PSUTIL else ""
+        )
+
         self._build_dashboard_ui()
+        self._build_systemstatus_ui()
 
         self.update_plots()
 
@@ -181,19 +246,48 @@ class LivePlotApp:
         bg = self.bg_color
         fg = self.fg_color
         tab_bg = "#333333" if self.dark_mode else "#dddddd"
-        tab_sel = "#555555" if self.dark_mode else "#ffffff"
+        tab_sel = "#777777" if self.dark_mode else "#ffffff"
 
-        self.style.configure("TNotebook", background=bg, borderwidth=0)
-        self.style.configure("TNotebook.Tab", background=tab_bg, foreground=fg, padding=[10, 5])
-        self.style.map("TNotebook.Tab",
-                       background=[("selected", tab_sel)],
-                       foreground=[("selected", fg)])
+        # Notebook / Tabs
+        self.style.configure(
+            "TNotebook",
+            background=bg,
+            borderwidth=0
+        )
+        self.style.configure(
+            "TNotebook.Tab",
+            background=tab_bg,
+            foreground=fg,
+            padding=[16, 8],                 # größere Tabs
+            font=("Arial", 11, "bold")       # gut lesbar auf Touch
+        )
+        self.style.map(
+            "TNotebook.Tab",
+            background=[("selected", tab_sel)],
+            foreground=[("selected", fg)]
+        )
+
+        # Frames / Labels / Buttons
         self.style.configure("Dark.TFrame", background=bg)
-        self.style.configure("Dark.TLabel", background=bg, foreground=fg)
-        self.style.configure("Dark.TButton", background=tab_bg, foreground=fg, padding=6, relief="flat")
-        self.style.map("Dark.TButton",
-                       background=[("active", tab_sel)],
-                       foreground=[("active", fg)])
+        self.style.configure(
+            "Dark.TLabel",
+            background=bg,
+            foreground=fg,
+            font=("Arial", 11)
+        )
+        self.style.configure(
+            "Dark.TButton",
+            background=tab_bg,
+            foreground=fg,
+            padding=8,                      # mehr Padding -> größere Fläche
+            relief="flat",
+            font=("Arial", 11, "bold")
+        )
+        self.style.map(
+            "Dark.TButton",
+            background=[("active", tab_sel)],
+            foreground=[("active", fg)]
+        )
 
     def toggle_theme(self):
         self.dark_mode = not self.dark_mode
@@ -210,8 +304,9 @@ class LivePlotApp:
 
         self._configure_styles()
         self.root.configure(bg=self.bg_color)
-        # Dashboard neu aufbauen, damit Farben aktualisiert werden
+        # Dashboard & Systemstatus neu aufbauen, damit Farben aktualisiert werden
         self._build_dashboard_ui(rebuild=True)
+        self._build_systemstatus_ui(rebuild=True)
         # Plots neu zeichnen mit neuen Farben
         self.update_plots()
 
@@ -231,28 +326,63 @@ class LivePlotApp:
         # PV-Ertrag heute
         pv_frame = tk.Frame(top_frame, bg=self.bg_color)
         pv_frame.pack(side="left", expand=True, fill="x")
-        tk.Label(pv_frame, text="PV-Ertrag heute", bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 16, "bold")).pack(anchor="w")
-        tk.Label(pv_frame, textvariable=self.dashboard_pv_today_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 28, "bold")).pack(anchor="w", pady=(5, 0))
+        tk.Label(
+            pv_frame,
+            text="PV-Ertrag (Referenztag)",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            pv_frame,
+            textvariable=self.dashboard_pv_today_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 28, "bold")
+        ).pack(anchor="w", pady=(5, 0))
 
         # Aktuelle Leistungen
         power_frame = tk.Frame(top_frame, bg=self.bg_color)
         power_frame.pack(side="left", expand=True, fill="x")
-        tk.Label(power_frame, text="Aktuelle Leistung", bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 16, "bold")).pack(anchor="w")
-        tk.Label(power_frame, textvariable=self.dashboard_pv_now_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 18)).pack(anchor="w")
-        tk.Label(power_frame, textvariable=self.dashboard_haus_now_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 18)).pack(anchor="w")
+        tk.Label(
+            power_frame,
+            text="Aktuelle Leistung",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            power_frame,
+            textvariable=self.dashboard_pv_now_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 18)
+        ).pack(anchor="w")
+        tk.Label(
+            power_frame,
+            textvariable=self.dashboard_haus_now_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 18)
+        ).pack(anchor="w")
 
         # Batterie
         batt_frame = tk.Frame(top_frame, bg=self.bg_color)
         batt_frame.pack(side="left", expand=True, fill="x")
-        tk.Label(batt_frame, text="Batteriestand", bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 16, "bold")).pack(anchor="w")
-        tk.Label(batt_frame, textvariable=self.dashboard_batt_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 28, "bold")).pack(anchor="w", pady=(5, 0))
+        tk.Label(
+            batt_frame,
+            text="Batteriestand",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            batt_frame,
+            textvariable=self.dashboard_batt_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 28, "bold")
+        ).pack(anchor="w", pady=(5, 0))
 
         # Mittlere Zeile: Puffer & Außentemperatur & Heizstatus
         mid_frame = tk.Frame(container, bg=self.bg_color)
@@ -261,59 +391,200 @@ class LivePlotApp:
         # Puffer
         puffer_frame = tk.Frame(mid_frame, bg=self.bg_color)
         puffer_frame.pack(side="left", expand=True, fill="x")
-        tk.Label(puffer_frame, text="Pufferspeicher", bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 16, "bold")).pack(anchor="w")
-        tk.Label(puffer_frame, textvariable=self.dashboard_puffer_oben_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 14)).pack(anchor="w")
-        tk.Label(puffer_frame, textvariable=self.dashboard_puffer_mitte_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 14)).pack(anchor="w")
-        tk.Label(puffer_frame, textvariable=self.dashboard_puffer_unten_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 14)).pack(anchor="w")
+        tk.Label(
+            puffer_frame,
+            text="Pufferspeicher",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            puffer_frame,
+            textvariable=self.dashboard_puffer_oben_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(anchor="w")
+        tk.Label(
+            puffer_frame,
+            textvariable=self.dashboard_puffer_mitte_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(anchor="w")
+        tk.Label(
+            puffer_frame,
+            textvariable=self.dashboard_puffer_unten_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(anchor="w")
 
         # Außentemperatur / Wetter
         weather_frame = tk.Frame(mid_frame, bg=self.bg_color)
         weather_frame.pack(side="left", expand=True, fill="x")
-        tk.Label(weather_frame, text="Außentemperatur", bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 16, "bold")).pack(anchor="w")
-        tk.Label(weather_frame, textvariable=self.dashboard_aussen_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 24)).pack(anchor="w", pady=(5, 0))
-        self.dashboard_weather_label = tk.Label(weather_frame, text="", bg=self.bg_color, fg=self.fg_color,
-                                                font=("Arial", 14))
+        tk.Label(
+            weather_frame,
+            text="Außentemperatur",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            weather_frame,
+            textvariable=self.dashboard_aussen_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 24)
+        ).pack(anchor="w", pady=(5, 0))
+        self.dashboard_weather_label = tk.Label(
+            weather_frame,
+            text="",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 14)
+        )
         self.dashboard_weather_label.pack(anchor="w")
 
         # Heizungsstatus
         heiz_frame = tk.Frame(mid_frame, bg=self.bg_color)
         heiz_frame.pack(side="left", expand=True, fill="x")
-        tk.Label(heiz_frame, text="Heizung", bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 16, "bold")).pack(anchor="w")
-        tk.Label(heiz_frame, textvariable=self.dashboard_heizstatus_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 14), wraplength=280, justify="left").pack(anchor="w")
+        tk.Label(
+            heiz_frame,
+            text="Heizung",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            heiz_frame,
+            textvariable=self.dashboard_heizstatus_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 14),
+            wraplength=280,
+            justify="left"
+        ).pack(anchor="w")
 
         # Untere Zeile: Tageszusammenfassung
         bottom_frame = tk.Frame(container, bg=self.bg_color)
         bottom_frame.pack(fill="both", expand=True)
 
-        tk.Label(bottom_frame, text="Tageszusammenfassung", bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 16, "bold")).pack(anchor="w")
-        tk.Label(bottom_frame, textvariable=self.daily_summary_var, bg=self.bg_color, fg=self.fg_color,
-                 font=("Arial", 12), wraplength=960, justify="left").pack(anchor="w", pady=(5, 0))
+        tk.Label(
+            bottom_frame,
+            text="Tageszusammenfassung (Referenztag)",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold")
+        ).pack(anchor="w")
+        tk.Label(
+            bottom_frame,
+            textvariable=self.daily_summary_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 12),
+            wraplength=960,
+            justify="left"
+        ).pack(anchor="w", pady=(5, 0))
+
+    # ---------- Systemstatus UI ----------
+    def _build_systemstatus_ui(self, rebuild=False):
+        if rebuild:
+            for w in self.sys_frame.winfo_children():
+                w.destroy()
+
+        container = tk.Frame(self.sys_frame, bg=self.bg_color)
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+
+        tk.Label(
+            container,
+            text="Systemstatus",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 18, "bold")
+        ).pack(anchor="w", pady=(0, 10))
+
+        if not HAS_PSUTIL:
+            tk.Label(
+                container,
+                textvariable=self.sys_note_var,
+                bg=self.bg_color,
+                fg="orange",
+                font=("Arial", 12)
+            ).pack(anchor="w", pady=(0, 10))
+
+        # Zeile 1: CPU / Temperatur
+        row1 = tk.Frame(container, bg=self.bg_color)
+        row1.pack(fill="x", pady=(5, 5))
+        tk.Label(
+            row1, text="CPU-Auslastung:", bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14, "bold")
+        ).pack(side="left")
+        tk.Label(
+            row1, textvariable=self.sys_cpu_var, bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(side="left", padx=(8, 0))
+
+        row1b = tk.Frame(container, bg=self.bg_color)
+        row1b.pack(fill="x", pady=(5, 15))
+        tk.Label(
+            row1b, text="CPU-/SoC-Temperatur:", bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14, "bold")
+        ).pack(side="left")
+        tk.Label(
+            row1b, textvariable=self.sys_temp_var, bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(side="left", padx=(8, 0))
+
+        # Zeile 2: RAM
+        row2 = tk.Frame(container, bg=self.bg_color)
+        row2.pack(fill="x", pady=(5, 5))
+        tk.Label(
+            row2, text="Arbeitsspeicher (RAM):", bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14, "bold")
+        ).pack(side="left")
+        tk.Label(
+            row2, textvariable=self.sys_ram_var, bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(side="left", padx=(8, 0))
+
+        # Zeile 3: Swap
+        row3 = tk.Frame(container, bg=self.bg_color)
+        row3.pack(fill="x", pady=(5, 5))
+        tk.Label(
+            row3, text="Swap:", bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14, "bold")
+        ).pack(side="left")
+        tk.Label(
+            row3, textvariable=self.sys_swap_var, bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(side="left", padx=(8, 0))
+
+        # Zeile 4: Disk
+        row4 = tk.Frame(container, bg=self.bg_color)
+        row4.pack(fill="x", pady=(5, 5))
+        tk.Label(
+            row4, text="Speicher (Root-Partition):", bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14, "bold")
+        ).pack(side="left")
+        tk.Label(
+            row4, textvariable=self.sys_disk_var, bg=self.bg_color, fg=self.fg_color,
+            font=("Arial", 14)
+        ).pack(side="left", padx=(8, 0))
 
     # ---------- Hilfsfunktionen ----------
     def new_method(self, icon):
         """
         Liefert für ein Icon einen NEUEN OffsetImage-Artist.
-        Es wird nur das Bild-Array gecached, nicht der Artist selbst,
-        damit wir das Icon in mehreren Figuren/Achsen verwenden können.
+        Es wird nur das Bild-Array gecached, nicht der Artist selbst.
         """
         if not hasattr(self, "offset_images_cache"):
             self.offset_images_cache = {}
 
         if icon in self.icons:
-            # Bilddaten einmal cachen
             if icon not in self.offset_images_cache:
                 self.offset_images_cache[icon] = np.array(self.icons[icon].convert("RGBA"))
             img_arr = self.offset_images_cache[icon]
-            # Für jeden Einsatz neuen Artist erzeugen
             return OffsetImage(img_arr, zoom=0.07)
 
         return None
@@ -350,7 +621,7 @@ class LivePlotApp:
         haus_today_kwh = None
         eigenverbrauch_quote = None
         autarkie = None
-        day_label = None  # Tag, für den wir die Statistik berechnen
+        day_label = None  # Referenztag
 
         # Fronius-Daten
         if os.path.exists(FRONIUS_CSV):
@@ -363,8 +634,7 @@ class LivePlotApp:
                 fronius_df = fronius_df.sort_values("Zeitstempel")
 
                 if not fronius_df.empty:
-                    # Referenztag = letzter Tag im Datensatz (funktioniert auch,
-                    # wenn die Daten z.B. von April sind und heute ein anderer Tag ist)
+                    # Referenztag = letzter Tag im Datensatz
                     day_label = fronius_df["Zeitstempel"].dt.date.iloc[-1]
                     df_today_f = fronius_df[fronius_df["Zeitstempel"].dt.date == day_label].copy()
 
@@ -638,6 +908,8 @@ class LivePlotApp:
                 soc = last_f.get("Batterieladestand (%)", "n/a")
                 haus = fmt2(last_f.get("Hausverbrauch (kW)", "n/a"))
                 netz = fmt2(last_f.get("Netz-Leistung (kW)", "n/a"))
+            else:
+                last_f = None
 
             if bmk_df is not None and not bmk_df.empty:
                 last_b = bmk_df.iloc[-1]
@@ -646,6 +918,8 @@ class LivePlotApp:
                 puffer_unten = last_b.get("Pufferspeicher Unten", "n/a")
                 kessel = last_b.get("Kesseltemperatur", "n/a")
                 aussen = last_b.get("Außentemperatur", "n/a")
+            else:
+                last_b = None
 
             icon_positions = [
                 ("temperature.png", 0.18, 0.85, f"{puffer_oben} °C", "Puffertemperatur Oben"),
@@ -674,6 +948,44 @@ class LivePlotApp:
                     va="center", ha="left", weight="bold", zorder=3
                 )
 
+            # Auto-Tageszusammenfassung als Text unten
+            summary_lines = []
+            if pv_today_kwh is not None and haus_today_kwh is not None:
+                if pv_today_kwh < 1:
+                    quality = "ein sehr schwacher PV-Tag"
+                elif pv_today_kwh < 5:
+                    quality = "ein eher schwacher PV-Tag"
+                elif pv_today_kwh < 10:
+                    quality = "ein guter PV-Tag"
+                else:
+                    quality = "ein sehr guter PV-Tag"
+
+                if day_label is not None:
+                    date_str = pd.Timestamp(day_label).strftime("%d.%m.%Y")
+                    line1 = f"Für den Tag {date_str} war es {quality}. Es wurden {pv_today_kwh:.1f} kWh PV-Energie erzeugt."
+                else:
+                    line1 = f"Heute war bisher {quality}. Bis jetzt wurden {pv_today_kwh:.1f} kWh PV-Energie erzeugt."
+
+                line2 = f"Der Hausverbrauch liegt bei {haus_today_kwh:.1f} kWh."
+                if eigenverbrauch_quote is not None:
+                    line2 += f" Davon wurden etwa {eigenverbrauch_quote * 100:,.0f}% direkt aus PV gedeckt."
+                summary_lines.append(line1)
+                summary_lines.append(line2)
+
+            if not summary_lines:
+                summary_lines.append("Noch nicht genug Daten für eine Tageszusammenfassung.")
+
+            summary_text = "\n".join(summary_lines)
+            self.summary_ax.text(
+                0.03, 0.02,
+                summary_text,
+                transform=self.summary_ax.transAxes,
+                fontsize=12,
+                color=self.fg_color,
+                va="bottom",
+                ha="left"
+            )
+
             self.summary_ax.set_xlim(0, 1)
             self.summary_ax.set_ylim(-0.25, 1.05)
             self.summary_canvas.draw()
@@ -683,7 +995,13 @@ class LivePlotApp:
                                  color=self.fg_color)
             self.summary_canvas.draw()
 
-        # ---------- Heizungs-Info Tab (Warmwasser-Prognose, Heizung aktiv, Uptime + Summarytext) ----------
+        # ---------- Heizungs-Info Tab ----------
+        heating_minutes_today = None
+        heizstatus_text = "Heizung: keine Daten"
+        schichtung_text = "Schichtung: keine Daten"
+        warmwasser_text = "Warmwasser: keine Daten"
+        letzte_bmk_text = "Letzte Heizdaten: -"
+
         try:
             self.info_fig.patch.set_facecolor(self.bg_color)
             self.info_ax.clear()
@@ -693,13 +1011,6 @@ class LivePlotApp:
                 self.info_ax.imshow(self.bg_img, extent=[0, 1, -0.1, 1.1], aspect="auto", zorder=0)
             rect = Rectangle((0, -0.1), 1, 1.2, facecolor="white", alpha=0.12, zorder=1)
             self.info_ax.add_patch(rect)
-
-            warmwasser_text = "Warmwasser: keine Daten"
-            heizstatus_text = "Heizung: keine Daten"
-            schichtung_text = "Schichtung: keine Daten"
-            uptime_text = "Uptime: -"
-            letzte_bmk_text = "Letzte Heizdaten: -"
-            heating_minutes_today = None
 
             # Uptime
             uptime_sec = (now - self.app_start_time).total_seconds()
@@ -845,7 +1156,11 @@ class LivePlotApp:
 
             # Dashboard: heute PV-Ertrag
             if pv_today_kwh is not None:
-                self.dashboard_pv_today_var.set(f"{pv_today_kwh:.1f} kWh")
+                if day_label is not None:
+                    date_str = pd.Timestamp(day_label).strftime("%d.%m.%Y")
+                    self.dashboard_pv_today_var.set(f"{pv_today_kwh:.1f} kWh ({date_str})")
+                else:
+                    self.dashboard_pv_today_var.set(f"{pv_today_kwh:.1f} kWh")
             else:
                 self.dashboard_pv_today_var.set("-")
 
@@ -911,8 +1226,8 @@ class LivePlotApp:
                 weather_txt = ""
             self.dashboard_weather_label.config(text=weather_txt)
 
-            # Tageszusammenfassung-Text
-            summary_lines = []
+            # Tageszusammenfassung-Text für Dashboard
+            dash_lines = []
             if pv_today_kwh is not None and haus_today_kwh is not None:
                 if pv_today_kwh < 1:
                     quality = "ein sehr schwacher PV-Tag"
@@ -925,31 +1240,75 @@ class LivePlotApp:
 
                 if day_label is not None:
                     date_str = pd.Timestamp(day_label).strftime("%d.%m.%Y")
-                    line1 = f"Für den Tag {date_str} war es {quality}. Es wurden {pv_today_kwh:.1f} kWh PV-Energie erzeugt."
+                    line1 = f"{date_str}: {quality}, {pv_today_kwh:.1f} kWh PV-Ertrag."
                 else:
-                    line1 = f"Heute war bisher {quality}. Bis jetzt wurden {pv_today_kwh:.1f} kWh PV-Energie erzeugt."
+                    line1 = f"Heute war bisher {quality}, {pv_today_kwh:.1f} kWh PV-Ertrag."
 
-                line2 = f"Der Hausverbrauch liegt bei {haus_today_kwh:.1f} kWh."
+                line2 = f"Hausverbrauch: {haus_today_kwh:.1f} kWh."
                 if eigenverbrauch_quote is not None:
-                    line2 += f" Davon wurden etwa {eigenverbrauch_quote * 100:,.0f}% direkt aus PV gedeckt."
-                summary_lines.append(line1)
-                summary_lines.append(line2)
+                    line2 += f" Solar-Anteil: {eigenverbrauch_quote * 100:,.0f}%."
+                dash_lines.append(line1)
+                dash_lines.append(line2)
 
             if schichtung_text != "Schichtung: keine Daten":
-                summary_lines.append(f"Der Pufferspeicher ist aktuell: {schichtung_text.replace('Schichtung: ', '')}.")
+                dash_lines.append(f"Pufferspeicher: {schichtung_text.replace('Schichtung: ', '')}.")
 
             if heating_minutes_today is not None:
-                summary_lines.append(f"Die Heizung war heute ungefähr {heating_minutes_today:.0f} Minuten aktiv.")
+                dash_lines.append(f"Heizung war heute etwa {heating_minutes_today:.0f} Minuten aktiv.")
 
-            if not summary_lines:
-                summary_lines.append("Noch nicht genug Daten für eine Tageszusammenfassung.")
+            if not dash_lines:
+                dash_lines.append("Noch nicht genug Daten für eine Tageszusammenfassung.")
 
-            self.daily_summary_var.set("\n".join(summary_lines))
+            self.daily_summary_var.set("\n".join(dash_lines))
 
         except Exception as e:
             self.info_ax.clear()
             self.info_ax.text(0.5, 0.5, f"Fehler Heizungs-Info:\n{e}", ha="center", va="center", color=self.fg_color)
             self.info_canvas.draw()
+
+        # ---------- Systemstatus-Tab ----------
+        try:
+            if HAS_PSUTIL:
+                cpu = psutil.cpu_percent(interval=0)
+                mem = psutil.virtual_memory()
+                swap = psutil.swap_memory()
+                disk = shutil.disk_usage("/")
+
+                self.sys_cpu_var.set(f"{cpu:.0f} %")
+
+                ram_used_gb = mem.used / (1024**3)
+                ram_total_gb = mem.total / (1024**3)
+                self.sys_ram_var.set(f"{ram_used_gb:.2f} / {ram_total_gb:.2f} GB ({mem.percent:.0f} %)")
+
+                swap_used_gb = swap.used / (1024**3)
+                swap_total_gb = swap.total / (1024**3)
+                self.sys_swap_var.set(f"{swap_used_gb:.2f} / {swap_total_gb:.2f} GB ({swap.percent:.0f} %)")
+
+                disk_used_gb = disk.used / (1024**3)
+                disk_total_gb = disk.total / (1024**3)
+                disk_percent = disk.used / disk.total * 100.0
+                self.sys_disk_var.set(f"{disk_used_gb:.1f} / {disk_total_gb:.1f} GB ({disk_percent:.0f} %)")
+
+                temp_c = get_cpu_temperature()
+                if temp_c is not None:
+                    self.sys_temp_var.set(f"{temp_c:.1f} °C")
+                else:
+                    self.sys_temp_var.set("keine Sensor-Daten")
+            else:
+                # Minimal fallback – keine psutil-Daten
+                self.sys_cpu_var.set("-")
+                self.sys_ram_var.set("-")
+                self.sys_swap_var.set("-")
+                self.sys_disk_var.set("-")
+                temp_c = get_cpu_temperature()
+                if temp_c is not None:
+                    self.sys_temp_var.set(f"{temp_c:.1f} °C")
+                else:
+                    self.sys_temp_var.set("-")
+
+        except Exception:
+            # Wenn hier was schiefgeht, nicht die ganze App abschießen
+            pass
 
         # ---------- Abschluss ----------
         self.status_var.set(f"Letztes Update: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -961,5 +1320,10 @@ class LivePlotApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    # Touchscreen-Scaling: alles etwas größer rendern
+    try:
+        root.tk.call("tk", "scaling", 1.3)
+    except Exception:
+        pass
     app = LivePlotApp(root)
     root.mainloop()
