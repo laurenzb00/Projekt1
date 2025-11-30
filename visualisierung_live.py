@@ -203,15 +203,13 @@ class LivePlotApp:
         )
         self.theme_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=6)
 
-        # Bilder
+        # Bilder (nur Icons, Hintergrund wird nicht mehr verwendet)
         self.icons = {}
         self.offset_images_cache = {}
         for icon in ["temperature.png", "outdoor.png", "battery.png", "house.png", "power.png"]:
             path = os.path.join(WORKING_DIRECTORY, "icons", icon)
             if os.path.exists(path):
                 self.icons[icon] = Image.open(path)
-        bg_path = os.path.join(WORKING_DIRECTORY, "icons", "background.png")
-        self.bg_img = Image.open(bg_path).resize((1024, 600), Image.LANCZOS) if os.path.exists(bg_path) else None
 
         # Dashboard-Variablen
         self.dashboard_pv_today_var = StringVar(value="-")
@@ -742,7 +740,7 @@ class LivePlotApp:
             self.fronius_ax.text(0.5, 0.5, f"Fehler Fronius:\n{e}", ha="center", va="center", color=self.fg_color)
             self.fronius_canvas.draw()
 
-        # ---------- BMK-Tab (48h, inkl. Pufferspeicher Unten) ----------
+        # ---------- BMK-Tab (48h) ----------
         try:
             self.bmk_fig.patch.set_facecolor(self.bg_color)
             self.bmk_ax.clear()
@@ -893,10 +891,9 @@ class LivePlotApp:
             self.summary_ax.clear()
             self.summary_ax.axis("off")
 
-            if self.bg_img is not None:
-                self.summary_ax.imshow(self.bg_img, extent=[0, 1, -0.25, 1.05], aspect="auto", zorder=0)
-            rect = Rectangle((0, -0.25), 1, 1.3, facecolor="white", alpha=0.15, zorder=1)
-            self.summary_ax.add_patch(rect)
+            # Weißes Panel im Hintergrund (leicht transparent)
+            panel = Rectangle((0.05, 0.05), 0.90, 0.90, facecolor="#ffffff", alpha=0.10, zorder=0)
+            self.summary_ax.add_patch(panel)
 
             def fmt2(val):
                 try:
@@ -925,31 +922,37 @@ class LivePlotApp:
             else:
                 last_b = None
 
-            icon_positions = [
-                ("temperature.png", 0.18, 0.85, f"{puffer_oben} °C", "Puffertemperatur Oben"),
-                ("temperature.png", 0.18, 0.70, f"{puffer_mitte} °C", "Puffertemperatur Mitte"),
-                ("temperature.png", 0.18, 0.55, f"{puffer_unten} °C", "Puffertemperatur Unten"),
-                ("temperature.png", 0.18, 0.40, f"{kessel} °C", "Kesseltemperatur"),
-                ("outdoor.png",     0.18, 0.25, f"{aussen} °C", "Außentemperatur"),
-                ("battery.png",     0.18, 0.10, f"{soc} %", "Batterieladestand"),
-                ("house.png",       0.18, -0.05, f"{haus} kW", "Hausverbrauch"),
-                ("power.png",       0.18, -0.20, f"{netz} kW", "Netz-Leistung"),
+            rows = [
+                ("temperature.png", "Puffertemperatur Oben", f"{puffer_oben} °C"),
+                ("temperature.png", "Puffertemperatur Mitte", f"{puffer_mitte} °C"),
+                ("temperature.png", "Puffertemperatur Unten", f"{puffer_unten} °C"),
+                ("temperature.png", "Kesseltemperatur", f"{kessel} °C"),
+                ("outdoor.png",    "Außentemperatur", f"{aussen} °C"),
+                ("battery.png",    "Batterieladestand", f"{soc} %"),
+                ("house.png",      "Hausverbrauch", f"{haus} kW"),
+                ("power.png",      "Netz-Leistung", f"{netz} kW"),
             ]
 
-            for icon, x, y, value, label in icon_positions:
+            start_y = 0.80
+            step = 0.08
+
+            for i, (icon, label, value) in enumerate(rows):
+                y = start_y - i * step
+
                 oi = self.new_method(icon)
                 if oi is not None:
-                    ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5, 0.5), zorder=2)
+                    ab = AnnotationBbox(oi, (0.15, y), frameon=False)
                     self.summary_ax.add_artist(ab)
+
                 self.summary_ax.text(
-                    x + 0.11, y, label,
-                    fontsize=17, color=self.fg_color,
-                    va="center", ha="left", weight="bold", zorder=3
+                    0.26, y, label,
+                    fontsize=18, color=self.fg_color,
+                    va="center", ha="left", weight="bold"
                 )
                 self.summary_ax.text(
-                    x + 0.65, y, value,
-                    fontsize=19, color=self.fg_color,
-                    va="center", ha="left", weight="bold", zorder=3
+                    0.86, y, value,
+                    fontsize=18, color=self.fg_color,
+                    va="center", ha="right", weight="bold"
                 )
 
             # Auto-Tageszusammenfassung als Text unten
@@ -981,17 +984,17 @@ class LivePlotApp:
 
             summary_text = "\n".join(summary_lines)
             self.summary_ax.text(
-                0.03, 0.02,
+                0.06, 0.10,
                 summary_text,
                 transform=self.summary_ax.transAxes,
-                fontsize=12,
+                fontsize=13,
                 color=self.fg_color,
                 va="bottom",
                 ha="left"
             )
 
             self.summary_ax.set_xlim(0, 1)
-            self.summary_ax.set_ylim(-0.25, 1.05)
+            self.summary_ax.set_ylim(0, 1)
             self.summary_canvas.draw()
         except Exception as e:
             self.summary_ax.clear()
@@ -1011,14 +1014,15 @@ class LivePlotApp:
             self.info_ax.clear()
             self.info_ax.axis("off")
 
-            if self.bg_img is not None:
-                self.info_ax.imshow(self.bg_img, extent=[0, 1, -0.1, 1.1], aspect="auto", zorder=0)
-            rect = Rectangle((0, -0.1), 1, 1.2, facecolor="white", alpha=0.12, zorder=1)
-            self.info_ax.add_patch(rect)
+            # Weißes Panel
+            panel = Rectangle((0.05, -0.05), 0.90, 1.10, facecolor="#ffffff", alpha=0.10)
+            self.info_ax.add_patch(panel)
+
+            self.info_ax.set_xlim(0, 1)
+            self.info_ax.set_ylim(-0.05, 1.05)
 
             # Uptime
             uptime_sec = (now - self.app_start_time).total_seconds()
-            uptime_text = f"Projekt-Laufzeit: {self._format_duration(uptime_sec)}"
 
             if bmk_df is not None and not bmk_df.empty:
                 last_b = bmk_df.iloc[-1]
@@ -1026,7 +1030,7 @@ class LivePlotApp:
                 if pd.notna(last_time):
                     delta_min = (now - last_time).total_seconds() / 60.0
                     letzte_bmk_text = f"Letzte BMK-Daten vor: {delta_min:.1f} min"
-                    bmk_last_age_min = delta_min  # für Statuszeile
+                    bmk_last_age_min = delta_min
 
                 # Schichtung
                 try:
@@ -1123,39 +1127,48 @@ class LivePlotApp:
                 except Exception:
                     heating_minutes_today = None
 
-            # hübsche Anordnung mit Icons
-            self.info_ax.set_xlim(0, 1)
-            self.info_ax.set_ylim(-0.1, 1.1)
+            # Fronius-Alter (für Statuszeile)
+            if fronius_df is not None and not fronius_df.empty:
+                last_f = fronius_df.iloc[-1]
+                last_f_time = last_f.get("Zeitstempel", None)
+                if pd.notna(last_f_time):
+                    fronius_last_age_min = (now - last_f_time).total_seconds() / 60.0
 
             rows = [
-                ("temperature.png", 0.18, 0.80, "Warmwasser-Prognose", warmwasser_text),
-                ("power.png",       0.18, 0.62, "Heizungsstatus",      heizstatus_text),
-                ("temperature.png", 0.18, 0.44, "Puffer-Schichtung",   schichtung_text),
-                ("battery.png",     0.18, 0.26, "Projekt-Laufzeit",    uptime_text),
-                ("house.png",       0.18, 0.08, "Heizdaten",           letzte_bmk_text),
+                ("temperature.png", "Warmwasser-Prognose", warmwasser_text),
+                ("power.png",       "Heizungsstatus",      heizstatus_text),
+                ("temperature.png", "Puffer-Schichtung",   schichtung_text),
+                ("battery.png",     "Projekt-Laufzeit",    f"Projekt-Laufzeit: {self._format_duration(uptime_sec)}"),
+                ("house.png",       "Heizdaten",           letzte_bmk_text)
             ]
 
-            for icon, x, y, label, value in rows:
+            start_y = 0.82
+            step = 0.17
+
+            for i, (icon, label, value) in enumerate(rows):
+                y = start_y - i * step
+
                 oi = self.new_method(icon)
-                if oi is not None:
-                    ab = AnnotationBbox(oi, (x, y), frameon=False, box_alignment=(0.5, 0.5), zorder=2)
+                if oi:
+                    ab = AnnotationBbox(oi, (0.15, y), frameon=False)
                     self.info_ax.add_artist(ab)
+
                 self.info_ax.text(
-                    x + 0.11, y, label,
-                    fontsize=16, color=self.fg_color,
-                    va="center", ha="left", weight="bold", zorder=3
+                    0.27, y, label,
+                    fontsize=18, color=self.fg_color,
+                    va="center", ha="left", weight="bold"
                 )
+
                 self.info_ax.text(
-                    x + 0.60, y, value,
-                    fontsize=13, color=self.fg_color,
-                    va="center", ha="left", zorder=3
+                    0.87, y, value,
+                    fontsize=14, color=self.fg_color,
+                    va="center", ha="right"
                 )
 
             self.info_canvas.draw()
 
             # ---------- Dashboard-Werte & Tageszusammenfassung ----------
 
-            # Letzte Fronius/BMK-Werte
             last_f = fronius_df.iloc[-1] if (fronius_df is not None and not fronius_df.empty) else None
             last_b = bmk_df.iloc[-1] if (bmk_df is not None and not bmk_df.empty) else None
 
@@ -1178,11 +1191,6 @@ class LivePlotApp:
                     self.dashboard_pv_now_var.set(f"PV: {pv_now:.2f} kW")
                     self.dashboard_haus_now_var.set(f"Haus: {haus_now:.2f} kW")
                     self.dashboard_batt_var.set(f"{soc_now:.0f} %")
-
-                    # Alter der letzten Fronius-Daten für Statuszeile
-                    last_f_time = last_f.get("Zeitstempel", None)
-                    if pd.notna(last_f_time):
-                        fronius_last_age_min = (now - last_f_time).total_seconds() / 60.0
                 except Exception:
                     self.dashboard_pv_now_var.set("PV: -")
                     self.dashboard_haus_now_var.set("Haus: -")
@@ -1217,15 +1225,13 @@ class LivePlotApp:
             # Dashboard: Heizstatus
             self.dashboard_heizstatus_var.set(heizstatus_text)
 
-            # Dashboard: "Wetter-Icon"-Text anhand Außentemp + PV
+            # Dashboard: Wetter-Text
             weather_txt = ""
             try:
                 if last_b is not None and last_f is not None:
                     aussen_val = float(last_b.get("Außentemperatur", np.nan))
                     pv_now = float(last_f.get("PV-Leistung (kW)", np.nan))
-                    if np.isnan(aussen_val):
-                        weather_txt = ""
-                    else:
+                    if not np.isnan(aussen_val):
                         if pv_now > 0.5 and aussen_val > 10:
                             weather_txt = "Wetter: sonnig / leicht bewölkt"
                         elif aussen_val < 0:
