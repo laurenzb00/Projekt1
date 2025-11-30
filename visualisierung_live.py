@@ -170,14 +170,9 @@ class LivePlotApp:
         self.sys_frame = ttk.Frame(self.notebook, style="Dark.TFrame")
         self.notebook.add(self.sys_frame, text="Systemstatus")
 
-        # Statuszeile
-        self.status_var = StringVar(value="Letztes Update: -")
-        self.status_label = ttk.Label(self.root, textvariable=self.status_var, style="Dark.TLabel", anchor="w")
-        self.status_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=2)
-
         # Button-Leiste unten (touchfreundlich)
         self.button_frame = ttk.Frame(root, style="Dark.TFrame")
-        self.button_frame.pack(side=tk.BOTTOM, pady=10)
+        self.button_frame.pack(side=tk.BOTTOM, pady=4, fill=tk.X)
 
         self.close_button = ttk.Button(
             self.button_frame,
@@ -202,6 +197,16 @@ class LivePlotApp:
             style="Dark.TButton"
         )
         self.theme_button.pack(side=tk.LEFT, padx=10, ipadx=10, ipady=6)
+
+        # Statuszeile (jetzt als deutlicher Balken direkt über den Buttons)
+        self.status_var = StringVar(value="Letztes Update: -")
+        self.status_label = ttk.Label(
+            self.root,
+            textvariable=self.status_var,
+            style="Status.TLabel",
+            anchor="w"
+        )
+        self.status_label.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Bilder (nur Icons, Hintergrund wird nicht mehr verwendet)
         self.icons = {}
@@ -245,6 +250,7 @@ class LivePlotApp:
         fg = self.fg_color
         tab_bg = "#333333" if self.dark_mode else "#dddddd"
         tab_sel = "#777777" if self.dark_mode else "#ffffff"
+        status_bg = "#444444" if self.dark_mode else "#cccccc"
 
         # Notebook / Tabs
         self.style.configure(
@@ -285,6 +291,14 @@ class LivePlotApp:
             "Dark.TButton",
             background=[("active", tab_sel)],
             foreground=[("active", fg)]
+        )
+
+        # Status-Balken
+        self.style.configure(
+            "Status.TLabel",
+            background=status_bg,
+            foreground=fg,
+            font=("Arial", 9)
         )
 
     def toggle_theme(self):
@@ -1350,7 +1364,7 @@ class LivePlotApp:
             csv_status.append("CSV-Status: OK")
 
         status_parts.append(" | ".join(csv_status))
-        self.status_var.set("  -  ".join(status_parts))
+        self.status_var.set("  –  ".join(status_parts))
 
         # ---------- Abschluss ----------
         self.root.after(UPDATE_INTERVAL, self.update_plots)
