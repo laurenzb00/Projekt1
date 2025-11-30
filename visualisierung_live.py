@@ -495,3 +495,218 @@ class LivePlotApp:
             font=("Arial", 12),
             justify="left",
         ).pack(anchor="w", fill="both", expand=True)
+
+    def minimize_window(self):
+        self.root.iconify()
+
+    # ---------- Systemstatus UI ----------
+    def _build_systemstatus_ui(self, rebuild: bool = False) -> None:
+        if rebuild:
+            for w in self.sys_frame.winfo_children():
+                w.destroy()
+
+        container = tk.Frame(self.sys_frame, bg=self.bg_color)
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # CPU / RAM / SWAP / Festplatte
+        sys_info_frame = tk.Frame(container, bg=self.bg_color)
+        sys_info_frame.pack(fill="x", pady=(0, 20))
+
+        # CPU Temperatur
+        cpu_temp = get_cpu_temperature()
+        cpu_temp_text = f"CPU-Temperatur: {cpu_temp:.1f} °C" if cpu_temp is not None else "CPU-Temperatur: -"
+        tk.Label(
+            sys_info_frame,
+            text=cpu_temp_text,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 14),
+        ).pack(side="left", padx=(0, 20))
+
+        # Uptime
+        uptime = pd.Timestamp.now() - self.app_start_time
+        uptime_str = str(uptime).split(".")[0]  # Entferne Mikrosekunden
+        tk.Label(
+            sys_info_frame,
+            text=f"Uptime: {uptime_str}",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 14),
+        ).pack(side="left", padx=(0, 20))
+
+        # CPU / RAM / SWAP Nutzung
+        if HAS_PSUTIL:
+            try:
+                # CPU Nutzung
+                cpu_usage = psutil.cpu_percent(interval=1)
+                tk.Label(
+                    sys_info_frame,
+                    text=f"CPU Nutzung: {cpu_usage:.1f}%",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(side="left", padx=(0, 20))
+
+                # RAM Nutzung
+                ram = psutil.virtual_memory()
+                ram_usage = ram.used / ram.total * 100
+                tk.Label(
+                    sys_info_frame,
+                    text=f"RAM Nutzung: {ram_usage:.1f}%",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(side="left", padx=(0, 20))
+
+                # SWAP Nutzung
+                swap = psutil.swap_memory()
+                swap_usage = swap.used / swap.total * 100
+                tk.Label(
+                    sys_info_frame,
+                    text=f"SWAP Nutzung: {swap_usage:.1f}%",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(side="left", padx=(0, 20))
+            except Exception as e:
+                tk.Label(
+                    sys_info_frame,
+                    text=f"Fehler: {e}",
+                    bg=self.bg_color,
+                    fg="red",
+                    font=("Arial", 14),
+                ).pack(side="left", padx=(0, 20))
+
+        # Festplattennutzung (nur wenn psutil verfügbar ist)
+        if HAS_PSUTIL:
+            try:
+                disk_usage = psutil.disk_usage("/")
+                disk_usage_percent = disk_usage.percent
+                tk.Label(
+                    sys_info_frame,
+                    text=f"Festplatte: {disk_usage_percent:.1f}% belegt",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(side="left", padx=(0, 20))
+            except Exception:
+                pass  # Fehler bei der Festplattenerkennung ignorieren
+
+        # Hinweis für fehlendes psutil
+        if not HAS_PSUTIL:
+            tk.Label(
+                container,
+                text="Hinweis: psutil nicht installiert – Systeminfos eingeschränkt.",
+                bg=self.bg_color,
+                fg="yellow",
+                font=("Arial", 12),
+            ).pack(anchor="w", pady=(10, 0))
+
+        # Weitere Systeminformationen (nur wenn psutil verfügbar ist)
+        if HAS_PSUTIL:
+            try:
+                # Hostname
+                hostname = os.uname().nodename
+                tk.Label(
+                    container,
+                    text=f"Hostname: {hostname}",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(anchor="w", pady=(10, 0))
+
+                # Benutzer
+                user = os.getlogin()
+                tk.Label(
+                    container,
+                    text=f"Benutzer: {user}",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(anchor="w", pady=(0, 10))
+
+                # Betriebssystem
+                os_info = os.uname()
+                tk.Label(
+                    container,
+                    text=f"Betriebssystem: {os_info.sysname} {os_info.release}",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(anchor="w", pady=(0, 10))
+
+                # Architektur
+                arch = os_info.machine
+                tk.Label(
+                    container,
+                    text=f"Architektur: {arch}",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14),
+                ).pack(anchor="w", pady=(0, 10))
+            except Exception as e:
+                tk.Label(
+                    container,
+                    text=f"Fehler: {e}",
+                    bg=self.bg_color,
+                    fg="red",
+                    font=("Arial", 14),
+                ).pack(anchor="w", pady=(10, 0))
+
+        # Laufende Prozesse (nur wenn psutil verfügbar ist)
+        if HAS_PSUTIL:
+            try:
+                tk.Label(
+                    container,
+                    text="Laufende Prozesse:",
+                    bg=self.bg_color,
+                    fg=self.fg_color,
+                    font=("Arial", 14, "bold"),
+                ).pack(anchor="w", pady=(10, 0))
+
+                # Prozesse abrufen und nach RAM-Nutzung sortieren
+                processes = [
+                    (p.info["pid"], p.info["name"], p.info["memory_percent"])
+                    for p in psutil.process_iter(["pid", "name", "memory_percent"])
+                ]
+                processes.sort(key=lambda x: x[2], reverse=True)
+
+                # Nur die top 10 Prozesse anzeigen
+                for pid, name, mem_percent in processes[:10]:
+                    tk.Label(
+                        container,
+                        text=f"{name} (PID {pid}): {mem_percent:.1f}% RAM",
+                        bg=self.bg_color,
+                        fg=self.fg_color,
+                        font=("Arial", 12),
+                    ).pack(anchor="w")
+            except Exception as e:
+                tk.Label(
+                    container,
+                    text=f"Fehler: {e}",
+                    bg=self.bg_color,
+                    fg="red",
+                    font=("Arial", 14),
+                ).pack(anchor="w", pady=(10, 0))
+
+        # Update-Intervall Label
+        tk.Label(
+            container,
+            text=f"Nächstes Update in {UPDATE_INTERVAL // 1000} Sekunden",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 12),
+        ).pack(side="bottom", anchor="e", pady=(10, 0))
+
+        # Timer für automatische Updates
+        self.update_timer = self.root.after(UPDATE_INTERVAL, self.update_plots)
+
+    def update_plots(self):
+        # Hier kommt der Code zum Aktualisieren der Plots und Daten
+        # Beispiel: Neue Daten einlesen, Plots aktualisieren, etc.
+
+        # Nach dem Aktualisieren der Plots die Statuszeile updaten
+        self.status_var.set(f"Letztes Update: {pd.Timestamp.now():%Y-%m-%d %H:%M:%S}")
+
+        # Timer für nächstes Update neu starten
+        self.update_timer = self.root.after(UPDATE_INTERVAL, self.update_plots)
