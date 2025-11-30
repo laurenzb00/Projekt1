@@ -453,4 +453,45 @@ class LivePlotApp:
         ).pack(anchor="w")
         tk.Label(
             weather_frame,
-            textvar
+            textvariable=self.dashboard_aussen_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 28, "bold"),
+        ).pack(anchor="w", pady=(5, 0))
+
+        # Heizstatus
+        heating_frame = tk.Frame(mid_frame, bg=self.bg_color)
+        heating_frame.pack(side="left", expand=True, fill="x")
+        tk.Label(
+            heating_frame,
+            text="Heizstatus",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            heating_frame,
+            textvariable=self.dashboard_heizstatus_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 18),
+        ).pack(anchor="w")
+
+        # Tägliche Zusammenfassung
+        summary_frame = tk.Frame(container, bg=self.bg_color)
+        summary_frame.pack(fill="both", expand=True)
+        tk.Label(
+            summary_frame,
+            text="Tägliche Auswertung",
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 16, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            summary_frame,
+            textvariable=self.daily_summary_var,
+            bg=self.bg_color,
+            fg=self.fg_color,
+            font=("Arial", 12),
+            justify="left",
+        ).pack(anchor="w", fill="both", expand=True)
