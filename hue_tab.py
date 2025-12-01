@@ -5,7 +5,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 # --- KONFIGURATION ---
-HUE_BRIDGE_IP = "192.168.1.68" # <--- HIER DEINE BRIDGE IP EINTRAGEN!
+HUE_BRIDGE_IP = "192.168.1.68" # <--- HIER BITTE IHRE ECHTE IP WIEDER EINTRAGEN!
 
 class HueTab:
     def __init__(self, root, notebook):
@@ -13,7 +13,6 @@ class HueTab:
         self.notebook = notebook
         self.alive = True
         self.bridge = None
-        self.lights_data = {} # Cache für Licht-Objekte
         
         self.status_var = tk.StringVar(value="Initialisiere...")
         
@@ -22,8 +21,11 @@ class HueTab:
         
         self._build_header()
         
-        # Scrollbarer Bereich für viele Lampen
-        self.canvas = tk.Canvas(self.tab_frame, bg="#2b3e50", highlightthickness=0)
+        # Scrollbarer Bereich
+        self.canvas = tk.Canvas(self.tab_frame, highlightthickness=0)
+        # Hintergrundfarbe anpassen ans Theme (dunkelgrau)
+        self.canvas.configure(bg="#2b3e50")
+        
         self.scrollbar = ttk.Scrollbar(self.tab_frame, orient="vertical", command=self.canvas.yview)
         self.scroll_frame = ttk.Frame(self.canvas)
         
@@ -55,9 +57,10 @@ class HueTab:
         while self.alive and self.bridge is None:
             try:
                 self.bridge = Bridge(HUE_BRIDGE_IP)
-                self.bridge.connect() # Das wirft Fehler, wenn Knopf nicht gedrückt
+                self.bridge.connect() 
                 self.status_var.set("Verbunden")
                 self.root.after(0, self._refresh_lights_ui)
+                return # Verbindung steht, Loop beenden
             except PhueRegistrationException:
                 self.status_var.set("BITTE KNOPF AUF BRIDGE DRÜCKEN!")
                 time.sleep(2)
@@ -65,10 +68,9 @@ class HueTab:
                 self.status_var.set(f"Verbindungsfehler: {e}")
                 time.sleep(5)
         
-        # Wenn verbunden, periodisch updaten (nicht UI neu bauen, nur Status)
+        # Wenn verbunden, Status aktuell halten (optional)
         while self.alive:
             time.sleep(10)
-            # Hier könnte man Live-Status Updates einbauen
 
     def _refresh_lights_ui(self):
         # Alte Widgets löschen
@@ -82,14 +84,16 @@ class HueTab:
                 ttk.Label(self.scroll_frame, text="Keine Lampen gefunden.").pack(pady=20)
                 return
 
-            # Grid Layout für Lampen (2 Spalten)
             row = 0
             col = 0
             
-            for light in lights:
+            # Sortieren nach Namen
+            sorted_lights = sorted(lights, key=lambda x: x.name)
+
+            for light in sorted_lights:
                 self._create_light_card(light, row, col)
                 col += 1
-                if col > 1: # 2 Lampen pro Zeile
+                if col > 1: # 2 Spalten
                     col = 0
                     row += 1
                     
@@ -97,34 +101,50 @@ class HueTab:
             self.status_var.set(f"Fehler beim Laden: {e}")
 
     def _create_light_card(self, light, row, col):
-        # Karte
         card = ttk.Labelframe(self.scroll_frame, text=light.name, padding=10, bootstyle="secondary")
         card.grid(row=row, column=col, sticky="ew", padx=10, pady=10, ipadx=10)
         
-        # Status Variable
-        is_on = light.on
-        bri = light.brightness
+        # --- FIX: Prüfen ob Lampe dimmbar ist ---
+        is_on = False
+        bri = 0
+        can_dim = False
         
-        # UI Elemente
-        # Toggle Button
+        try:
+            is_on = light.on
+            # Wir versuchen auf Helligkeit zuzugreifen
+            if hasattr(light, 'brightness'):
+                # Manchmal ist brightness None, wenn aus
+                val = light.brightness
+                if val is not None:
+                    bri = val
+                    can_dim = True
+        except Exception:
+            # Wenn Zugriff fehlschlägt (z.B. Smart Plug), ist es nicht dimmbar
+            can_dim = False
+
+        # AN/AUS Button
         btn_txt = "AN" if is_on else "AUS"
-        btn_style = "success" if is_on else "secondary"
+        btn_style = "success" if is_on else "dark" # dark ist dezenter für AUS
         
-        # Wir brauchen eine lokale Funktion, um den aktuellen 'light' Kontext zu fangen
         def toggle_cmd(l=light):
-            new_state = not l.on
-            l.on = new_state
-            self.root.after(100, self._refresh_lights_ui) # Einfaches Refresh
+            try:
+                l.on = not l.on
+                # Kleines UI Update nach kurzer Zeit
+                self.root.after(200, self._refresh_lights_ui)
+            except Exception as e:
+                print(f"Schaltfehler: {e}")
 
         btn = ttk.Button(card, text=btn_txt, bootstyle=btn_style, command=toggle_cmd, width=8)
         btn.pack(side=LEFT, padx=(0, 15))
         
-        # Helligkeit Slider
-        def slide_cmd(val, l=light):
-            # Debounce könnte man hier einbauen, phue ist aber recht schnell
-            try:
-                l.brightness = int(float(val))
-            except: pass
+        # Slider nur anzeigen, wenn Lampe das kann
+        if can_dim:
+            def slide_cmd(val, l=light):
+                try:
+                    l.brightness = int(float(val))
+                except: pass
 
-        slider = ttk.Scale(card, from_=0, to=254, value=bri, command=lambda v: slide_cmd(v))
-        slider.pack(side=LEFT, fill=X, expand=YES)
+            slider = ttk.Scale(card, from_=0, to=254, value=bri, command=lambda v: slide_cmd(v))
+            slider.pack(side=LEFT, fill=X, expand=YES)
+        else:
+            ttk.Label(card, text="(Nur Schalter)", font=("Arial", 9, "italic")).pack(side=LEFT)
