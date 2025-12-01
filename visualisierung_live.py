@@ -28,16 +28,11 @@ def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
     if not os.path.exists(path):
         return None
     try:
-        # Header lesen (Komma-getrennt)
         header_df = pd.read_csv(path, nrows=0, sep=",")
         col_names = header_df.columns.tolist()
-        
         with open(path, "rb") as f:
             total_lines = sum(1 for _ in f)
-        
         skip_rows = max(1, total_lines - max_rows)
-        
-        # Daten lesen
         df = pd.read_csv(path, sep=",", names=col_names, skiprows=skip_rows)
         df.columns = df.columns.str.strip()
         return df
@@ -126,27 +121,42 @@ class LivePlotApp:
         ttk.Label(f5, text="Autarkie:", font=("Arial", 10)).pack(side=LEFT)
         ttk.Label(f5, textvariable=self.dash_autarkie, font=("Arial", 14, "bold"), bootstyle="secondary").pack(side=RIGHT)
 
-        # --- ZEILE 2: Puffer ---
+        # --- ZEILE 2: Puffer (VERTIKAL DESIGN) ---
         f_temp = ttk.Labelframe(self.dash_frame, text="Pufferspeicher", padding=10, bootstyle="danger")
-        f_temp.grid(row=2, column=0, columnspan=3, sticky="ew", padx=5, pady=10)
+        f_temp.grid(row=2, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
         
         f_temp_in = ttk.Frame(f_temp)
-        f_temp_in.pack(fill=X, expand=YES)
+        f_temp_in.pack(fill=BOTH, expand=YES)
 
-        t1 = ttk.Frame(f_temp_in)
-        t1.pack(side=LEFT, expand=YES)
-        ttk.Label(t1, text="Oben", font=("Arial", 10)).pack()
-        ttk.Label(t1, textvariable=self.dash_temp_top_str, font=("Arial", 20, "bold"), bootstyle="danger").pack()
+        # Links: Balken
+        self.gauge_puffer = ttk.Floodgauge(
+            f_temp_in, bootstyle="danger", font=("Arial", 10), 
+            mask=None, orient=VERTICAL 
+        )
+        self.gauge_puffer.pack(side=LEFT, fill=Y, padx=(0, 20))
+        
+        # Rechts: Werte untereinander (Vertikal)
+        txt_col = ttk.Frame(f_temp_in)
+        txt_col.pack(side=LEFT, fill=BOTH, expand=YES)
+        
+        # Oben
+        row_top = ttk.Frame(txt_col)
+        row_top.pack(fill=X, pady=5)
+        ttk.Label(row_top, text="Oben:", font=("Arial", 12)).pack(side=LEFT)
+        ttk.Label(row_top, textvariable=self.dash_temp_top_str, font=("Arial", 18, "bold"), bootstyle="danger").pack(side=RIGHT)
+        
+        # Mitte
+        row_mid = ttk.Frame(txt_col)
+        row_mid.pack(fill=X, pady=5)
+        ttk.Label(row_mid, text="Mitte:", font=("Arial", 12)).pack(side=LEFT)
+        ttk.Label(row_mid, textvariable=self.dash_temp_mid_str, font=("Arial", 18, "bold"), bootstyle="warning").pack(side=RIGHT)
 
-        t2 = ttk.Frame(f_temp_in)
-        t2.pack(side=LEFT, expand=YES)
-        ttk.Label(t2, text="Mitte", font=("Arial", 10)).pack()
-        ttk.Label(t2, textvariable=self.dash_temp_mid_str, font=("Arial", 20, "bold"), bootstyle="warning").pack()
+        # Unten
+        row_bot = ttk.Frame(txt_col)
+        row_bot.pack(fill=X, pady=5)
+        ttk.Label(row_bot, text="Unten:", font=("Arial", 12)).pack(side=LEFT)
+        ttk.Label(row_bot, textvariable=self.dash_temp_bot_str, font=("Arial", 18, "bold"), bootstyle="primary").pack(side=RIGHT)
 
-        t3 = ttk.Frame(f_temp_in)
-        t3.pack(side=LEFT, expand=YES)
-        ttk.Label(t3, text="Unten", font=("Arial", 10)).pack()
-        ttk.Label(t3, textvariable=self.dash_temp_bot_str, font=("Arial", 20, "bold"), bootstyle="primary").pack()
 
         # --- ZEILE 3: Außen & Status ---
         f_bot = ttk.Frame(self.dash_frame)
@@ -158,9 +168,10 @@ class LivePlotApp:
         ttk.Label(f_bot, textvariable=self.dash_status, font=("Arial", 10), bootstyle="secondary").pack(side=RIGHT, anchor="s", pady=5)
 
     def setup_plot_tabs(self):
+        # Alle Tabs aktiv
         self.create_single_plot_tab("PV-Leistung", "fronius")
         self.create_single_plot_tab("Temperaturen", "bmk")
-        self.create_single_plot_tab("Batterie", "batt")
+        self.create_single_plot_tab("Batterie", "batt")  # WIEDER DA
         self.create_single_plot_tab("Ertrag", "ertrag")
 
     def create_single_plot_tab(self, name, var_prefix):
@@ -208,14 +219,12 @@ class LivePlotApp:
                 self.dash_haus_now.set(f"{haus:.2f} kW")
                 self.meter_batt.configure(amountused=int(soc))
                 
-                # Autarkie
                 if haus > 0:
                     autarkie = min(pv, haus) / haus * 100
                     self.dash_autarkie.set(f"{int(autarkie)} %")
                 else:
                     self.dash_autarkie.set("100 %")
                 
-                # Ertrag Heute (Schätzung)
                 today_mask = fronius_df["Zeitstempel"].dt.date == now.date()
                 df_today = fronius_df[today_mask]
                 if not df_today.empty:
@@ -225,7 +234,7 @@ class LivePlotApp:
                     self.dash_ertrag_heute.set(f"{kwh_today:.1f} kWh")
 
                 self._plot_fronius(fronius_df, now)
-                self._plot_battery(fronius_df, now)
+                self._plot_battery(fronius_df, now) # WIEDER AKTIV
                 self._plot_ertrag(fronius_df, now)
                 self.dash_status.set("PV Daten aktuell.")
             except Exception as e:
@@ -242,6 +251,7 @@ class LivePlotApp:
                 bot = last.get("Pufferspeicher Unten", 0)
                 aussen = last.get("Außentemperatur", 0)
                 
+                self.gauge_puffer.configure(value=top)
                 self.dash_temp_top_str.set(f"{top:.1f} °C")
                 self.dash_temp_mid_str.set(f"{mid:.1f} °C")
                 self.dash_temp_bot_str.set(f"{bot:.1f} °C")
@@ -271,7 +281,6 @@ class LivePlotApp:
         ax2.clear()
         self._style_ax(ax)
 
-        # 48 Stunden Ansicht
         mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=48))
         df_sub = df.loc[mask]
 
@@ -315,12 +324,9 @@ class LivePlotApp:
         try:
             df_calc = df.copy()
             df_calc.set_index("Zeitstempel", inplace=True)
-            
-            # Resampling auf Tage -> Balkendiagramm
             df_hourly = df_calc["PV-Leistung (kW)"].resample('h').mean()
             df_daily = df_hourly.resample('D').sum() 
             
-            # Letzte 7 Tage
             start_date = (now - pd.Timedelta(days=7)).replace(hour=0, minute=0, second=0)
             df_daily = df_daily[df_daily.index >= start_date]
 
@@ -340,7 +346,6 @@ class LivePlotApp:
         ax.clear()
         self._style_ax(ax)
         
-        # 7 Tage Ansicht
         mask = df["Zeitstempel"] >= (now - pd.Timedelta(days=7))
         df_sub = df.loc[mask]
         
@@ -348,7 +353,6 @@ class LivePlotApp:
             ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Oben"], color="#e74c3c", label="Oben")
             ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Mitte"], color="#e67e22", label="Mitte")
             ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Unten"], color="#3498db", label="Unten")
-            # Außenlinie
             ax.plot(df_sub["Zeitstempel"], df_sub["Außentemperatur"], color="cyan", label="Außen", linestyle="--", alpha=0.7)
             
             ax.legend(facecolor=self.chart_bg, labelcolor="white")

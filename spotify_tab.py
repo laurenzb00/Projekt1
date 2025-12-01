@@ -5,12 +5,12 @@ import os
 import webbrowser
 import time
 import tkinter as tk
-import ttkbootstrap as ttk # WICHTIG: ttkbootstrap nutzen für bootstyle
+import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 class SpotifyTab:
     """
-    Vollständige Spotify-Integration für ttkbootstrap Dark Theme.
+    Spotify-Integration mit extra Buttons für Touch-Bedienung.
     """
     def __init__(self, root, notebook):
         self.root = root
@@ -40,7 +40,6 @@ class SpotifyTab:
 
         self.result_cache = {}
 
-        # Tab Frame
         self.tab_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.tab_frame, text="Spotify")
 
@@ -57,10 +56,8 @@ class SpotifyTab:
     def _build_header(self, parent, title_text="Spotify"):
         header = ttk.Frame(parent)
         header.pack(fill="x", pady=10, padx=10)
-        
         title = ttk.Label(header, text=title_text, font=("Arial", 20, "bold"), bootstyle="inverse-dark")
         title.pack(side="left")
-        
         status_label = ttk.Label(header, textvariable=self.status_text_var, bootstyle="secondary")
         status_label.pack(side="right")
 
@@ -68,38 +65,25 @@ class SpotifyTab:
         self._clear_tab()
         wrapper = ttk.Frame(self.tab_frame)
         wrapper.pack(fill="both", expand=True)
-        
         self._build_header(wrapper, "Spotify – Anmeldung")
-        
         info_frame = ttk.Frame(wrapper)
         info_frame.pack(expand=True)
-        
         info_txt = "Noch nicht angemeldet."
         if error_msg:
             info_txt = f"Login Fehler:\n{error_msg}"
-            
         ttk.Label(info_frame, text=info_txt, font=("Arial", 12)).pack(pady=10)
-        
-        ttk.Button(
-            info_frame, 
-            text="Login im Browser", 
-            bootstyle="success", 
-            command=self._open_login_in_browser
-        ).pack(pady=10)
-        
+        ttk.Button(info_frame, text="Login im Browser", bootstyle="success", command=self._open_login_in_browser).pack(pady=10)
         ttk.Label(info_frame, text="Nach dem Login bleibt der Token gespeichert.", bootstyle="secondary").pack()
 
     def _build_ui(self):
         self._clear_tab()
         main = ttk.Frame(self.tab_frame)
         main.pack(fill="both", expand=True)
-        
         self._build_header(main, "Spotify Player")
-        
         content = ttk.Frame(main)
         content.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # --- LINKS: Cover & Info ---
+        # Links: Cover
         left = ttk.Frame(content)
         left.pack(side="left", fill="y", padx=(0, 20))
 
@@ -108,62 +92,42 @@ class SpotifyTab:
 
         now_playing_frame = ttk.Frame(left)
         now_playing_frame.pack(fill="x")
-        
         ttk.Label(now_playing_frame, text="Aktueller Titel", font=("Arial", 12, "bold"), bootstyle="info").pack(anchor="w")
-        
-        # Songtitel
-        ttk.Label(
-            now_playing_frame, 
-            textvariable=self.song_var, 
-            font=("Arial", 12), 
-            justify="center", 
-            bootstyle="inverse-dark"
-        ).pack(fill="x", pady=5)
+        ttk.Label(now_playing_frame, textvariable=self.song_var, font=("Arial", 12), justify="center", bootstyle="inverse-dark").pack(fill="x", pady=5)
 
-        # Progress Bar
         progress_frame = ttk.Frame(now_playing_frame)
         progress_frame.pack(fill="x", pady=5)
-        
-        ttk.Progressbar(
-            progress_frame, 
-            variable=self.progress_var, 
-            maximum=100, 
-            bootstyle="success-striped"
-        ).pack(side="left", fill="x", expand=True)
-        
+        ttk.Progressbar(progress_frame, variable=self.progress_var, maximum=100, bootstyle="success-striped").pack(side="left", fill="x", expand=True)
         self.progress_time_label = ttk.Label(progress_frame, text="--:--", font=("Arial", 9))
         self.progress_time_label.pack(side="right", padx=5)
 
-        # --- RECHTS: Steuerung ---
+        # Rechts: Steuerung
         right = ttk.Frame(content)
         right.pack(side="left", fill="both", expand=True)
 
-        # 1. Gerät Auswahl
+        # 1. Gerät Auswahl (MIT BUTTON FÜR TOUCH)
         dev_frame = ttk.Labelframe(right, text="Gerät", padding=10, bootstyle="secondary")
         dev_frame.pack(fill="x", pady=(0, 10))
         
-        self.device_box = ttk.Combobox(
-            dev_frame, 
-            textvariable=self.device_var, 
-            state="readonly", 
-            font=("Arial", 11)
-        )
-        self.device_box.pack(fill="x")
+        dev_row = ttk.Frame(dev_frame)
+        dev_row.pack(fill="x")
+        
+        self.device_box = ttk.Combobox(dev_row, textvariable=self.device_var, state="readonly", font=("Arial", 11))
+        self.device_box.pack(side="left", fill="x", expand=True, padx=(0,5))
         self.device_box.bind("<<ComboboxSelected>>", self.set_device)
+        
+        # TOUCH BUTTON: Falls Event nicht feuert, kann man hier klicken
+        ttk.Button(dev_row, text="Setzen", command=self.set_device, bootstyle="secondary-outline").pack(side="right")
 
-        # 2. Player Buttons
+        # 2. Buttons
         ctrl_frame = ttk.Labelframe(right, text="Steuerung", padding=10, bootstyle="secondary")
         ctrl_frame.pack(fill="x", pady=(0, 10))
-        
         btn_row = ttk.Frame(ctrl_frame)
         btn_row.pack(pady=5)
-        
-        # Zeile 1: Prev, Play, Next
         ttk.Button(btn_row, text="<<", width=5, bootstyle="outline", command=self.prev_track).grid(row=0, column=0, padx=5)
         ttk.Button(btn_row, text="PLAY / PAUSE", width=15, bootstyle="primary", command=self.play_pause).grid(row=0, column=1, padx=5)
         ttk.Button(btn_row, text=">>", width=5, bootstyle="outline", command=self.next_track).grid(row=0, column=2, padx=5)
         
-        # Zeile 2: Shuffle, Repeat
         btn_row2 = ttk.Frame(ctrl_frame)
         btn_row2.pack(pady=5)
         ttk.Button(btn_row2, text="Shuffle", width=10, bootstyle="outline", command=self.set_shuffle).grid(row=0, column=0, padx=5)
@@ -172,46 +136,30 @@ class SpotifyTab:
         # 3. Lautstärke
         vol_frame = ttk.Labelframe(right, text="Lautstärke", padding=10, bootstyle="secondary")
         vol_frame.pack(fill="x", pady=(0, 10))
-        
         inner_vol = ttk.Frame(vol_frame)
         inner_vol.pack(fill="x")
-        
         self.mute_btn = ttk.Button(inner_vol, text="Mute", width=6, bootstyle="danger-outline", command=self.toggle_mute)
         self.mute_btn.pack(side="left", padx=5)
-        
-        ttk.Scale(
-            inner_vol, 
-            from_=0, 
-            to=100, 
-            variable=self.volume_var, 
-            command=self._on_volume_slide
-        ).pack(side="left", fill="x", expand=True, padx=10)
-        
+        ttk.Scale(inner_vol, from_=0, to=100, variable=self.volume_var, command=self._on_volume_slide).pack(side="left", fill="x", expand=True, padx=10)
         ttk.Label(inner_vol, textvariable=self.volume_label_var, width=5).pack(side="right")
 
         # 4. Suche
         search_frame = ttk.Labelframe(right, text="Suche", padding=10, bootstyle="secondary")
         search_frame.pack(fill="both", expand=True)
-        
         entry_row = ttk.Frame(search_frame)
         entry_row.pack(fill="x", pady=5)
-        
-        ttk.Entry(
-            entry_row, 
-            textvariable=self.search_entry_var, 
-            font=("Arial", 11)
-        ).pack(side="left", fill="x", expand=True, padx=(0,5))
-        
+        ttk.Entry(entry_row, textvariable=self.search_entry_var, font=("Arial", 11)).pack(side="left", fill="x", expand=True, padx=(0,5))
         ttk.Button(entry_row, text="Suchen", bootstyle="info", command=self.do_search).pack(side="right")
         
-        self.result_box = ttk.Combobox(
-            search_frame, 
-            textvariable=self.search_var, 
-            state="readonly", 
-            font=("Arial", 11)
-        )
-        self.result_box.pack(fill="x", pady=5)
+        res_row = ttk.Frame(search_frame)
+        res_row.pack(fill="x", pady=5)
+        
+        self.result_box = ttk.Combobox(res_row, textvariable=self.search_var, state="readonly", font=("Arial", 11))
+        self.result_box.pack(side="left", fill="x", expand=True, padx=(0,5))
         self.result_box.bind("<<ComboboxSelected>>", self.play_selected)
+        
+        # TOUCH BUTTON: Zum Starten der Auswahl ohne Enter
+        ttk.Button(res_row, text="Starten", command=self.play_selected, bootstyle="success").pack(side="right")
 
     def _oauth_init_thread(self):
         try:
@@ -375,12 +323,10 @@ class SpotifyTab:
             res = self.sp.search(q, limit=5, type="track,album,playlist")
             items = []
             self.result_cache = {}
-            # Tracks
             for t in (res.get("tracks",{}).get("items") or []):
                 disp = f"[Song] {t['name']} - {t['artists'][0]['name']}"
                 items.append(disp)
                 self.result_cache[disp] = {"uri": t["uri"], "type": "track"}
-            # Albums
             for a in (res.get("albums",{}).get("items") or []):
                 disp = f"[Album] {a['name']} - {a['artists'][0]['name']}"
                 items.append(disp)
