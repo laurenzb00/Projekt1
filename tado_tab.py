@@ -6,7 +6,7 @@ from ttkbootstrap.constants import *
 
 # --- KONFIGURATION ---
 TADO_USER = "laurenzbandzauner@gmail.com"  # <--- HIER ÄNDERN
-TADO_PASS = "Sw1mm1ngp00l!"           # <--- HIER ÄNDERN
+TADO_PASS = "Sw1mm1ngp00l"           # <--- HIER ÄNDERN
 
 class TadoTab:
     def __init__(self, root, notebook):
