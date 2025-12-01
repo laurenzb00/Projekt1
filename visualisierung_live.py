@@ -75,6 +75,11 @@ class LivePlotApp:
         self.dash_temp_top_str = StringVar(value="-- °C")
         self.dash_temp_mid_str = StringVar(value="-- °C")
         self.dash_temp_bot_str = StringVar(value="-- °C")
+        
+        # NEUE DATEN FÜR DEN FREIEN PLATZ
+        self.dash_ww_str = StringVar(value="-- °C")     # Warmwasser
+        self.dash_kessel_str = StringVar(value="-- °C") # Kessel
+        
         self.dash_aussen = StringVar(value="-- °C")
         
         self.dash_status = StringVar(value="System startet...")
@@ -121,41 +126,64 @@ class LivePlotApp:
         ttk.Label(f5, text="Autarkie:", font=("Arial", 10)).pack(side=LEFT)
         ttk.Label(f5, textvariable=self.dash_autarkie, font=("Arial", 14, "bold"), bootstyle="secondary").pack(side=RIGHT)
 
-        # --- ZEILE 2: Puffer (VERTIKAL DESIGN) ---
-        f_temp = ttk.Labelframe(self.dash_frame, text="Pufferspeicher", padding=10, bootstyle="danger")
+        # --- ZEILE 2: Puffer & Heizung (NEUES LAYOUT) ---
+        f_temp = ttk.Labelframe(self.dash_frame, text="Heizungssystem", padding=10, bootstyle="danger")
         f_temp.grid(row=2, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
         
         f_temp_in = ttk.Frame(f_temp)
         f_temp_in.pack(fill=BOTH, expand=YES)
 
-        # Links: Balken
+        # Spalte 1: Balken (Links außen)
         self.gauge_puffer = ttk.Floodgauge(
             f_temp_in, bootstyle="danger", font=("Arial", 10), 
             mask=None, orient=VERTICAL 
         )
         self.gauge_puffer.pack(side=LEFT, fill=Y, padx=(0, 20))
         
-        # Rechts: Werte untereinander (Vertikal)
-        txt_col = ttk.Frame(f_temp_in)
-        txt_col.pack(side=LEFT, fill=BOTH, expand=YES)
+        # Spalte 2: Puffer Temperaturen (Links bündig zum Balken)
+        col_puffer = ttk.Frame(f_temp_in)
+        col_puffer.pack(side=LEFT, fill=Y, padx=(0, 40)) # Abstand nach rechts zur nächsten Gruppe
+        
+        ttk.Label(col_puffer, text="Pufferspeicher", font=("Arial", 10, "underline")).pack(anchor="w", pady=(0, 10))
         
         # Oben
-        row_top = ttk.Frame(txt_col)
-        row_top.pack(fill=X, pady=5)
-        ttk.Label(row_top, text="Oben:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(row_top, textvariable=self.dash_temp_top_str, font=("Arial", 18, "bold"), bootstyle="danger").pack(side=RIGHT)
+        r1 = ttk.Frame(col_puffer)
+        r1.pack(fill=X, pady=2)
+        ttk.Label(r1, text="Oben:", width=6, font=("Arial", 11)).pack(side=LEFT)
+        ttk.Label(r1, textvariable=self.dash_temp_top_str, font=("Arial", 16, "bold"), bootstyle="danger").pack(side=LEFT)
         
         # Mitte
-        row_mid = ttk.Frame(txt_col)
-        row_mid.pack(fill=X, pady=5)
-        ttk.Label(row_mid, text="Mitte:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(row_mid, textvariable=self.dash_temp_mid_str, font=("Arial", 18, "bold"), bootstyle="warning").pack(side=RIGHT)
+        r2 = ttk.Frame(col_puffer)
+        r2.pack(fill=X, pady=2)
+        ttk.Label(r2, text="Mitte:", width=6, font=("Arial", 11)).pack(side=LEFT)
+        ttk.Label(r2, textvariable=self.dash_temp_mid_str, font=("Arial", 16, "bold"), bootstyle="warning").pack(side=LEFT)
 
         # Unten
-        row_bot = ttk.Frame(txt_col)
-        row_bot.pack(fill=X, pady=5)
-        ttk.Label(row_bot, text="Unten:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(row_bot, textvariable=self.dash_temp_bot_str, font=("Arial", 18, "bold"), bootstyle="primary").pack(side=RIGHT)
+        r3 = ttk.Frame(col_puffer)
+        r3.pack(fill=X, pady=2)
+        ttk.Label(r3, text="Unten:", width=6, font=("Arial", 11)).pack(side=LEFT)
+        ttk.Label(r3, textvariable=self.dash_temp_bot_str, font=("Arial", 16, "bold"), bootstyle="primary").pack(side=LEFT)
+
+        # Spalte 3: Trennlinie
+        ttk.Separator(f_temp_in, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+
+        # Spalte 4: System (Kessel & WW) - Füllt den freien Platz rechts
+        col_sys = ttk.Frame(f_temp_in)
+        col_sys.pack(side=LEFT, fill=Y, padx=(20, 0))
+        
+        ttk.Label(col_sys, text="Erzeuger / WW", font=("Arial", 10, "underline")).pack(anchor="w", pady=(0, 10))
+
+        # Warmwasser
+        r4 = ttk.Frame(col_sys)
+        r4.pack(fill=X, pady=5)
+        ttk.Label(r4, text="Warmwasser:", width=12, font=("Arial", 11)).pack(side=LEFT)
+        ttk.Label(r4, textvariable=self.dash_ww_str, font=("Arial", 16, "bold"), bootstyle="info").pack(side=LEFT)
+
+        # Kessel
+        r5 = ttk.Frame(col_sys)
+        r5.pack(fill=X, pady=5)
+        ttk.Label(r5, text="Kessel:", width=12, font=("Arial", 11)).pack(side=LEFT)
+        ttk.Label(r5, textvariable=self.dash_kessel_str, font=("Arial", 16, "bold"), bootstyle="danger").pack(side=LEFT)
 
 
         # --- ZEILE 3: Außen & Status ---
@@ -168,10 +196,9 @@ class LivePlotApp:
         ttk.Label(f_bot, textvariable=self.dash_status, font=("Arial", 10), bootstyle="secondary").pack(side=RIGHT, anchor="s", pady=5)
 
     def setup_plot_tabs(self):
-        # Alle Tabs aktiv
         self.create_single_plot_tab("PV-Leistung", "fronius")
         self.create_single_plot_tab("Temperaturen", "bmk")
-        self.create_single_plot_tab("Batterie", "batt")  # WIEDER DA
+        self.create_single_plot_tab("Batterie", "batt") 
         self.create_single_plot_tab("Ertrag", "ertrag")
 
     def create_single_plot_tab(self, name, var_prefix):
@@ -234,13 +261,13 @@ class LivePlotApp:
                     self.dash_ertrag_heute.set(f"{kwh_today:.1f} kWh")
 
                 self._plot_fronius(fronius_df, now)
-                self._plot_battery(fronius_df, now) # WIEDER AKTIV
+                self._plot_battery(fronius_df, now) 
                 self._plot_ertrag(fronius_df, now)
                 self.dash_status.set("PV Daten aktuell.")
             except Exception as e:
                 print(f"Fronius Update Fehler: {e}")
 
-        # 2. Temperatur Daten
+        # 2. Temperatur Daten (INKL. KESSEL & WW)
         if bmk_df is not None and not bmk_df.empty:
             try:
                 bmk_df["Zeitstempel"] = pd.to_datetime(bmk_df["Zeitstempel"])
@@ -249,12 +276,22 @@ class LivePlotApp:
                 top = last.get("Pufferspeicher Oben", 0)
                 mid = last.get("Pufferspeicher Mitte", 0)
                 bot = last.get("Pufferspeicher Unten", 0)
+                
+                # NEU: WW und Kessel holen
+                ww = last.get("Warmwasser", 0)
+                kessel = last.get("Kesseltemperatur", 0)
                 aussen = last.get("Außentemperatur", 0)
                 
                 self.gauge_puffer.configure(value=top)
+                
                 self.dash_temp_top_str.set(f"{top:.1f} °C")
                 self.dash_temp_mid_str.set(f"{mid:.1f} °C")
                 self.dash_temp_bot_str.set(f"{bot:.1f} °C")
+                
+                # NEU: Anzeigen füllen
+                self.dash_ww_str.set(f"{ww:.1f} °C")
+                self.dash_kessel_str.set(f"{kessel:.1f} °C")
+                
                 self.dash_aussen.set(f"{aussen:.1f} °C")
                 
                 self._plot_temps(bmk_df, now)
