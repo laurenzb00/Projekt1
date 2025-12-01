@@ -10,8 +10,17 @@ import datetime
 import pytz
 
 # --- KONFIGURATION ---
-# Hier den "Privatadresse im iCal-Format" Link einfügen:
-ICAL_URL = "https://calendar.google.com/calendar/ical/laurenzbandzauner%40gmail.com/private-ee12d630b1b19a7f6754768f56f1a76c/basic.ics" 
+# Tragen Sie hier alle Ihre Kalender-Links ein (durch Kommas getrennt):
+ICAL_URLS = [
+    "https://calendar.google.com/calendar/ical/laurenzbandzauner%40gmail.com/private-ee12d630b1b19a7f6754768f56f1a76c/basic.ics",  # Hauptkalender
+"https://calendar.google.com/calendar/embed?src=ukrkc67kki9lm9lllj6l0je1ag%40group.calendar.google.com&ctz=Europe%2FVienna",
+"https://calendar.google.com/calendar/embed?src=6mkjaj880rf2uri1pl1hv45ksbh7gvo3%40import.calendar.google.com&ctz=Europe%2FVienna",
+"https://calendar.google.com/calendar/embed?src=h53q4om49cgioc2gff7j5r5pi4%40group.calendar.google.com&ctz=Europe%2FVienna",
+"https://calendar.google.com/calendar/embed?src=bj8tto18ec8qqrgl316dnan7u0lmobud%40import.calendar.google.com&ctz=Europe%2FVienna",
+"https://calendar.google.com/calendar/embed?src=pehhg3u2a6ha539oql87fuao0j9aqteu%40import.calendar.google.com&ctz=Europe%2FVienna"
+
+
+]
 
 class CalendarTab:
     def __init__(self, root, notebook):
@@ -21,7 +30,7 @@ class CalendarTab:
         
         # Variablen
         self.status_var = tk.StringVar(value="Lade Kalender...")
-        self.events_data = [] # Liste der geladenen Termine
+        self.events_data = [] 
         
         # Tab erstellen
         self.tab_frame = ttk.Frame(self.notebook)
@@ -29,8 +38,10 @@ class CalendarTab:
         
         self._build_header()
         
-        # Scrollbarer Bereich für die Termin-Liste
-        self.canvas = tk.Canvas(self.tab_frame, bg="#2b3e50", highlightthickness=0)
+        # Scrollbarer Bereich
+        self.canvas = tk.Canvas(self.tab_frame, highlightthickness=0)
+        self.canvas.configure(bg="#2b3e50") # Hintergrund anpassen
+        
         self.scrollbar = ttk.Scrollbar(self.tab_frame, orient="vertical", command=self.canvas.yview)
         self.scroll_frame = ttk.Frame(self.canvas)
         
@@ -60,103 +71,108 @@ class CalendarTab:
         ttk.Button(header, text="↻", bootstyle="secondary-outline", command=lambda: threading.Thread(target=self._fetch_calendar, daemon=True).start()).pack(side=RIGHT, padx=10)
 
     def _loop(self):
-        # Beim Start laden
         self._fetch_calendar()
-        
-        # Dann alle 15 Minuten aktualisieren
         while self.alive:
-            for _ in range(900): # 15 min warten in 1s Schritten (für schnellen Stop)
+            for _ in range(900): # 15 min
                 if not self.alive: return
                 time.sleep(1)
             self._fetch_calendar()
 
     def _fetch_calendar(self):
         self.status_var.set("Aktualisiere...")
-        try:
-            if "google.com" not in ICAL_URL:
-                self.status_var.set("Bitte iCal-Link in Code eintragen!")
-                return
+        all_events = []
+        error_occurred = False
 
-            response = requests.get(ICAL_URL)
-            response.raise_for_status()
-            
-            cal = icalendar.Calendar.from_ical(response.content)
-            
-            # Zeitraum: Heute bis in 30 Tagen
-            now = datetime.datetime.now(pytz.utc)
-            end = now + datetime.timedelta(days=30)
-            
-            # Wiederkehrende Termine auflösen
-            events = recurring_ical_events.of(cal).between(now, end)
-            
-            # Sortieren nach Startzeit
-            events.sort(key=lambda x: x.get("DTSTART").dt)
-            
-            # UI Update im Hauptthread
-            self.root.after(0, lambda: self._update_ui(events))
-            self.status_var.set(f"Aktuell ({datetime.datetime.now().strftime('%H:%M')})")
-            
-        except Exception as e:
-            print(f"Kalender Fehler: {e}")
-            self.status_var.set("Verbindungsfehler")
+        # Zeitraum: Heute bis in 60 Tagen
+        now = datetime.datetime.now(pytz.utc)
+        end = now + datetime.timedelta(days=60)
+
+        for url in ICAL_URLS:
+            if "http" not in url: continue
+            try:
+                response = requests.get(url.strip())
+                response.raise_for_status()
+                
+                cal = icalendar.Calendar.from_ical(response.content)
+                # Events auflösen
+                events = recurring_ical_events.of(cal).between(now, end)
+                all_events.extend(events)
+                
+            except Exception as e:
+                print(f"Fehler bei Kalender-URL '{url}': {e}")
+                error_occurred = True
+
+        # Sortieren nach Startzeit (wichtig, da Events jetzt aus versch. Quellen kommen)
+        try:
+            all_events.sort(key=lambda x: x.get("DTSTART").dt)
+        except:
+            pass # Fallback falls Sortierung fehlschlägt
+
+        # UI Update
+        self.root.after(0, lambda: self._update_ui(all_events))
+        
+        timestamp = datetime.datetime.now().strftime('%H:%M')
+        if error_occurred:
+            self.status_var.set(f"Teilweise Fehler ({timestamp})")
+        else:
+            self.status_var.set(f"Aktuell ({timestamp})")
 
     def _update_ui(self, events):
-        # Liste leeren
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
             
         if not events:
-            ttk.Label(self.scroll_frame, text="Keine Termine in den nächsten 30 Tagen.", font=("Arial", 12)).pack(pady=20)
+            ttk.Label(self.scroll_frame, text="Keine Termine gefunden (oder URL fehlt).", font=("Arial", 12)).pack(pady=20)
             return
 
         current_day_str = ""
         
-        for event in events:
+        # Limit auf z.B. 15 Termine, damit die Liste nicht explodiert
+        for event in events[:20]:
             # Daten extrahieren
             summary = str(event.get("SUMMARY"))
             start_dt = event.get("DTSTART").dt
             
-            # Formatierung
+            # Ganztägig Check
             is_all_day = False
-            if not isinstance(start_dt, datetime.datetime): # Es ist ein date (ganztägig)
+            if not isinstance(start_dt, datetime.datetime):
                 start_dt = datetime.datetime.combine(start_dt, datetime.time.min)
                 is_all_day = True
             
-            # Datum Gruppen-Header
+            # Datum Header
             day_str = start_dt.strftime("%A, %d.%m.")
-            # Deutsche Wochentage mappen (optional, sonst englisch vom System)
             days_map = {'Monday': 'Montag', 'Tuesday': 'Dienstag', 'Wednesday': 'Mittwoch', 'Thursday': 'Donnerstag', 'Friday': 'Freitag', 'Saturday': 'Samstag', 'Sunday': 'Sonntag'}
             eng_day = start_dt.strftime("%A")
             if eng_day in days_map:
                 day_str = day_str.replace(eng_day, days_map[eng_day])
 
             if day_str != current_day_str:
-                # Neuer Tag Header
-                ttk.Label(self.scroll_frame, text=day_str, font=("Arial", 14, "bold", "underline"), bootstyle="warning").pack(anchor="w", pady=(15, 5))
+                # Kleiner Abstand vor neuem Tag
+                pad_top = 15 if current_day_str != "" else 5
+                ttk.Label(self.scroll_frame, text=day_str, font=("Arial", 14, "bold", "underline"), bootstyle="warning").pack(anchor="w", pady=(pad_top, 5))
                 current_day_str = day_str
             
-            # Termin Karte
-            card = ttk.Frame(self.scroll_frame, style="Secondary.TFrame") # oder Labelframe
-            card.pack(fill=X, pady=2, padx=5)
-            
-            # Uhrzeit
-            if is_all_day:
-                time_str = "Ganztägig"
-                clr = "info"
-            else:
-                # Zeitzone anpassen (wichtig, da Google UTC liefert)
-                local_dt = start_dt.astimezone(pytz.timezone("Europe/Berlin")) # Oder 'Europe/Vienna'
-                time_str = local_dt.strftime("%H:%M")
-                clr = "light"
-
-            # Zeile bauen
+            # Termin Zeile
             row = ttk.Frame(self.scroll_frame)
             row.pack(fill=X, pady=2)
             
-            lbl_time = ttk.Label(row, text=time_str, font=("Arial", 12, "bold"), bootstyle=clr, width=10)
+            if is_all_day:
+                time_str = "Ganztag"
+                clr = "info"
+            else:
+                # Zeitzone
+                try:
+                    local_dt = start_dt.astimezone(pytz.timezone("Europe/Berlin"))
+                except:
+                    local_dt = start_dt # Fallback wenn naiv
+                time_str = local_dt.strftime("%H:%M")
+                clr = "light"
+
+            lbl_time = ttk.Label(row, text=time_str, font=("Arial", 12, "bold"), bootstyle=clr, width=9)
             lbl_time.pack(side=LEFT)
             
             lbl_text = ttk.Label(row, text=summary, font=("Arial", 12))
             lbl_text.pack(side=LEFT)
             
+            # Dünne Trennlinie
             ttk.Separator(self.scroll_frame).pack(fill=X, pady=2, padx=10)
