@@ -34,7 +34,6 @@ def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
         
     try:
         # 1. Nur die Kopfzeile lesen (Zeile 0)
-        # sep="," da das Bild Kommas als Trenner gezeigt hat
         header_df = pd.read_csv(path, nrows=0, sep=",")
         col_names = header_df.columns.tolist()
         
@@ -72,7 +71,7 @@ class LivePlotApp:
         
         # Variablen für UI
         self.init_variables()
-        self.spotify_instance = None # Wird von main.py gesetzt
+        self.spotify_instance = None 
 
         # Haupt-Container
         self.main_container = ttk.Frame(self.root)
@@ -208,7 +207,7 @@ class LivePlotApp:
         # 2. PV & Batterie Daten verarbeiten
         if fronius_df is not None and not fronius_df.empty:
             try:
-                # Wichtig für Graphen
+                # Zeitstempel konvertieren
                 fronius_df["Zeitstempel"] = pd.to_datetime(fronius_df["Zeitstempel"])
                 last = fronius_df.iloc[-1]
                 

@@ -3,9 +3,10 @@ import logging
 import visualisierung_live
 import Wechselrichter
 import BMKDATEN
-from ttkbootstrap import Window, tk # WICHTIG: Window für das Theme
+import tkinter as tk # KORRIGIERTER IMPORT
+from ttkbootstrap import Window # Importiert nur Window
 from spotify_tab import SpotifyTab
-import time # Hinzugefügt, da im run_bmkdaten Thread benötigt
+import time 
 
 # --- Logging: Datei + Konsole ---
 logging.basicConfig(
@@ -49,23 +50,22 @@ def main():
         t.start()
 
     # --- GUI FIX: WINDOW MIT THEME STARTEN ---
-    root = Window(themename="superhero") # Nutze ttkbootstrap.Window für Dark Mode
-    root.geometry("1100x650") # Angepasste Größe
+    root = Window(themename="superhero") # Nutzt ttkbootstrap.Window für Dark Mode
+    root.geometry("1100x650") 
     root.resizable(False, False)
     
     app = visualisierung_live.LivePlotApp(root) 
 
     # --- Spotify-Tab (eigene Datei) ---
-    spotify = SpotifyTab(root, app.notebook) # SpotifyTab fügt sich selbst zum Notebook hinzu
+    spotify = SpotifyTab(root, app.notebook) 
     
-    # Referenz speichern, falls später benötigt
     app.spotify_instance = spotify 
 
     def on_close():
         logging.info("Programm wird beendet…")
         shutdown_event.set()
         try:
-            spotify.stop() # Spotify Thread stoppen
+            spotify.stop() 
         except Exception:
             pass
         root.destroy()
