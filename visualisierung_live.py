@@ -21,18 +21,23 @@ BMK_CSV = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv")
 
 # Aktualisierungsrate (ms)
 UPDATE_INTERVAL = 60 * 1000 
-MAX_PLOT_POINTS = 10000 # Erhöht für Wochenansicht
+MAX_PLOT_POINTS = 10000 
 
 # --- HILFSFUNKTION: CSV SICHER LESEN ---
 def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
     if not os.path.exists(path):
         return None
     try:
+        # Header lesen (Komma-getrennt)
         header_df = pd.read_csv(path, nrows=0, sep=",")
         col_names = header_df.columns.tolist()
+        
         with open(path, "rb") as f:
             total_lines = sum(1 for _ in f)
+        
         skip_rows = max(1, total_lines - max_rows)
+        
+        # Daten lesen
         df = pd.read_csv(path, sep=",", names=col_names, skiprows=skip_rows)
         df.columns = df.columns.str.strip()
         return df
@@ -69,8 +74,8 @@ class LivePlotApp:
     def init_variables(self):
         self.dash_pv_now = StringVar(value="-- kW")
         self.dash_haus_now = StringVar(value="-- kW")
-        self.dash_ertrag_heute = StringVar(value="-- kWh") # NEU
-        self.dash_autarkie = StringVar(value="-- %")       # NEU
+        self.dash_ertrag_heute = StringVar(value="-- kWh") 
+        self.dash_autarkie = StringVar(value="-- %")       
         
         self.dash_temp_top_str = StringVar(value="-- °C")
         self.dash_temp_mid_str = StringVar(value="-- °C")
@@ -85,71 +90,59 @@ class LivePlotApp:
         self.dash_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.dash_frame, text=" Dashboard ")
         
-        # Grid anpassen: Mehr Zeilen, damit Kästchen nicht so riesig sind
         self.dash_frame.columnconfigure((0,1,2), weight=1)
-        self.dash_frame.rowconfigure(0, weight=0) # Zeile 0 (Hauptwerte) nicht strecken
-        self.dash_frame.rowconfigure(1, weight=0) # Zeile 1 (Sekundärwerte) nicht strecken
-        self.dash_frame.rowconfigure(2, weight=1) # Zeile 2 (Puffer) Restplatz
-        self.dash_frame.rowconfigure(3, weight=0) # Zeile 3 (Außen)
+        self.dash_frame.rowconfigure(0, weight=0) 
+        self.dash_frame.rowconfigure(1, weight=0) 
+        self.dash_frame.rowconfigure(2, weight=1) 
+        self.dash_frame.rowconfigure(3, weight=0) 
 
-        # --- ZEILE 0: Hauptwerte (PV, Haus, Batterie) ---
-        
-        # 1. Leistung PV
+        # --- ZEILE 0: Hauptwerte ---
         f1 = ttk.Labelframe(self.dash_frame, text="PV Erzeugung", padding=10, bootstyle="warning")
         f1.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         ttk.Label(f1, textvariable=self.dash_pv_now, font=("Arial", 28, "bold"), bootstyle="warning").pack(anchor="center")
         ttk.Label(f1, text="Aktuelle Leistung", font=("Arial", 9)).pack(anchor="center")
 
-        # 2. Hausverbrauch
         f2 = ttk.Labelframe(self.dash_frame, text="Verbrauch", padding=10, bootstyle="info")
         f2.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
         ttk.Label(f2, textvariable=self.dash_haus_now, font=("Arial", 28, "bold"), bootstyle="info").pack(anchor="center")
         ttk.Label(f2, text="Hauslast", font=("Arial", 9)).pack(anchor="center")
 
-        # 3. Speicher (Meter)
         f3 = ttk.Labelframe(self.dash_frame, text="Speicher", padding=5, bootstyle="success")
-        f3.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5, pady=5) # Speicher darf höher sein
+        f3.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5, pady=5)
         self.meter_batt = ttk.Meter(
             f3, metersize=160, amountused=0, metertype="semi", 
             subtext="SoC", bootstyle="success", interactive=False, textright="%"
         )
         self.meter_batt.pack(expand=YES, pady=5)
 
-        # --- ZEILE 1: Zusatzinfos (Ertrag Heute & Autarkie) ---
-        
-        # Ertrag Heute
+        # --- ZEILE 1: Zusatzinfos ---
         f4 = ttk.Frame(self.dash_frame)
         f4.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
         ttk.Label(f4, text="Ertrag heute:", font=("Arial", 10)).pack(side=LEFT)
         ttk.Label(f4, textvariable=self.dash_ertrag_heute, font=("Arial", 14, "bold"), bootstyle="success").pack(side=RIGHT)
 
-        # Autarkie
         f5 = ttk.Frame(self.dash_frame)
         f5.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
         ttk.Label(f5, text="Autarkie:", font=("Arial", 10)).pack(side=LEFT)
         ttk.Label(f5, textvariable=self.dash_autarkie, font=("Arial", 14, "bold"), bootstyle="secondary").pack(side=RIGHT)
 
-        # --- ZEILE 2: Puffer (Temperaturen) ---
+        # --- ZEILE 2: Puffer ---
         f_temp = ttk.Labelframe(self.dash_frame, text="Pufferspeicher", padding=10, bootstyle="danger")
         f_temp.grid(row=2, column=0, columnspan=3, sticky="ew", padx=5, pady=10)
         
-        # Container für die 3 Werte nebeneinander
         f_temp_in = ttk.Frame(f_temp)
         f_temp_in.pack(fill=X, expand=YES)
 
-        # Oben
         t1 = ttk.Frame(f_temp_in)
         t1.pack(side=LEFT, expand=YES)
         ttk.Label(t1, text="Oben", font=("Arial", 10)).pack()
         ttk.Label(t1, textvariable=self.dash_temp_top_str, font=("Arial", 20, "bold"), bootstyle="danger").pack()
 
-        # Mitte
         t2 = ttk.Frame(f_temp_in)
         t2.pack(side=LEFT, expand=YES)
         ttk.Label(t2, text="Mitte", font=("Arial", 10)).pack()
         ttk.Label(t2, textvariable=self.dash_temp_mid_str, font=("Arial", 20, "bold"), bootstyle="warning").pack()
 
-        # Unten
         t3 = ttk.Frame(f_temp_in)
         t3.pack(side=LEFT, expand=YES)
         ttk.Label(t3, text="Unten", font=("Arial", 10)).pack()
@@ -159,7 +152,6 @@ class LivePlotApp:
         f_bot = ttk.Frame(self.dash_frame)
         f_bot.grid(row=3, column=0, columnspan=3, sticky="ew", padx=10, pady=20)
         
-        # Außentemperatur GROSS
         ttk.Label(f_bot, text="Außen:", font=("Arial", 16)).pack(side=LEFT, anchor="s", pady=5)
         ttk.Label(f_bot, textvariable=self.dash_aussen, font=("Arial", 42, "bold"), bootstyle="inverse-primary").pack(side=LEFT, padx=15)
         
@@ -216,23 +208,20 @@ class LivePlotApp:
                 self.dash_haus_now.set(f"{haus:.2f} kW")
                 self.meter_batt.configure(amountused=int(soc))
                 
-                # Autarkie Berechnung (Einfach)
+                # Autarkie
                 if haus > 0:
                     autarkie = min(pv, haus) / haus * 100
                     self.dash_autarkie.set(f"{int(autarkie)} %")
                 else:
                     self.dash_autarkie.set("100 %")
                 
-                # Ertrag Heute Berechnung (Integration der Leistung über Zeit)
+                # Ertrag Heute (Schätzung)
                 today_mask = fronius_df["Zeitstempel"].dt.date == now.date()
                 df_today = fronius_df[today_mask]
                 if not df_today.empty:
-                    # Annahme: Durchschnittsleistung * Stunden
-                    # (Vereinfachte Berechnung, genauer wäre Integral)
                     avg_p = df_today["PV-Leistung (kW)"].mean()
                     duration_h = (df_today["Zeitstempel"].max() - df_today["Zeitstempel"].min()).total_seconds() / 3600
                     kwh_today = avg_p * duration_h
-                    # Falls duration fast 0 ist (nur 1 Messwert), nimm 0
                     self.dash_ertrag_heute.set(f"{kwh_today:.1f} kWh")
 
                 self._plot_fronius(fronius_df, now)
@@ -282,7 +271,7 @@ class LivePlotApp:
         ax2.clear()
         self._style_ax(ax)
 
-        # 48 Stunden (User Wunsch)
+        # 48 Stunden Ansicht
         mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=48))
         df_sub = df.loc[mask]
 
@@ -306,7 +295,6 @@ class LivePlotApp:
         ax.clear()
         self._style_ax(ax)
         
-        # 48 Stunden (Batterie war schon ok)
         mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=48))
         df_sub = df.loc[mask]
         
@@ -324,6 +312,47 @@ class LivePlotApp:
         ax.clear()
         self._style_ax(ax)
         
-        # Ertrag pro Tag für die letzten 7 Tage berechnen
         try:
-            #
+            df_calc = df.copy()
+            df_calc.set_index("Zeitstempel", inplace=True)
+            
+            # Resampling auf Tage -> Balkendiagramm
+            df_hourly = df_calc["PV-Leistung (kW)"].resample('h').mean()
+            df_daily = df_hourly.resample('D').sum() 
+            
+            # Letzte 7 Tage
+            start_date = (now - pd.Timedelta(days=7)).replace(hour=0, minute=0, second=0)
+            df_daily = df_daily[df_daily.index >= start_date]
+
+            if not df_daily.empty:
+                ax.bar(df_daily.index, df_daily.values, color="#f1c40f", width=0.5)
+                ax.set_title("Tagesertrag (letzte 7 Tage) in kWh", color="white")
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.'))
+            else:
+                ax.text(0.5, 0.5, "Daten laden...", color="white", ha="center")
+        except Exception as e:
+            print(f"Ertrag Plot Fehler: {e}")
+            
+        self.ertrag_canvas.draw()
+
+    def _plot_temps(self, df, now):
+        ax = self.bmk_ax
+        ax.clear()
+        self._style_ax(ax)
+        
+        # 7 Tage Ansicht
+        mask = df["Zeitstempel"] >= (now - pd.Timedelta(days=7))
+        df_sub = df.loc[mask]
+        
+        if not df_sub.empty:
+            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Oben"], color="#e74c3c", label="Oben")
+            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Mitte"], color="#e67e22", label="Mitte")
+            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Unten"], color="#3498db", label="Unten")
+            # Außenlinie
+            ax.plot(df_sub["Zeitstempel"], df_sub["Außentemperatur"], color="cyan", label="Außen", linestyle="--", alpha=0.7)
+            
+            ax.legend(facecolor=self.chart_bg, labelcolor="white")
+            ax.set_title("Temperaturen (7 Tage)", color="white")
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.'))
+            self.bmk_fig.autofmt_xdate()
+        self.bmk_canvas.draw()
