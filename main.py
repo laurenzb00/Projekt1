@@ -6,8 +6,10 @@ import BMKDATEN
 import tkinter as tk 
 from ttkbootstrap import Window 
 from spotify_tab import SpotifyTab
-from tado_tab import TadoTab   # <--- NEU
-from hue_tab import HueTab     # <--- NEU
+from tado_tab import TadoTab   
+from hue_tab import HueTab     
+from system_tab import SystemTab # <--- NEU
+from analyse_tab import AnalyseTab # <--- NEU
 import time 
 
 # --- Logging ---
@@ -50,16 +52,18 @@ def main():
     root = Window(themename="superhero") 
     root.geometry("1100x650") 
     root.resizable(False, False)
-    root.title("Smart Energy Dashboard") # Titel angepasst
+    root.title("Smart Energy Dashboard Pro")
     
     # 1. Haupt-App (Energie Tabs)
     app = visualisierung_live.LivePlotApp(root) 
 
-    # 2. Smart Home Tabs hinzufügen
-    # Die Reihenfolge hier bestimmt die Reihenfolge der Tabs
+    # 2. Zusatz Tabs hinzufügen
+    # Reihenfolge bestimmt die Anzeige
+    analyse = AnalyseTab(root, app.notebook) # Grafik Tab
     tado = TadoTab(root, app.notebook)
     hue = HueTab(root, app.notebook)
     spotify = SpotifyTab(root, app.notebook) 
+    system = SystemTab(root, app.notebook)   # Info Tab
     
     app.spotify_instance = spotify 
 
@@ -68,8 +72,9 @@ def main():
         shutdown_event.set()
         try:
             spotify.stop()
-            tado.stop() # Neu
-            hue.stop()  # Neu
+            tado.stop()
+            hue.stop()
+            system.stop() # System Tab stoppen
         except Exception:
             pass
         root.destroy()
