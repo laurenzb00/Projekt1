@@ -20,38 +20,22 @@ FRONIUS_CSV = os.path.join(WORKING_DIRECTORY, "FroniusDaten.csv")
 BMK_CSV = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv")
 
 # Aktualisierungsrate (ms)
-UPDATE_INTERVAL = 60 * 1000  # 1 Minute
-MAX_PLOT_POINTS = 2000 
+UPDATE_INTERVAL = 60 * 1000 
+MAX_PLOT_POINTS = 10000 # Erhöht für Wochenansicht
 
 # --- HILFSFUNKTION: CSV SICHER LESEN ---
 def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
-    """
-    Liest nur die letzten Zeilen einer CSV, behält aber die korrekten
-    Spaltennamen aus der ersten Zeile bei.
-    """
     if not os.path.exists(path):
         return None
-        
     try:
-        # 1. Nur die Kopfzeile lesen (Zeile 0)
         header_df = pd.read_csv(path, nrows=0, sep=",")
         col_names = header_df.columns.tolist()
-        
-        # 2. Gesamtanzahl der Zeilen ermitteln
         with open(path, "rb") as f:
             total_lines = sum(1 for _ in f)
-            
-        # 3. Berechnen, ab wo wir lesen müssen
         skip_rows = max(1, total_lines - max_rows)
-        
-        # 4. Daten lesen und Namen zuweisen
         df = pd.read_csv(path, sep=",", names=col_names, skiprows=skip_rows)
-        
-        # Leerzeichen in Spaltennamen entfernen
         df.columns = df.columns.str.strip()
-        
         return df
-        
     except Exception as e:
         print(f"Fehler beim Lesen von {path}: {e}")
         return None
@@ -61,44 +45,38 @@ class LivePlotApp:
     def __init__(self, root):
         self.root = root
         
-        # Theme Setup
         self.style = ttk.Style()
-        
-        # Farben aus dem Theme laden
         self.chart_bg = self.style.lookup("TFrame", "background")
         self.chart_fg = "white"
         self.chart_grid = "#555555"
         
-        # Variablen für UI
         self.init_variables()
         self.spotify_instance = None 
 
-        # Haupt-Container
         self.main_container = ttk.Frame(self.root)
         self.main_container.pack(fill=BOTH, expand=YES)
 
-        # Tabs erstellen
         self.notebook = ttk.Notebook(self.main_container, bootstyle="primary")
         self.notebook.pack(fill=BOTH, expand=YES, padx=5, pady=5)
 
-        # --- TABS DEFINIEREN ---
+        # Tabs erstellen
         self.setup_dashboard_tab()
         self.setup_plot_tabs()
-        # Spotify Tab wird von SpotifyTab(root, self.notebook) in main.py erstellt
 
-        # Fußzeile
         self.setup_bottom_bar()
-
-        # Starten der Update-Schleife
         self.update_plots()
 
     def init_variables(self):
         self.dash_pv_now = StringVar(value="-- kW")
         self.dash_haus_now = StringVar(value="-- kW")
+        self.dash_ertrag_heute = StringVar(value="-- kWh") # NEU
+        self.dash_autarkie = StringVar(value="-- %")       # NEU
+        
         self.dash_temp_top_str = StringVar(value="-- °C")
         self.dash_temp_mid_str = StringVar(value="-- °C")
         self.dash_temp_bot_str = StringVar(value="-- °C")
         self.dash_aussen = StringVar(value="-- °C")
+        
         self.dash_status = StringVar(value="System startet...")
         self.status_time_var = StringVar(value="-")
 
@@ -107,65 +85,87 @@ class LivePlotApp:
         self.dash_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.dash_frame, text=" Dashboard ")
         
+        # Grid anpassen: Mehr Zeilen, damit Kästchen nicht so riesig sind
         self.dash_frame.columnconfigure((0,1,2), weight=1)
-        self.dash_frame.rowconfigure(0, weight=1)
+        self.dash_frame.rowconfigure(0, weight=0) # Zeile 0 (Hauptwerte) nicht strecken
+        self.dash_frame.rowconfigure(1, weight=0) # Zeile 1 (Sekundärwerte) nicht strecken
+        self.dash_frame.rowconfigure(2, weight=1) # Zeile 2 (Puffer) Restplatz
+        self.dash_frame.rowconfigure(3, weight=0) # Zeile 3 (Außen)
 
-        # Kachel 1: Leistung
-        f1 = ttk.Labelframe(self.dash_frame, text="Leistung", padding=15, bootstyle="warning")
-        f1.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        # --- ZEILE 0: Hauptwerte (PV, Haus, Batterie) ---
         
-        ttk.Label(f1, text="PV Aktuell:", font=("Arial", 12)).pack(anchor="w")
-        ttk.Label(f1, textvariable=self.dash_pv_now, font=("Arial", 26, "bold"), bootstyle="warning").pack(anchor="w", pady=5)
-        ttk.Separator(f1).pack(fill=X, pady=10)
-        ttk.Label(f1, text="Verbrauch:", font=("Arial", 12)).pack(anchor="w")
-        ttk.Label(f1, textvariable=self.dash_haus_now, font=("Arial", 26, "bold"), bootstyle="info").pack(anchor="w", pady=5)
+        # 1. Leistung PV
+        f1 = ttk.Labelframe(self.dash_frame, text="PV Erzeugung", padding=10, bootstyle="warning")
+        f1.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        ttk.Label(f1, textvariable=self.dash_pv_now, font=("Arial", 28, "bold"), bootstyle="warning").pack(anchor="center")
+        ttk.Label(f1, text="Aktuelle Leistung", font=("Arial", 9)).pack(anchor="center")
 
-        # 2. Speicher
-        f2 = ttk.Labelframe(self.dash_frame, text="Speicher", padding=15, bootstyle="success")
-        f2.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
-        
+        # 2. Hausverbrauch
+        f2 = ttk.Labelframe(self.dash_frame, text="Verbrauch", padding=10, bootstyle="info")
+        f2.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
+        ttk.Label(f2, textvariable=self.dash_haus_now, font=("Arial", 28, "bold"), bootstyle="info").pack(anchor="center")
+        ttk.Label(f2, text="Hauslast", font=("Arial", 9)).pack(anchor="center")
+
+        # 3. Speicher (Meter)
+        f3 = ttk.Labelframe(self.dash_frame, text="Speicher", padding=5, bootstyle="success")
+        f3.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5, pady=5) # Speicher darf höher sein
         self.meter_batt = ttk.Meter(
-            f2, metersize=180, amountused=0, metertype="semi", 
-            subtext="SoC %", bootstyle="success", interactive=False, textright="%"
+            f3, metersize=160, amountused=0, metertype="semi", 
+            subtext="SoC", bootstyle="success", interactive=False, textright="%"
         )
-        self.meter_batt.pack(expand=YES)
+        self.meter_batt.pack(expand=YES, pady=5)
 
-        # 3. Temperaturen (LAYOUT FIX FÜR ABSCHNITTENEN TEXT)
-        f3 = ttk.Labelframe(self.dash_frame, text="Wärme (Puffer)", padding=15, bootstyle="danger")
-        f3.grid(row=0, column=2, sticky="nsew", padx=10, pady=10)
+        # --- ZEILE 1: Zusatzinfos (Ertrag Heute & Autarkie) ---
         
-        f3_content = ttk.Frame(f3)
-        f3_content.pack(fill=BOTH, expand=YES)
+        # Ertrag Heute
+        f4 = ttk.Frame(self.dash_frame)
+        f4.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
+        ttk.Label(f4, text="Ertrag heute:", font=("Arial", 10)).pack(side=LEFT)
+        ttk.Label(f4, textvariable=self.dash_ertrag_heute, font=("Arial", 14, "bold"), bootstyle="success").pack(side=RIGHT)
 
-        # Balken (Links)
-        self.gauge_puffer = ttk.Floodgauge(
-            f3_content, bootstyle="danger", font=("Arial", 10), 
-            mask=None, orient=VERTICAL 
-        )
-        self.gauge_puffer.pack(side=LEFT, fill=Y, padx=(0, 15))
+        # Autarkie
+        f5 = ttk.Frame(self.dash_frame)
+        f5.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
+        ttk.Label(f5, text="Autarkie:", font=("Arial", 10)).pack(side=LEFT)
+        ttk.Label(f5, textvariable=self.dash_autarkie, font=("Arial", 14, "bold"), bootstyle="secondary").pack(side=RIGHT)
+
+        # --- ZEILE 2: Puffer (Temperaturen) ---
+        f_temp = ttk.Labelframe(self.dash_frame, text="Pufferspeicher", padding=10, bootstyle="danger")
+        f_temp.grid(row=2, column=0, columnspan=3, sticky="ew", padx=5, pady=10)
         
-        # Text (Rechts)
-        txt_f = ttk.Frame(f3_content)
-        txt_f.pack(side=LEFT, fill=BOTH, expand=YES)
-        
-        ttk.Label(txt_f, text="Oben:", font=("Arial", 11)).pack(anchor="w", pady=(5,0))
-        ttk.Label(txt_f, textvariable=self.dash_temp_top_str, font=("Arial", 16, "bold")).pack(anchor="w")
-        
-        ttk.Label(txt_f, text="Mitte:", font=("Arial", 11)).pack(anchor="w", pady=(10,0))
-        ttk.Label(txt_f, textvariable=self.dash_temp_mid_str, font=("Arial", 16, "bold")).pack(anchor="w")
-        
-        ttk.Label(txt_f, text="Unten:", font=("Arial", 11)).pack(anchor="w", pady=(10,0))
-        ttk.Label(txt_f, textvariable=self.dash_temp_bot_str, font=("Arial", 16, "bold")).pack(anchor="w")
-        
-        # Untere Leiste: Status
+        # Container für die 3 Werte nebeneinander
+        f_temp_in = ttk.Frame(f_temp)
+        f_temp_in.pack(fill=X, expand=YES)
+
+        # Oben
+        t1 = ttk.Frame(f_temp_in)
+        t1.pack(side=LEFT, expand=YES)
+        ttk.Label(t1, text="Oben", font=("Arial", 10)).pack()
+        ttk.Label(t1, textvariable=self.dash_temp_top_str, font=("Arial", 20, "bold"), bootstyle="danger").pack()
+
+        # Mitte
+        t2 = ttk.Frame(f_temp_in)
+        t2.pack(side=LEFT, expand=YES)
+        ttk.Label(t2, text="Mitte", font=("Arial", 10)).pack()
+        ttk.Label(t2, textvariable=self.dash_temp_mid_str, font=("Arial", 20, "bold"), bootstyle="warning").pack()
+
+        # Unten
+        t3 = ttk.Frame(f_temp_in)
+        t3.pack(side=LEFT, expand=YES)
+        ttk.Label(t3, text="Unten", font=("Arial", 10)).pack()
+        ttk.Label(t3, textvariable=self.dash_temp_bot_str, font=("Arial", 20, "bold"), bootstyle="primary").pack()
+
+        # --- ZEILE 3: Außen & Status ---
         f_bot = ttk.Frame(self.dash_frame)
-        f_bot.grid(row=1, column=0, columnspan=3, sticky="nsew", padx=10, pady=10)
-        ttk.Label(f_bot, text="Außen:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(f_bot, textvariable=self.dash_aussen, font=("Arial", 20, "bold"), bootstyle="info").pack(side=LEFT, padx=10)
-        ttk.Label(f_bot, textvariable=self.dash_status, font=("Arial", 12), bootstyle="secondary").pack(side=RIGHT)
+        f_bot.grid(row=3, column=0, columnspan=3, sticky="ew", padx=10, pady=20)
+        
+        # Außentemperatur GROSS
+        ttk.Label(f_bot, text="Außen:", font=("Arial", 16)).pack(side=LEFT, anchor="s", pady=5)
+        ttk.Label(f_bot, textvariable=self.dash_aussen, font=("Arial", 42, "bold"), bootstyle="inverse-primary").pack(side=LEFT, padx=15)
+        
+        ttk.Label(f_bot, textvariable=self.dash_status, font=("Arial", 10), bootstyle="secondary").pack(side=RIGHT, anchor="s", pady=5)
 
     def setup_plot_tabs(self):
-        # Wir erstellen die Tabs explizit
         self.create_single_plot_tab("PV-Leistung", "fronius")
         self.create_single_plot_tab("Temperaturen", "bmk")
         self.create_single_plot_tab("Batterie", "batt")
@@ -175,7 +175,6 @@ class LivePlotApp:
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text=f" {name} ")
         
-        # Matplotlib Figur mit festem dunklen Hintergrund
         fig, ax = plt.subplots(figsize=(8, 3), dpi=100)
         fig.patch.set_facecolor(self.chart_bg)
         ax.set_facecolor(self.chart_bg)
@@ -200,14 +199,12 @@ class LivePlotApp:
     def update_plots(self):
         now = pd.Timestamp.now()
         
-        # 1. Daten laden (mit der neuen, sicheren Funktion)
         fronius_df = read_csv_tail_fixed(FRONIUS_CSV, MAX_PLOT_POINTS)
         bmk_df = read_csv_tail_fixed(BMK_CSV, MAX_PLOT_POINTS)
 
-        # 2. PV & Batterie Daten verarbeiten
+        # 1. PV Daten
         if fronius_df is not None and not fronius_df.empty:
             try:
-                # Zeitstempel konvertieren
                 fronius_df["Zeitstempel"] = pd.to_datetime(fronius_df["Zeitstempel"])
                 last = fronius_df.iloc[-1]
                 
@@ -215,20 +212,37 @@ class LivePlotApp:
                 haus = last.get("Hausverbrauch (kW)", 0)
                 soc = last.get("Batterieladestand (%)", 0)
                 
-                # UI Update
                 self.dash_pv_now.set(f"{pv:.2f} kW")
                 self.dash_haus_now.set(f"{haus:.2f} kW")
                 self.meter_batt.configure(amountused=int(soc))
                 
-                # Graphen Update
+                # Autarkie Berechnung (Einfach)
+                if haus > 0:
+                    autarkie = min(pv, haus) / haus * 100
+                    self.dash_autarkie.set(f"{int(autarkie)} %")
+                else:
+                    self.dash_autarkie.set("100 %")
+                
+                # Ertrag Heute Berechnung (Integration der Leistung über Zeit)
+                today_mask = fronius_df["Zeitstempel"].dt.date == now.date()
+                df_today = fronius_df[today_mask]
+                if not df_today.empty:
+                    # Annahme: Durchschnittsleistung * Stunden
+                    # (Vereinfachte Berechnung, genauer wäre Integral)
+                    avg_p = df_today["PV-Leistung (kW)"].mean()
+                    duration_h = (df_today["Zeitstempel"].max() - df_today["Zeitstempel"].min()).total_seconds() / 3600
+                    kwh_today = avg_p * duration_h
+                    # Falls duration fast 0 ist (nur 1 Messwert), nimm 0
+                    self.dash_ertrag_heute.set(f"{kwh_today:.1f} kWh")
+
                 self._plot_fronius(fronius_df, now)
                 self._plot_battery(fronius_df, now)
                 self._plot_ertrag(fronius_df, now)
                 self.dash_status.set("PV Daten aktuell.")
             except Exception as e:
-                print(f"Fehler bei Fronius Verarbeitung: {e}")
+                print(f"Fronius Update Fehler: {e}")
 
-        # 3. Temperatur Daten verarbeiten
+        # 2. Temperatur Daten
         if bmk_df is not None and not bmk_df.empty:
             try:
                 bmk_df["Zeitstempel"] = pd.to_datetime(bmk_df["Zeitstempel"])
@@ -239,8 +253,6 @@ class LivePlotApp:
                 bot = last.get("Pufferspeicher Unten", 0)
                 aussen = last.get("Außentemperatur", 0)
                 
-                # UI Update (inkl. Layout Fix)
-                self.gauge_puffer.configure(value=top)
                 self.dash_temp_top_str.set(f"{top:.1f} °C")
                 self.dash_temp_mid_str.set(f"{mid:.1f} °C")
                 self.dash_temp_bot_str.set(f"{bot:.1f} °C")
@@ -248,12 +260,12 @@ class LivePlotApp:
                 
                 self._plot_temps(bmk_df, now)
             except Exception as e:
-                print(f"Fehler bei BMK Verarbeitung: {e}")
+                print(f"BMK Update Fehler: {e}")
 
         self.status_time_var.set(f"Update: {now.strftime('%H:%M:%S')}")
         self.root.after(UPDATE_INTERVAL, self.update_plots)
 
-    # --- PLOTTING DETAILS ---
+    # --- PLOTTING ---
     def _style_ax(self, ax):
         ax.set_facecolor(self.chart_bg)
         ax.tick_params(colors=self.chart_fg, which='both')
@@ -270,7 +282,8 @@ class LivePlotApp:
         ax2.clear()
         self._style_ax(ax)
 
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
+        # 48 Stunden (User Wunsch)
+        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=48))
         df_sub = df.loc[mask]
 
         if not df_sub.empty:
@@ -283,11 +296,9 @@ class LivePlotApp:
             ax2.tick_params(colors="white")
             
             ax.legend(loc="upper left", facecolor=self.chart_bg, labelcolor="white")
-            ax.set_title("PV Leistung & Verbrauch (24h)", color="white")
-            
+            ax.set_title("PV Leistung & Verbrauch (48h)", color="white")
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
             self.fronius_fig.autofmt_xdate()
-        
         self.fronius_canvas.draw()
 
     def _plot_battery(self, df, now):
@@ -295,6 +306,7 @@ class LivePlotApp:
         ax.clear()
         self._style_ax(ax)
         
+        # 48 Stunden (Batterie war schon ok)
         mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=48))
         df_sub = df.loc[mask]
         
@@ -305,7 +317,6 @@ class LivePlotApp:
             ax.set_title("Batterieverlauf (48h)", color="white")
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
             self.batt_fig.autofmt_xdate()
-            
         self.batt_canvas.draw()
 
     def _plot_ertrag(self, df, now):
@@ -313,35 +324,6 @@ class LivePlotApp:
         ax.clear()
         self._style_ax(ax)
         
-        # Plot zeigt PV-Leistung des letzten Tages
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(days=1))
-        df_sub = df.loc[mask]
-        
-        if not df_sub.empty:
-            ax.plot(df_sub["Zeitstempel"], df_sub["PV-Leistung (kW)"], color="#f1c40f")
-            ax.set_title("PV Leistung (24h)", color="white")
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            self.ertrag_fig.autofmt_xdate()
-        else:
-            ax.text(0.5, 0.5, "Warte auf Ertragsdaten...", color="white", ha="center")
-            
-        self.ertrag_canvas.draw()
-
-    def _plot_temps(self, df, now):
-        ax = self.bmk_ax
-        ax.clear()
-        self._style_ax(ax)
-        
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
-        df_sub = df.loc[mask]
-        
-        if not df_sub.empty:
-            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Oben"], color="#e74c3c", label="Oben")
-            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Mitte"], color="#e67e22", label="Mitte")
-            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Unten"], color="#3498db", label="Unten")
-            ax.legend(facecolor=self.chart_bg, labelcolor="white")
-            ax.set_title("Pufferspeicher Temperaturen", color="white")
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            self.bmk_fig.autofmt_xdate()
-            
-        self.bmk_canvas.draw()
+        # Ertrag pro Tag für die letzten 7 Tage berechnen
+        try:
+            #
