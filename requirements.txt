@@ -8,3 +8,6 @@ flask==3.0.3
 ttkbootstrap
 python-tado
 phue
+icalendar
+recurring-ical-events
+pytz

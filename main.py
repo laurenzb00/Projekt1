@@ -8,8 +8,9 @@ from ttkbootstrap import Window
 from spotify_tab import SpotifyTab
 from tado_tab import TadoTab   
 from hue_tab import HueTab     
-from system_tab import SystemTab # <--- NEU
-from analyse_tab import AnalyseTab # <--- NEU
+from system_tab import SystemTab
+from analyse_tab import AnalyseTab
+from calendar_tab import CalendarTab # <--- NEU IMPORTIEREN
 import time 
 
 # --- Logging ---
@@ -58,12 +59,12 @@ def main():
     app = visualisierung_live.LivePlotApp(root) 
 
     # 2. Zusatz Tabs hinzufügen
-    # Reihenfolge bestimmt die Anzeige
-    analyse = AnalyseTab(root, app.notebook) # Grafik Tab
+    calendar = CalendarTab(root, app.notebook) # <--- NEUER KALENDER TAB (am besten vorne oder mitte)
+    analyse = AnalyseTab(root, app.notebook) 
     tado = TadoTab(root, app.notebook)
     hue = HueTab(root, app.notebook)
     spotify = SpotifyTab(root, app.notebook) 
-    system = SystemTab(root, app.notebook)   # Info Tab
+    system = SystemTab(root, app.notebook)   
     
     app.spotify_instance = spotify 
 
@@ -74,7 +75,8 @@ def main():
             spotify.stop()
             tado.stop()
             hue.stop()
-            system.stop() # System Tab stoppen
+            system.stop()
+            calendar.stop() # <--- STOPPEN NICHT VERGESSEN
         except Exception:
             pass
         root.destroy()
