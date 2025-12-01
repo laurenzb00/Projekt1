@@ -1,7 +1,7 @@
 import requests
 import csv
 import os
-from datetime import datetime  # Für Zeitstempel
+from datetime import datetime
 import time
 
 def abrufen_und_speichern():
@@ -46,11 +46,10 @@ def abrufen_und_speichern():
     except Exception as e:
         print(f"Fehler beim Abrufen und Speichern der BMK-Daten: {e}")
 
-# Hauptfunktion für den direkten Aufruf
+# Die Schleife wurde entfernt, da sie jetzt in main.py im Thread läuft.
+# Diese Funktion ist nur für den einmaligen Aufruf von main.py gedacht.
 def main():
-    while True:
-        abrufen_und_speichern()
-        time.sleep(60)
+    abrufen_und_speichern()
 
 if __name__ == "__main__":
     main()

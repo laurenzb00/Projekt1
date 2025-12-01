@@ -3,8 +3,9 @@ import logging
 import visualisierung_live
 import Wechselrichter
 import BMKDATEN
-
+from ttkbootstrap import Window, tk # WICHTIG: Window für das Theme
 from spotify_tab import SpotifyTab
+import time # Hinzugefügt, da im run_bmkdaten Thread benötigt
 
 # --- Logging: Datei + Konsole ---
 logging.basicConfig(
@@ -31,7 +32,9 @@ def run_wechselrichter():
 def run_bmkdaten():
     try:
         while not shutdown_event.is_set():
-            BMKDATEN.main()
+            # Ruft die Einzelfunktion ab und schläft danach
+            BMKDATEN.abrufen_und_speichern() 
+            time.sleep(60)
     except Exception as e:
         logging.error(f"BMKDATEN-Thread Fehler: {e}")
 
@@ -45,20 +48,24 @@ def main():
     for t in threads:
         t.start()
 
-    # --- GUI ---
-    root = visualisierung_live.tk.Tk()
-    root.geometry("1024x600")  # feste Auflösung
+    # --- GUI FIX: WINDOW MIT THEME STARTEN ---
+    root = Window(themename="superhero") # Nutze ttkbootstrap.Window für Dark Mode
+    root.geometry("1100x650") # Angepasste Größe
     root.resizable(False, False)
-    app = visualisierung_live.LivePlotApp(root)
+    
+    app = visualisierung_live.LivePlotApp(root) 
 
     # --- Spotify-Tab (eigene Datei) ---
-    spotify = SpotifyTab(root, app.notebook)
+    spotify = SpotifyTab(root, app.notebook) # SpotifyTab fügt sich selbst zum Notebook hinzu
+    
+    # Referenz speichern, falls später benötigt
+    app.spotify_instance = spotify 
 
     def on_close():
         logging.info("Programm wird beendet…")
         shutdown_event.set()
         try:
-            spotify.stop()
+            spotify.stop() # Spotify Thread stoppen
         except Exception:
             pass
         root.destroy()
