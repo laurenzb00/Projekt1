@@ -3,12 +3,14 @@ import logging
 import visualisierung_live
 import Wechselrichter
 import BMKDATEN
-import tkinter as tk # KORRIGIERTER IMPORT
-from ttkbootstrap import Window # Importiert nur Window
+import tkinter as tk 
+from ttkbootstrap import Window 
 from spotify_tab import SpotifyTab
+from tado_tab import TadoTab   # <--- NEU
+from hue_tab import HueTab     # <--- NEU
 import time 
 
-# --- Logging: Datei + Konsole ---
+# --- Logging ---
 logging.basicConfig(
     filename="datenerfassung.log",
     level=logging.INFO,
@@ -21,7 +23,6 @@ logging.getLogger().addHandler(console)
 
 shutdown_event = threading.Event()
 
-
 def run_wechselrichter():
     try:
         while not shutdown_event.is_set():
@@ -29,19 +30,15 @@ def run_wechselrichter():
     except Exception as e:
         logging.error(f"Wechselrichter-Thread Fehler: {e}")
 
-
 def run_bmkdaten():
     try:
         while not shutdown_event.is_set():
-            # Ruft die Einzelfunktion ab und schläft danach
             BMKDATEN.abrufen_und_speichern() 
             time.sleep(60)
     except Exception as e:
         logging.error(f"BMKDATEN-Thread Fehler: {e}")
 
-
 def main():
-    # --- Backend-Threads ---
     threads = [
         threading.Thread(target=run_wechselrichter, daemon=True),
         threading.Thread(target=run_bmkdaten, daemon=True),
@@ -49,14 +46,19 @@ def main():
     for t in threads:
         t.start()
 
-    # --- GUI FIX: WINDOW MIT THEME STARTEN ---
-    root = Window(themename="superhero") # Nutzt ttkbootstrap.Window für Dark Mode
+    # --- GUI START ---
+    root = Window(themename="superhero") 
     root.geometry("1100x650") 
     root.resizable(False, False)
+    root.title("Smart Energy Dashboard") # Titel angepasst
     
+    # 1. Haupt-App (Energie Tabs)
     app = visualisierung_live.LivePlotApp(root) 
 
-    # --- Spotify-Tab (eigene Datei) ---
+    # 2. Smart Home Tabs hinzufügen
+    # Die Reihenfolge hier bestimmt die Reihenfolge der Tabs
+    tado = TadoTab(root, app.notebook)
+    hue = HueTab(root, app.notebook)
     spotify = SpotifyTab(root, app.notebook) 
     
     app.spotify_instance = spotify 
@@ -65,14 +67,15 @@ def main():
         logging.info("Programm wird beendet…")
         shutdown_event.set()
         try:
-            spotify.stop() 
+            spotify.stop()
+            tado.stop() # Neu
+            hue.stop()  # Neu
         except Exception:
             pass
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)
     root.mainloop()
-
 
 if __name__ == "__main__":
     try:
