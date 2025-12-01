@@ -6,7 +6,6 @@ from tkinter import StringVar
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
@@ -21,7 +20,6 @@ BMK_CSV = os.path.join(WORKING_DIRECTORY, "Heizungstemperaturen.csv")
 
 # Aktualisierungsrate (ms)
 UPDATE_INTERVAL = 60 * 1000  # 1 Minute
-# Wie viele Zeilen sollen maximal für die Graphen geladen werden? (Performance)
 MAX_PLOT_POINTS = 2000 
 
 # --- HILFSFUNKTION: CSV SICHER LESEN ---
@@ -38,18 +36,18 @@ def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
         header_df = pd.read_csv(path, nrows=0, sep=",")
         col_names = header_df.columns.tolist()
         
-        # 2. Gesamtanzahl der Zeilen ermitteln (ohne die Datei komplett zu laden)
+        # 2. Gesamtanzahl der Zeilen ermitteln
         with open(path, "rb") as f:
             total_lines = sum(1 for _ in f)
             
         # 3. Berechnen, ab wo wir lesen müssen
-        # Wir überspringen alles bis auf die letzten 'max_rows', aber lassen Zeile 0 (Header) weg
         skip_rows = max(1, total_lines - max_rows)
         
         # 4. Daten lesen und Namen zuweisen
+        # sep="," ist Standard, aber wir setzen es explizit
         df = pd.read_csv(path, sep=",", names=col_names, skiprows=skip_rows)
         
-        # Leerzeichen in Spaltennamen entfernen (macht es robuster)
+        # Leerzeichen in Spaltennamen entfernen
         df.columns = df.columns.str.strip()
         
         return df
@@ -58,12 +56,15 @@ def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
         print(f"Fehler beim Lesen von {path}: {e}")
         return None
 
-class EnergyDashboard(ttk.Window):
-    def __init__(self):
-        # Fenster erstellen mit modernem Theme
-        super().__init__(themename="superhero") # Alternativen: "darkly", "cyborg"
-        self.title("Energy Dashboard")
-        self.geometry("1024x600")
+# --- HAUPTKLASSE (Wieder umbenannt zu LivePlotApp für Kompatibilität) ---
+class LivePlotApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Energy Dashboard")
+        # Wir versuchen, das Theme auf das übergebene Root-Fenster anzuwenden
+        self.style = ttk.Style("superhero")
+        
+        self.root.geometry("1024x600")
         
         # Farben aus dem Theme laden
         self.bg_color = self.style.lookup("TFrame", "background")
@@ -74,7 +75,7 @@ class EnergyDashboard(ttk.Window):
         self.init_variables()
 
         # Haupt-Container
-        self.main_container = ttk.Frame(self)
+        self.main_container = ttk.Frame(self.root)
         self.main_container.pack(fill=BOTH, expand=YES)
 
         # Tabs erstellen
@@ -187,186 +188,4 @@ class EnergyDashboard(ttk.Window):
         self.spotify_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.spotify_frame, text=" 🎵 Spotify ")
         
-        self.spotify_frame.columnconfigure(0, weight=1)
-        self.spotify_frame.columnconfigure(1, weight=2)
-        self.spotify_frame.rowconfigure(0, weight=1)
-
-        # Links: Cover
-        cover_frame = ttk.Frame(self.spotify_frame, bootstyle="secondary")
-        cover_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
-        ttk.Label(cover_frame, text="🎵", font=("Arial", 80)).place(relx=0.5, rely=0.4, anchor="center")
-        self.spotify_track_lbl = ttk.Label(cover_frame, text="Keine Wiedergabe", font=("Arial", 14, "bold"))
-        self.spotify_track_lbl.place(relx=0.5, rely=0.7, anchor="center")
-
-        # Rechts: Suche & Steuerung
-        ctrl_frame = ttk.Frame(self.spotify_frame)
-        ctrl_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
-        
-        # Suche
-        ttk.Label(ctrl_frame, text="Musik suchen & starten", bootstyle="warning", font=("Arial", 12)).pack(anchor="w", pady=(0,5))
-        search_box = ttk.Frame(ctrl_frame)
-        search_box.pack(fill=X, pady=5)
-        
-        self.spotify_search_entry = ttk.Entry(search_box, font=("Arial", 12))
-        self.spotify_search_entry.pack(side=LEFT, fill=X, expand=YES, padx=(0,10))
-        ttk.Button(search_box, text="Starten", bootstyle="warning", command=self.action_spotify_search).pack(side=RIGHT)
-
-        ttk.Separator(ctrl_frame).pack(fill=X, pady=20)
-
-        # Steuerung
-        btn_box = ttk.Frame(ctrl_frame)
-        btn_box.pack(fill=X)
-        ttk.Button(btn_box, text="⏮", bootstyle="outline").pack(side=LEFT, padx=5)
-        ttk.Button(btn_box, text="⏯ Play/Pause", bootstyle="success", width=15).pack(side=LEFT, padx=5)
-        ttk.Button(btn_box, text="⏭", bootstyle="outline").pack(side=LEFT, padx=5)
-
-    def setup_bottom_bar(self):
-        bar = ttk.Frame(self, bootstyle="dark")
-        bar.pack(side=BOTTOM, fill=X)
-        ttk.Button(bar, text="Beenden", bootstyle="danger-outline", command=self.destroy).pack(side=LEFT, padx=5, pady=5)
-        ttk.Label(bar, textvariable=self.status_time_var, bootstyle="inverse-dark").pack(side=RIGHT, padx=10)
-
-    def action_spotify_search(self):
-        """Dummy Funktion für Spotify Start"""
-        query = self.spotify_search_entry.get()
-        if query:
-            self.spotify_track_lbl.config(text=f"Lade: {query}...")
-            # Hier würde später der echte API Aufruf stehen
-            print(f"Spotify API Aufruf: Suche nach '{query}'")
-
-    # --- UPDATE LOGIK ---
-    def update_plots(self):
-        now = pd.Timestamp.now()
-        
-        # 1. Daten laden (mit der neuen, sicheren Funktion)
-        fronius_df = read_csv_tail_fixed(FRONIUS_CSV, MAX_PLOT_POINTS)
-        bmk_df = read_csv_tail_fixed(BMK_CSV, MAX_PLOT_POINTS)
-
-        # 2. PV & Batterie Daten verarbeiten
-        if fronius_df is not None and not fronius_df.empty:
-            try:
-                # Zeitstempel konvertieren
-                fronius_df["Zeitstempel"] = pd.to_datetime(fronius_df["Zeitstempel"])
-                
-                # Letzten Wert für Dashboard holen
-                last = fronius_df.iloc[-1]
-                
-                # Werte auslesen (Fehler abfangen, falls Spalte fehlt)
-                pv = last.get("PV-Leistung (kW)", 0)
-                haus = last.get("Hausverbrauch (kW)", 0)
-                soc = last.get("Batterieladestand (%)", 0)
-                
-                # UI Update
-                self.dash_pv_now.set(f"{pv:.2f} kW")
-                self.dash_haus_now.set(f"{haus:.2f} kW")
-                self.meter_batt.configure(amountused=int(soc))
-                
-                # Graphen Update
-                self._plot_fronius(fronius_df, now)
-                self._plot_battery(fronius_df, now)
-                self.dash_status.set("PV Daten aktuell.")
-            except Exception as e:
-                print(f"Fehler bei Fronius Verarbeitung: {e}")
-
-        # 3. Temperatur Daten verarbeiten
-        if bmk_df is not None and not bmk_df.empty:
-            try:
-                bmk_df["Zeitstempel"] = pd.to_datetime(bmk_df["Zeitstempel"])
-                last = bmk_df.iloc[-1]
-                
-                top = last.get("Pufferspeicher Oben", 0)
-                mid = last.get("Pufferspeicher Mitte", 0)
-                bot = last.get("Pufferspeicher Unten", 0)
-                aussen = last.get("Außentemperatur", 0)
-                
-                self.gauge_puffer.configure(value=top, mask=f"Oben: {top:.1f}°C")
-                self.dash_temp_mid_str.set(f"{mid:.1f} °C")
-                self.dash_temp_bot_str.set(f"{bot:.1f} °C")
-                self.dash_aussen.set(f"{aussen:.1f} °C")
-                
-                self._plot_temps(bmk_df, now)
-            except Exception as e:
-                print(f"Fehler bei BMK Verarbeitung: {e}")
-
-        self.status_time_var.set(f"Letztes Update: {now.strftime('%H:%M:%S')}")
-        self.after(UPDATE_INTERVAL, self.update_plots)
-
-    # --- PLOTTING DETAILS ---
-    def _style_ax(self, ax):
-        ax.set_facecolor(self.bg_color)
-        ax.tick_params(colors=self.fg_color, which='both')
-        for spine in ax.spines.values():
-            spine.set_color(self.grid_color)
-        ax.yaxis.label.set_color(self.fg_color)
-        ax.xaxis.label.set_color(self.fg_color)
-        ax.grid(True, color=self.grid_color, linestyle='--', alpha=0.3)
-
-    def _plot_fronius(self, df, now):
-        ax = self.fronius_ax
-        ax2 = self.fronius_ax2
-        ax.clear()
-        ax2.clear()
-        self._style_ax(ax)
-
-        # Nur letzte 24h
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
-        df_sub = df.loc[mask]
-
-        if not df_sub.empty:
-            ax.fill_between(df_sub["Zeitstempel"], df_sub["PV-Leistung (kW)"], color="#f39c12", alpha=0.3)
-            ax.plot(df_sub["Zeitstempel"], df_sub["PV-Leistung (kW)"], label="PV", color="#f39c12")
-            ax.plot(df_sub["Zeitstempel"], df_sub["Hausverbrauch (kW)"], label="Haus", color="#3498db")
-            
-            # Batterie Linie auf zweiter Achse
-            ax2.plot(df_sub["Zeitstempel"], df_sub["Batterieladestand (%)"], color="white", linestyle=":", alpha=0.5, label="SoC")
-            ax2.set_ylim(0, 100)
-            
-            ax.legend(loc="upper left")
-            ax.set_title("PV Leistung & Verbrauch (24h)", color="white")
-            
-            # Formatierung X-Achse
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            self.fronius_fig.autofmt_xdate()
-        
-        self.fronius_canvas.draw()
-
-    def _plot_battery(self, df, now):
-        ax = self.batt_ax
-        ax.clear()
-        self._style_ax(ax)
-        
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=48))
-        df_sub = df.loc[mask]
-        
-        if not df_sub.empty:
-            ax.plot(df_sub["Zeitstempel"], df_sub["Batterieladestand (%)"], color="#2ecc71", linewidth=2)
-            ax.fill_between(df_sub["Zeitstempel"], df_sub["Batterieladestand (%)"], color="#2ecc71", alpha=0.2)
-            ax.set_ylim(0, 100)
-            ax.set_title("Batterieverlauf (48h)", color="white")
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            self.batt_fig.autofmt_xdate()
-            
-        self.batt_canvas.draw()
-
-    def _plot_temps(self, df, now):
-        ax = self.bmk_ax
-        ax.clear()
-        self._style_ax(ax)
-        
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
-        df_sub = df.loc[mask]
-        
-        if not df_sub.empty:
-            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Oben"], color="#e74c3c", label="Oben")
-            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Mitte"], color="#e67e22", label="Mitte")
-            ax.plot(df_sub["Zeitstempel"], df_sub["Pufferspeicher Unten"], color="#3498db", label="Unten")
-            ax.legend()
-            ax.set_title("Pufferspeicher Temperaturen", color="white")
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            self.bmk_fig.autofmt_xdate()
-            
-        self.bmk_canvas.draw()
-
-if __name__ == "__main__":
-    app = EnergyDashboard()
-    app.mainloop()
+        self.spotify_frame.columnconfigure(0, weight
