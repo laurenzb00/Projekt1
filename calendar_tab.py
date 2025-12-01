@@ -12,12 +12,11 @@ import pytz
 # --- KONFIGURATION ---
 # Tragen Sie hier alle Ihre Kalender-Links ein (durch Kommas getrennt):
 ICAL_URLS = [
-    "https://calendar.google.com/calendar/ical/laurenzbandzauner%40gmail.com/private-ee12d630b1b19a7f6754768f56f1a76c/basic.ics",  # Hauptkalender
-"https://calendar.google.com/calendar/embed?src=ukrkc67kki9lm9lllj6l0je1ag%40group.calendar.google.com&ctz=Europe%2FVienna",
-"https://calendar.google.com/calendar/embed?src=6mkjaj880rf2uri1pl1hv45ksbh7gvo3%40import.calendar.google.com&ctz=Europe%2FVienna",
-"https://calendar.google.com/calendar/embed?src=h53q4om49cgioc2gff7j5r5pi4%40group.calendar.google.com&ctz=Europe%2FVienna",
-"https://calendar.google.com/calendar/embed?src=bj8tto18ec8qqrgl316dnan7u0lmobud%40import.calendar.google.com&ctz=Europe%2FVienna",
-"https://calendar.google.com/calendar/embed?src=pehhg3u2a6ha539oql87fuao0j9aqteu%40import.calendar.google.com&ctz=Europe%2FVienna"
+    "https://calendar.google.com/calendar/ical/laurenzbandzauner%40gmail.com/private-ee12d630b1b19a7f6754768f56f1a76c/basic.ics",
+      "https://calendar.google.com/calendar/ical/ukrkc67kki9lm9lllj6l0je1ag%40group.calendar.google.com/public/basic.ics",
+        "https://calendar.google.com/calendar/ical/h53q4om49cgioc2gff7j5r5pi4%40group.calendar.google.com/public/basic.ics",
+          "https://calendar.google.com/calendar/ical/pehhg3u2a6ha539oql87fuao0j9aqteu%40import.calendar.google.com/public/basic.ics"  # Hauptkalender
+
 
 
 ]
