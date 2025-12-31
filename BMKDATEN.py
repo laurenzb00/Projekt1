@@ -2,54 +2,49 @@ import requests
 import csv
 import os
 from datetime import datetime
-import time
 
+# Diese Funktion wird von main.py gesucht!
 def abrufen_und_speichern():
     try:
         url = "http://192.168.1.85/daqdata.cgi"
-        response = requests.get(url)
+        # Timeout verhindert Hänger, wenn Heizung nicht antwortet
+        response = requests.get(url, timeout=5)
 
         if response.status_code == 200:
             lines = response.text.split("\n")
             values = [line.strip() for line in lines if line.strip()]
 
-            # Relevante Werte extrahieren
-            kesseltemperatur = values[1]
-            aussentemperatur = values[2]
-            puffer_oben = values[4]
-            puffer_mitte = values[5]
-            puffer_unten = values[6]
-            warmwasser = values[12]
+            if len(values) > 12:
+                kesseltemperatur = values[1]
+                aussentemperatur = values[2]
+                puffer_oben = values[4]
+                puffer_mitte = values[5]
+                puffer_unten = values[6]
+                warmwasser = values[12]
 
-            # Zeitstempel hinzufügen
-            zeitstempel = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                zeitstempel = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            daten = {
-                "Zeitstempel": zeitstempel,
-                "Kesseltemperatur": kesseltemperatur,
-                "Außentemperatur": aussentemperatur,
-                "Pufferspeicher Oben": puffer_oben,
-                "Pufferspeicher Mitte": puffer_mitte,
-                "Pufferspeicher Unten": puffer_unten,
-                "Warmwasser": warmwasser
-            }
+                daten = {
+                    "Zeitstempel": zeitstempel,
+                    "Kesseltemperatur": kesseltemperatur,
+                    "Außentemperatur": aussentemperatur,
+                    "Pufferspeicher Oben": puffer_oben,
+                    "Pufferspeicher Mitte": puffer_mitte,
+                    "Pufferspeicher Unten": puffer_unten,
+                    "Warmwasser": warmwasser
+                }
 
-            # Daten in CSV speichern
-            csv_datei = "Heizungstemperaturen.csv"
-            datei_existiert = os.path.exists(csv_datei)
+                csv_datei = "Heizungstemperaturen.csv"
+                datei_existiert = os.path.exists(csv_datei)
 
-            with open(csv_datei, "a", newline="", encoding="utf-8") as file:
-                writer = csv.writer(file)
-                if not datei_existiert:
-                    writer.writerow(daten.keys())  # Schreibe die Spaltenüberschriften
-                writer.writerow(daten.values())  # Schreibe die Werte
+                with open(csv_datei, "a", newline="", encoding="utf-8") as file:
+                    writer = csv.writer(file)
+                    if not datei_existiert:
+                        writer.writerow(daten.keys())
+                    writer.writerow(daten.values())
     except Exception as e:
-        print(f"Fehler beim Abrufen und Speichern der BMK-Daten: {e}")
+        print(f"Fehler bei BMK: {e}")
 
-# Die Schleife wurde entfernt, da sie jetzt in main.py im Thread läuft.
-# Diese Funktion ist nur für den einmaligen Aufruf von main.py gedacht.
-def main():
-    abrufen_und_speichern()
-
+# Falls man es einzeln testen will
 if __name__ == "__main__":
-    main()
+    abrufen_und_speichern()
