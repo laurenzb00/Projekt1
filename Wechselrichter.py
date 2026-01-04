@@ -7,7 +7,7 @@ import os
 def abrufen_und_speichern():
     try:
         # URL der Fronius API (ersetze die IP-Adresse durch die deines Wechselrichters)
-        url = "http://192.168.1.87/solar_api/v1/GetPowerFlowRealtimeData.fcgi"
+        url = "http://192.168.1.202/solar_api/v1/GetPowerFlowRealtimeData.fcgi"
         response = requests.get(url)
 
         if response.status_code == 200:

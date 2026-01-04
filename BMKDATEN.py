@@ -6,7 +6,7 @@ from datetime import datetime
 # Diese Funktion wird von main.py gesucht!
 def abrufen_und_speichern():
     try:
-        url = "http://192.168.1.85/daqdata.cgi"
+        url = "http://192.168.1.201/daqdata.cgi"
         # Timeout verhindert Hänger, wenn Heizung nicht antwortet
         response = requests.get(url, timeout=5)
 
