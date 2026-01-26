@@ -116,7 +116,7 @@ class LivePlotApp:
             self.canvas_puffer = tk.Canvas(self.puffer_frame, width=200, height=180, bg="black")
             self.canvas_puffer.pack(anchor="center", pady=10)
 
-            update_puffer_animation()
+            self.update_puffer_animation()
 
             # Dynamische Größenanpassung
             self.root.grid_rowconfigure(0, weight=1)
