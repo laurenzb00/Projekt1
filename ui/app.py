@@ -56,15 +56,20 @@ class MainApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Smart Home Dashboard")
-        # Fix DPI scaling and force fullscreen for Pi display
+        # Fix DPI scaling and force a true 1024x600 borderless fullscreen
         try:
             self.root.tk.call("tk", "scaling", 1.0)
         except Exception:
             pass
-        self.root.geometry("1024x600")
+        sw = max(1, self.root.winfo_screenwidth())
+        sh = max(1, self.root.winfo_screenheight())
+        target_w = min(sw, 1024)
+        target_h = min(sh, 600)
+        self.root.overrideredirect(True)  # remove window chrome
+        self.root.geometry(f"{target_w}x{target_h}+0+0")
         self.root.resizable(False, False)
-        self.root.attributes("-fullscreen", True)
         try:
+            self.root.attributes("-fullscreen", True)
             self.root.attributes("-zoomed", True)
         except Exception:
             pass
