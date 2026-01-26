@@ -24,9 +24,9 @@ class HeaderBar(tk.Frame):
         inner = tk.Frame(border, bg=COLOR_CARD)
         inner.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
 
-        inner.grid_columnconfigure(0, weight=1)
-        inner.grid_columnconfigure(1, weight=1)
-        inner.grid_columnconfigure(2, weight=1)
+        inner.grid_columnconfigure(0, weight=1, minsize=200, uniform="hdr")
+        inner.grid_columnconfigure(1, weight=2, uniform="hdr")
+        inner.grid_columnconfigure(2, weight=1, minsize=200, uniform="hdr")
 
         # Links: Datum
         left = tk.Frame(inner, bg=COLOR_CARD)
@@ -39,8 +39,8 @@ class HeaderBar(tk.Frame):
         # Mitte: Uhrzeit groß
         center = tk.Frame(inner, bg=COLOR_CARD)
         center.grid(row=0, column=1, sticky="nsew")
-        self.clock_label = tk.Label(center, text="--:--", font=("Segoe UI", 48, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD)
-        self.clock_label.pack(expand=True)
+        self.clock_label = tk.Label(center, text="--:--", font=("Segoe UI", 36, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD)
+        self.clock_label.pack(expand=True, fill="both")
 
         # Rechts: Außentemp + Toggles
         right = tk.Frame(inner, bg=COLOR_CARD)

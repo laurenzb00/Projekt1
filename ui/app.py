@@ -13,6 +13,14 @@ from ui.components.header import HeaderBar
 from ui.components.statusbar import StatusBar
 from ui.views.energy_flow import EnergyFlowView
 from ui.views.buffer_storage import BufferStorageView
+try:
+    from historical_tab import HistoricalTab
+except ImportError:
+    HistoricalTab = None
+try:
+    from ertrag_tab import ErtragTab
+except ImportError:
+    ErtragTab = None
 
 # Import Tab Modules (alte Tabs in neuem Design)
 try:
@@ -131,6 +139,10 @@ class MainApp:
             self.system_tab = SystemTab(self.root, self.notebook)
         if CalendarTab:
             self.calendar_tab = CalendarTab(self.root, self.notebook)
+        if HistoricalTab:
+            self.historical_tab = HistoricalTab(self.root, self.notebook)
+        if ErtragTab:
+            self.ertrag_tab = ErtragTab(self.root, self.notebook)
 
     # --- Callbacks ---
     def on_toggle_a(self):
@@ -154,7 +166,7 @@ class MainApp:
         if self._tick % 2 == 0:
             date_text = now.strftime("%d.%m.%Y")
             weekday = now.strftime("%A")
-            time_text = now.strftime("%H:%M:%S")
+            time_text = now.strftime("%H:%M")
             out_temp = f"{self._last_data['out_temp']:.1f} °C"
             self.header.update_header(date_text, weekday, time_text, out_temp)
             self.status.update_status(f"Updated {time_text}")

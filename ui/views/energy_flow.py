@@ -22,6 +22,7 @@ class EnergyFlowView(tk.Frame):
 
         self.width = width
         self.height = height
+        self.node_radius = 52
         self._tk_img = None
         self._font_big = ImageFont.truetype("arial.ttf", 32) if self._has_font("arial.ttf") else None
         self._font_small = ImageFont.truetype("arial.ttf", 14) if self._has_font("arial.ttf") else None
@@ -39,15 +40,15 @@ class EnergyFlowView(tk.Frame):
 
     def _define_nodes(self):
         w, h = self.width, self.height
-        margin_x = int(w * 0.08)
-        margin_top = 28
-        margin_bottom = 88  # Reserve Platz für Batterie-Beschriftungen
+        margin_x = int(w * 0.06)
+        margin_top = 36
+        margin_bottom = 170  # Noch mehr Platz unten für Batterie/SOC
         usable_h = h - margin_top - margin_bottom
         return {
-            "pv": (margin_x + int((w - 2 * margin_x) * 0.2), margin_top + int(usable_h * 0.05)),
-            "grid": (w - margin_x - int((w - 2 * margin_x) * 0.2), margin_top + int(usable_h * 0.05)),
-            "home": (w // 2, margin_top + int(usable_h * 0.50)),
-            "battery": (w // 2, margin_top + int(usable_h * 0.88)),
+            "pv": (margin_x + int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.05)),
+            "grid": (w - margin_x - int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.05)),
+            "home": (w // 2, margin_top + int(usable_h * 0.42)),
+            "battery": (w // 2, margin_top + int(usable_h * 0.96)),
         }
 
     def _render_background(self) -> Image.Image:
@@ -60,7 +61,7 @@ class EnergyFlowView(tk.Frame):
         return img
 
     def _draw_node(self, draw: ImageDraw.ImageDraw, x: int, y: int, name: str):
-        r = 52
+        r = self.node_radius
         fill = COLOR_BORDER
         if name == "home":
             fill = COLOR_PRIMARY
@@ -88,9 +89,21 @@ class EnergyFlowView(tk.Frame):
         th = bbox[3] - bbox[1]
         draw.text((x - tw / 2, y - th / 2), text, font=font, fill=color)
 
-    def _draw_arrow(self, draw: ImageDraw.ImageDraw, src, dst, color: str, width: float):
+    def _edge_points(self, src, dst, offset: float):
         x0, y0 = src
         x1, y1 = dst
+        vx, vy = x1 - x0, y1 - y0
+        length = max((vx ** 2 + vy ** 2) ** 0.5, 1e-3)
+        ux, uy = vx / length, vy / length
+        return (
+            (x0 + ux * offset, y0 + uy * offset),
+            (x1 - ux * offset, y1 - uy * offset),
+        )
+
+    def _draw_arrow(self, draw: ImageDraw.ImageDraw, src, dst, color: str, width: float):
+        start, end = self._edge_points(src, dst, self.node_radius)
+        x0, y0 = start
+        x1, y1 = end
         draw.line((x0, y0, x1, y1), fill=color, width=int(width))
         # Arrow head
         vx, vy = x1 - x0, y1 - y0
@@ -105,6 +118,14 @@ class EnergyFlowView(tk.Frame):
         if abs(watts) < 1000:
             return f"{watts:.0f} W"
         return f"{watts/1000:.2f} kW"
+
+    def _draw_soc_ring(self, draw: ImageDraw.ImageDraw, center, soc: float):
+        x, y = center
+        r = self.node_radius + 10
+        bbox = [x - r, y - r, x + r, y + r]
+        extent = max(0, min(360, 360 * soc / 100))
+        color = COLOR_SUCCESS if soc >= 70 else (COLOR_WARNING if soc >= 35 else COLOR_DANGER)
+        draw.arc(bbox, start=-90, end=-90 + extent, fill=color, width=6)
 
     def render_frame(self, pv_w: float, load_w: float, grid_w: float, batt_w: float, soc: float) -> Image.Image:
         img = self._base_img.copy()
@@ -137,6 +158,9 @@ class EnergyFlowView(tk.Frame):
         elif batt_w < 0:
             self._draw_arrow(draw, bat, home, COLOR_SUCCESS, thickness(batt_w))
 
+        # SoC Ring um Batterie
+        self._draw_soc_ring(draw, bat, soc)
+
         # Werte anzeigen mit Einheiten
         self._text_center(draw, f"PV {self._format_power(pv_w)}", pv[0], pv[1] + 70, size=16)
         self._text_center(draw, f"Netz {self._format_power(grid_w)}", grid[0], grid[1] + 70, size=16)
@@ -146,6 +170,14 @@ class EnergyFlowView(tk.Frame):
         return img
 
     def update_flows(self, pv_w: float, load_w: float, grid_w: float, batt_w: float, soc: float):
+        # Recompute layout if canvas size changed (keeps nodes centered)
+        cw = max(200, self.canvas.winfo_width())
+        ch = max(200, self.canvas.winfo_height())
+        if cw != self.width or ch != self.height:
+            self.width, self.height = cw, ch
+            self.nodes = self._define_nodes()
+            self._base_img = self._render_background()
+
         frame = self.render_frame(pv_w, load_w, grid_w, batt_w, soc)
         self._tk_img = ImageTk.PhotoImage(frame)
         self.canvas.itemconfig(self._canvas_img, image=self._tk_img)

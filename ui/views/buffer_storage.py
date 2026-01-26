@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Rectangle
+from matplotlib.colors import LinearSegmentedColormap, Normalize
 from ui.styles import (
     COLOR_CARD,
     COLOR_BORDER,
@@ -11,6 +12,7 @@ from ui.styles import (
     COLOR_SUCCESS,
     COLOR_WARNING,
     COLOR_INFO,
+    COLOR_DANGER,
 )
 
 
@@ -33,32 +35,43 @@ class BufferStorageView(tk.Frame):
         self.ax.spines["left"].set_color(COLOR_BORDER)
         self.ax.spines["left"].set_linewidth(1)
 
-        self.im = self.ax.imshow(self.data, aspect="auto", interpolation="gaussian", cmap=self._build_cmap())
+        self.norm = Normalize(vmin=45, vmax=75)
+        self.im = self.ax.imshow(
+            self.data,
+            aspect="auto",
+            interpolation="gaussian",
+            cmap=self._build_cmap(),
+            norm=self.norm,
+        )
         self.ax.set_xticks([])
         self.ax.set_yticks([0, 1, 2])
         self.ax.set_yticklabels(["Top", "Mid", "Bottom"], color=COLOR_SUBTEXT, fontsize=10)
 
-        self.chip_texts = [self.ax.text(0.5, i, "", va="center", ha="center", color=COLOR_TEXT, fontsize=12) for i in range(3)]
+        self.overlay_texts = [self.ax.text(0, i, "", va="center", ha="center", color=COLOR_TEXT, fontsize=12) for i in range(3)]
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas_widget = self.canvas.get_tk_widget()
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
         self._draw_chips([60, 50, 40])
-        self.fig.tight_layout(pad=0.3)
+        cbar = self.fig.colorbar(self.im, ax=self.ax, fraction=0.05, pad=0.04)
+        cbar.set_label("°C", color=COLOR_SUBTEXT, fontsize=9)
+        cbar.ax.yaxis.set_tick_params(color=COLOR_SUBTEXT, labelcolor=COLOR_SUBTEXT, labelsize=9)
+        cbar.outline.set_edgecolor(COLOR_BORDER)
+        cbar.set_ticks([45, 55, 65, 75])
+        cbar.ax.set_facecolor(COLOR_CARD)
+        self.fig.tight_layout(pad=0.6)
 
     def _build_cmap(self):
-        from matplotlib.colors import LinearSegmentedColormap
-
-        colors = [COLOR_BORDER, COLOR_WARNING, COLOR_SUCCESS]
+        colors = [COLOR_INFO, COLOR_WARNING, COLOR_DANGER]
         return LinearSegmentedColormap.from_list("buffer", colors, N=256)
 
     def _chip_color(self, temp: float) -> str:
-        if temp >= 60:
-            return COLOR_SUCCESS
-        if temp >= 45:
+        if temp >= 70:
+            return COLOR_DANGER
+        if temp >= 55:
             return COLOR_WARNING
-        return COLOR_BORDER
+        return COLOR_INFO
 
     def _clear_chips(self):
         for patch in self._chip_boxes + self._chip_stripes:
@@ -99,13 +112,14 @@ class BufferStorageView(tk.Frame):
             self._chip_boxes.append(bbox)
             self._chip_stripes.append(stripe_patch)
 
-            self.chip_texts[i].set_text(f"{t:.0f} °C")
-            self.chip_texts[i].set_color(COLOR_TEXT)
-            self.chip_texts[i].set_position((1.6, i))
+            self.overlay_texts[i].set_text(f"{t:.1f}°C")
+            self.overlay_texts[i].set_color(COLOR_TEXT)
+            self.overlay_texts[i].set_position((0, i))
 
     def update_temperatures(self, top: float, mid: float, bottom: float, kessel_c: float | None = None):
         temps = [top, mid, bottom]
         self.data = np.array([[top], [mid], [bottom]])
         self.im.set_data(self.data)
+        self.im.set_norm(self.norm)
         self._draw_chips(temps)
         self.canvas.draw_idle()
