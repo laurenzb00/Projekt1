@@ -107,7 +107,7 @@ class LivePlotApp:
         self.icon_sun = load_icon("icons/sun.png")
         self.icon_home = load_icon("icons/home.png")
         self.icon_battery = load_icon("icons/battery.png")
-        self.icon_thermometer = load_icon("icons/thermometer.png")
+        self.icon_puffer = load_icon("icons/puffer.png")
 
         # --- ZEILE 0: Hauptwerte ---
         f1 = ttk.Labelframe(self.dash_frame, text="PV Erzeugung", padding=10, bootstyle="warning")
@@ -134,76 +134,76 @@ class LivePlotApp:
         if self.icon_battery:
             ttk.Label(f3, image=self.icon_battery).pack(anchor="center", pady=5)
 
-        # --- ZEILE 1: Zusatzinfos ---
-        f4 = ttk.Frame(self.dash_frame)
-        f4.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
-        ttk.Label(f4, text="Ertrag heute:", font=("Arial", 10)).pack(side=LEFT)
-        ttk.Label(f4, textvariable=self.dash_ertrag_heute, font=("Arial", 14, "bold"), bootstyle="success").pack(side=RIGHT)
+        # --- ZEILE 2: Pufferspeicher ---
+        f_puffer = ttk.Labelframe(self.dash_frame, text="Pufferspeicher", padding=10, bootstyle="danger")
+        f_puffer.grid(row=2, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
 
-        f5 = ttk.Frame(self.dash_frame)
-        f5.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
-        ttk.Label(f5, text="Autarkie:", font=("Arial", 10)).pack(side=LEFT)
-        ttk.Label(f5, textvariable=self.dash_autarkie, font=("Arial", 14, "bold"), bootstyle="secondary").pack(side=RIGHT)
+        ttk.Label(f_puffer, text="Temperaturen", font=("Arial", 14, "bold"), bootstyle="danger").pack(anchor="center", pady=5)
 
-        # --- ZEILE 2: Puffer (VERTIKAL DESIGN) ---
-        f_temp = ttk.Labelframe(self.dash_frame, text="Pufferspeicher", padding=10, bootstyle="danger")
-        f_temp.grid(row=2, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
-        
-        f_temp_in = ttk.Frame(f_temp)
-        f_temp_in.pack(fill=BOTH, expand=YES)
+        temp_frame = ttk.Frame(f_puffer)
+        temp_frame.pack(fill=BOTH, expand=YES)
 
-        # Links: Balken
-        self.gauge_puffer = ttk.Floodgauge(
-            f_temp_in, bootstyle="danger", font=("Arial", 10), 
-            mask=None, orient=VERTICAL 
-        )
-        self.gauge_puffer.pack(side=LEFT, fill=Y, padx=(0, 20))
-        
-        # Rechts: Werte untereinander (Vertikal)
-        txt_col = ttk.Frame(f_temp_in)
-        txt_col.pack(side=LEFT, fill=BOTH, expand=YES)
-        
-        # Oben
-        row_top = ttk.Frame(txt_col)
-        row_top.pack(fill=X, pady=5)
-        ttk.Label(row_top, text="Oben:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(row_top, textvariable=self.dash_temp_top_str, font=("Arial", 18, "bold"), bootstyle="danger").pack(side=RIGHT)
-        
-        # Mitte
-        row_mid = ttk.Frame(txt_col)
-        row_mid.pack(fill=X, pady=5)
-        ttk.Label(row_mid, text="Mitte:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(row_mid, textvariable=self.dash_temp_mid_str, font=("Arial", 18, "bold"), bootstyle="warning").pack(side=RIGHT)
+        ttk.Label(temp_frame, text="Oben:", font=("Arial", 12)).pack(side=LEFT, padx=10)
+        ttk.Label(temp_frame, textvariable=self.dash_temp_top_str, font=("Arial", 18, "bold"), bootstyle="danger").pack(side=LEFT, padx=10)
 
-        # Unten
-        row_bot = ttk.Frame(txt_col)
-        row_bot.pack(fill=X, pady=5)
-        ttk.Label(row_bot, text="Unten:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(row_bot, textvariable=self.dash_temp_bot_str, font=("Arial", 18, "bold"), bootstyle="primary").pack(side=RIGHT)
+        ttk.Label(temp_frame, text="Mitte:", font=("Arial", 12)).pack(side=LEFT, padx=10)
+        ttk.Label(temp_frame, textvariable=self.dash_temp_mid_str, font=("Arial", 18, "bold"), bootstyle="warning").pack(side=LEFT, padx=10)
 
+        ttk.Label(temp_frame, text="Unten:", font=("Arial", 12)).pack(side=LEFT, padx=10)
+        ttk.Label(temp_frame, textvariable=self.dash_temp_bot_str, font=("Arial", 18, "bold"), bootstyle="primary").pack(side=LEFT, padx=10)
 
-        # --- ZEILE 3: Außen & Status ---
-        f_bot = ttk.Frame(self.dash_frame)
-        f_bot.grid(row=3, column=0, columnspan=3, sticky="ew", padx=10, pady=20)
-        
-        ttk.Label(f_bot, text="Außen:", font=("Arial", 16)).pack(side=LEFT, anchor="s", pady=5)
-        ttk.Label(f_bot, textvariable=self.dash_aussen, font=("Arial", 42, "bold"), bootstyle="inverse-primary").pack(side=LEFT, padx=15)
-        if self.icon_thermometer:
-            ttk.Label(f_bot, image=self.icon_thermometer).pack(side=LEFT, padx=15, pady=5)
+        if self.icon_puffer:
+            ttk.Label(f_puffer, image=self.icon_puffer).pack(anchor="center", pady=10)
 
-        ttk.Label(f_bot, textvariable=self.dash_status, font=("Arial", 10), bootstyle="secondary").pack(side=RIGHT, anchor="s", pady=5)
+        # --- Pufferspeicher Animation ---
+        def get_color(temp):
+            if temp < 50:
+                return "#0000FF"  # Blau
+            elif temp > 60:
+                return "#FF0000"  # Rot
+            else:
+                mix_ratio = (temp - 50) / 10
+                r = int(255 * mix_ratio)
+                b = int(255 * (1 - mix_ratio))
+                return f"#{r:02X}00{b:02X}"
 
-        # --- ZEILE 4: Zusätzliche Informationen ---
-        f_extra = ttk.Labelframe(self.dash_frame, text="Zusätzliche Informationen", padding=10, bootstyle="info")
-        f_extra.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
-        ttk.Label(f_extra, text="Wetter: Sonnig, 5°C", font=("Arial", 12)).pack(anchor="center")
-        ttk.Label(f_extra, text="Systemstatus: Stabil", font=("Arial", 12)).pack(anchor="center")
+        def update_puffer_animation():
+            top_temp = float(self.dash_temp_top_str.get().replace("°C", "") or 0)
+            mid_temp = float(self.dash_temp_mid_str.get().replace("°C", "") or 0)
+            bot_temp = float(self.dash_temp_bot_str.get().replace("°C", "") or 0)
 
-        # --- Interaktive Buttons ---
-        f_buttons = ttk.Frame(self.dash_frame)
-        f_buttons.grid(row=5, column=0, columnspan=3, sticky="ew", padx=5, pady=10)
-        ttk.Button(f_buttons, text="Verbrauchsdetails", bootstyle="primary", command=self.show_consumption_details).pack(side=LEFT, padx=10)
-        ttk.Button(f_buttons, text="Historische Daten", bootstyle="secondary", command=self.show_historical_data).pack(side=LEFT, padx=10)
+            self.canvas_puffer.delete("all")
+
+            # Oben
+            self.canvas_puffer.create_rectangle(
+                10, 10, 90, 50, fill=get_color(top_temp), outline="white"
+            )
+            self.canvas_puffer.create_text(
+                50, 30, text=f"Oben: {top_temp}°C", fill="white", font=("Arial", 10)
+            )
+
+            # Mitte
+            self.canvas_puffer.create_rectangle(
+                10, 60, 90, 100, fill=get_color(mid_temp), outline="white"
+            )
+            self.canvas_puffer.create_text(
+                50, 80, text=f"Mitte: {mid_temp}°C", fill="white", font=("Arial", 10)
+            )
+
+            # Unten
+            self.canvas_puffer.create_rectangle(
+                10, 110, 90, 150, fill=get_color(bot_temp), outline="white"
+            )
+            self.canvas_puffer.create_text(
+                50, 130, text=f"Unten: {bot_temp}°C", fill="white", font=("Arial", 10)
+            )
+
+            self.root.after(1000, update_puffer_animation)  # Aktualisierung alle 1 Sekunde
+
+        self.canvas_puffer = tk.Canvas(f_puffer, width=100, height=160, bg="black")
+        self.canvas_puffer.pack(anchor="center", pady=10)
+
+        update_puffer_animation()
 
     def setup_plot_tabs(self):
         # Alle Tabs aktiv
