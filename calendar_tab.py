@@ -79,8 +79,9 @@ class CalendarTab:
     # --- Thread-Loop ---
     def _loop(self):
         while True:
-            self._fetch_calendar_safe()
-            time.sleep(60)  # Beispiel: alle 60 Sekunden aktualisieren
+            # Schedule _fetch_calendar_safe to run on the main thread
+            self.root.after(0, self._fetch_calendar_safe)
+            time.sleep(60)  # Update every 60 seconds
 
     # --- Kalender-Funktion korrigieren ---
     def _build_calendar(self):

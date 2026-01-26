@@ -118,6 +118,14 @@ class LivePlotApp:
 
             self.update_puffer_animation()
 
+            # Initialize meter_batt (e.g., as a progress bar or similar widget)
+            self.meter_batt = ttk.Progressbar(self.dashboard_frame, orient="vertical", length=100, mode="determinate")
+            self.meter_batt.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
+
+            # Initialize gauge_puffer (e.g., as a placeholder gauge widget)
+            self.gauge_puffer = ttk.Label(self.dashboard_frame, text="Puffer: 0", font=("Arial", 14))
+            self.gauge_puffer.grid(row=1, column=3, sticky="nsew", padx=5, pady=5)
+
             # Dynamische Größenanpassung
             self.root.grid_rowconfigure(0, weight=1)
             self.root.grid_rowconfigure(1, weight=1)
@@ -370,12 +378,7 @@ class LivePlotApp:
         self.root.after(1000, self.update_puffer_animation)  # Aktualisierung alle 1 Sekunde
 
         # Sicherstellen, dass die Animation ohne Icon funktioniert
-        try:
-            icon_path = os.path.join(WORKING_DIRECTORY, "icons/puffer.png")
-            if not os.path.exists(icon_path):
-                print("Warnung: Icon icons/puffer.png konnte nicht geladen werden.")
-        except Exception as e:
-            print(f"Fehler beim Laden des Icons: {e}")
+        pass
 
     def get_color(self, temp):
         if temp < 20:
