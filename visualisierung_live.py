@@ -177,19 +177,34 @@ class LivePlotApp:
 
             self.canvas_puffer.delete("all")
 
-            # Übergänge zwischen den Feldern
-            gradient_colors = [get_color(top_temp), get_color(mid_temp), get_color(bot_temp)]
-            for i in range(3):
-                self.canvas_puffer.create_rectangle(
-                    10, 10 + i * 50, 90, 50 + i * 50, fill=gradient_colors[i], outline="white"
-                )
-                self.canvas_puffer.create_text(
-                    100, 30 + i * 50, text=f"{['Oben', 'Mitte', 'Unten'][i]}: {round([top_temp, mid_temp, bot_temp][i], 1)}°C", fill="white", font=("Arial", 10), anchor="w"
-                )
+            # Batterie mit Farbverlauf
+            self.canvas_puffer.create_rectangle(
+                50, 10, 100, 160, fill="black", outline="white", width=2
+            )
+            self.canvas_puffer.create_rectangle(
+                50, 10, 100, 60, fill=get_color(top_temp), outline="white"
+            )
+            self.canvas_puffer.create_rectangle(
+                50, 60, 100, 110, fill=get_color(mid_temp), outline="white"
+            )
+            self.canvas_puffer.create_rectangle(
+                50, 110, 100, 160, fill=get_color(bot_temp), outline="white"
+            )
+
+            # Temperaturen neben den Abschnitten
+            self.canvas_puffer.create_text(
+                110, 35, text=f"{top_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
+            )
+            self.canvas_puffer.create_text(
+                110, 85, text=f"{mid_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
+            )
+            self.canvas_puffer.create_text(
+                110, 135, text=f"{bot_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
+            )
 
             self.root.after(1000, update_puffer_animation)  # Aktualisierung alle 1 Sekunde
 
-        self.canvas_puffer = tk.Canvas(f_puffer, width=120, height=160, bg="black")
+        self.canvas_puffer = tk.Canvas(f_puffer, width=200, height=180, bg="black")
         self.canvas_puffer.pack(anchor="center", pady=10)
 
         update_puffer_animation()
