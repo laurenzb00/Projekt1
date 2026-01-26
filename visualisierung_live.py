@@ -61,6 +61,8 @@ class LivePlotApp:
         self.notebook.pack(fill=BOTH, expand=YES, padx=5, pady=5)
 
         # Tabs erstellen
+        self.dashboard_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.dashboard_tab, text="Dashboard")
         self.setup_dashboard_tab()
         self.setup_plot_tabs()
 
@@ -88,7 +90,7 @@ class LivePlotApp:
     # --- UI SETUP ---
     def setup_dashboard_tab(self):
             # Neues Layout für das Dashboard
-            self.dashboard_frame = ttk.Frame(self.root, padding=10)
+            self.dashboard_frame = ttk.Frame(self.dashboard_tab, padding=10)
             self.dashboard_frame.pack(fill=tk.BOTH, expand=True)
 
             # PV-Leistung und Verbrauch
@@ -118,13 +120,21 @@ class LivePlotApp:
 
             self.update_puffer_animation()
 
-            # Initialize meter_batt (e.g., as a progress bar or similar widget)
-            self.meter_batt = ttk.Progressbar(self.dashboard_frame, orient="vertical", length=100, mode="determinate")
-            self.meter_batt.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
+            # Initialize meter_batt (battery progress)
+            self.battery_frame = ttk.Frame(self.dashboard_frame, padding=10, bootstyle="warning")
+            self.battery_frame.grid(row=0, column=3, sticky="nsew", padx=5, pady=5)
+            ttk.Label(self.battery_frame, text="Batterie", font=("Arial", 14)).pack()
+            self.meter_batt = ttk.Progressbar(self.battery_frame, orient="vertical", length=100, mode="determinate", maximum=100)
+            self.meter_batt.pack()
+            self.meter_batt_label = ttk.Label(self.battery_frame, text="0%", font=("Arial", 12))
+            self.meter_batt_label.pack()
 
-            # Initialize gauge_puffer (e.g., as a placeholder gauge widget)
-            self.gauge_puffer = ttk.Label(self.dashboard_frame, text="Puffer: 0", font=("Arial", 14))
-            self.gauge_puffer.grid(row=1, column=3, sticky="nsew", padx=5, pady=5)
+            # Initialize gauge_puffer (buffer temperature display)
+            self.gauge_frame = ttk.Frame(self.dashboard_frame, padding=10, bootstyle="secondary")
+            self.gauge_frame.grid(row=1, column=3, sticky="nsew", padx=5, pady=5)
+            ttk.Label(self.gauge_frame, text="Puffer Oben", font=("Arial", 14)).pack()
+            self.gauge_puffer = ttk.Label(self.gauge_frame, text="0 °C", font=("Arial", 20))
+            self.gauge_puffer.pack()
 
             # Dynamische Größenanpassung
             self.root.grid_rowconfigure(0, weight=1)
@@ -183,7 +193,9 @@ class LivePlotApp:
                 
                 self.dash_pv_now.set(f"{pv:.2f} kW")
                 self.dash_haus_now.set(f"{haus:.2f} kW")
-                self.meter_batt.configure(amountused=int(soc))
+                if hasattr(self, 'meter_batt'):
+                    self.meter_batt.configure(value=int(soc))
+                    self.meter_batt_label.configure(text=f"{int(soc)}%")
                 
                 if haus > 0:
                     autarkie = min(pv, haus) / haus * 100
@@ -218,7 +230,8 @@ class LivePlotApp:
                 bot = last.get("Pufferspeicher Unten", 0)
                 aussen = last.get("Außentemperatur", 0)
                 
-                self.gauge_puffer.configure(value=top)
+                if hasattr(self, 'gauge_puffer'):
+                    self.gauge_puffer.configure(text=f"{top:.1f} °C")
                 self.dash_temp_top_str.set(f"{top:.1f} °C")
                 self.dash_temp_mid_str.set(f"{mid:.1f} °C")
                 self.dash_temp_bot_str.set(f"{bot:.1f} °C")
@@ -229,7 +242,9 @@ class LivePlotApp:
                 print(f"BMK Update Fehler: {e}")
 
         self.status_time_var.set(f"Update: {now.strftime('%H:%M:%S')}")
-        self.root.after(UPDATE_INTERVAL, self.update_plots)
+        # Schedule update safely
+        if self.root.winfo_exists():
+            self.root.after(UPDATE_INTERVAL, self.update_plots)
 
     # --- PLOTTING ---
     def _style_ax(self, ax):
@@ -375,7 +390,9 @@ class LivePlotApp:
             110, 135, text=f"{bot_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
         )
 
-        self.root.after(1000, self.update_puffer_animation)  # Aktualisierung alle 1 Sekunde
+        # Schedule update safely
+        if self.root.winfo_exists():
+            self.root.after(1000, self.update_puffer_animation)
 
         # Sicherstellen, dass die Animation ohne Icon funktioniert
         pass

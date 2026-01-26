@@ -71,16 +71,20 @@ class CalendarTab:
 
     # --- Thread-Safe Kalender-Funktion ---
     def _fetch_calendar_safe(self):
+        """Fetch calendar and schedule on main thread if not already running."""
         if threading.current_thread() is threading.main_thread():
-            self.root.after(0, lambda: self._fetch_calendar())
+            self._fetch_calendar()
         else:
-            print("Warnung: _fetch_calendar_safe wurde außerhalb des Hauptthreads aufgerufen.")
+            # Don't call root.after from background thread - just call the function directly
+            try:
+                self._fetch_calendar()
+            except Exception as e:
+                print(f"Calendar update error: {e}")
 
     # --- Thread-Loop ---
     def _loop(self):
         while True:
-            # Schedule _fetch_calendar_safe to run on the main thread
-            self.root.after(0, self._fetch_calendar_safe)
+            self._fetch_calendar_safe()
             time.sleep(60)  # Update every 60 seconds
 
     # --- Kalender-Funktion korrigieren ---
