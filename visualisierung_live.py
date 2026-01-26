@@ -96,19 +96,18 @@ class LivePlotApp:
         self.dash_frame.rowconfigure(2, weight=1) 
         self.dash_frame.rowconfigure(3, weight=0) 
 
-        # --- Icons laden mit angepasster Größe ---
-        def load_icon(filename, size):
+        # --- Icons laden ---
+        def load_icon(filename):
             try:
-                icon = tk.PhotoImage(file=os.path.join(WORKING_DIRECTORY, filename))
-                return icon.subsample(size, size)
+                return tk.PhotoImage(file=os.path.join(WORKING_DIRECTORY, filename))
             except Exception as e:
                 print(f"Warnung: Icon {filename} konnte nicht geladen werden ({e})")
                 return None
 
-        self.icon_sun = load_icon("icons/sun.png", 4)
-        self.icon_home = load_icon("icons/home.png", 4)
-        self.icon_battery = load_icon("icons/battery.png", 4)
-        self.icon_thermometer = load_icon("icons/thermometer.png", 4)
+        self.icon_sun = load_icon("icons/sun.png")
+        self.icon_home = load_icon("icons/home.png")
+        self.icon_battery = load_icon("icons/battery.png")
+        self.icon_thermometer = load_icon("icons/thermometer.png")
 
         # --- ZEILE 0: Hauptwerte ---
         f1 = ttk.Labelframe(self.dash_frame, text="PV Erzeugung", padding=10, bootstyle="warning")

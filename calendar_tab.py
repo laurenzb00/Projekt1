@@ -71,7 +71,7 @@ class CalendarTab:
 
     # --- Thread-Safe Kalender-Funktion ---
     def _fetch_calendar_safe(self):
-        self.root.after(0, self._fetch_calendar)
+        self.root.after(0, lambda: self._fetch_calendar())
 
     # --- Thread-Loop ---
     def _loop(self):
@@ -79,6 +79,7 @@ class CalendarTab:
             self._fetch_calendar_safe()
             time.sleep(60)  # Beispiel: alle 60 Sekunden aktualisieren
 
+    # --- Kalender-Funktion korrigieren ---
     def _build_calendar(self):
         # Clear existing widgets
         for widget in self.tab_frame.winfo_children():
