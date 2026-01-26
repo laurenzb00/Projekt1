@@ -16,15 +16,23 @@ import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
-# --- FARBEN ---
-COLOR_DARK_BG = "#0b1220"
-COLOR_CARD_BG = "#0f172a"
-COLOR_ACCENT = "#1f2a44"
-COLOR_PRIMARY = "#38bdf8"
-COLOR_SUCCESS = "#10b981"
-COLOR_WARNING = "#f59e0b"
-COLOR_TEXT = "#e5e7eb"
-COLOR_SUBTEXT = "#8ba2c7"
+# --- FARBEN aus ui/styles ---
+from ui.styles import (
+    COLOR_ROOT,
+    COLOR_CARD,
+    COLOR_BORDER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+)
+from ui.components.card import Card
+
+# Aliases für alte Code-Kompatibilität
+COLOR_DARK_BG = COLOR_ROOT
+COLOR_CARD_BG = COLOR_CARD
+COLOR_ACCENT = COLOR_BORDER
 
 # --- KONFIGURATION ---
 HUE_BRIDGE_IP = "192.168.1.111"  # <--- HIER DEINE BRIDGE IP EINTRAGEN!
@@ -291,8 +299,7 @@ class HueTab:
                 content,
                 from_=0, to=254,
                 value=bri,
-                command=on_slide,
-                bootstyle="warning"
+                command=on_slide
             )
             slider.pack(fill=tk.X, pady=(0, 10))
         else:
@@ -373,7 +380,6 @@ class HueTab:
             content,
             from_=0, to=65535,
             variable=hue_var,
-            bootstyle="danger",
             command=lambda v: self._update_preview(preview_canvas, hue_var.get(), sat_var.get())
         )
         hue_slider.pack(fill=tk.X, pady=(0, 15))
@@ -390,7 +396,6 @@ class HueTab:
             content,
             from_=0, to=254,
             variable=sat_var,
-            bootstyle="info",
             command=lambda v: self._update_preview(preview_canvas, hue_var.get(), sat_var.get())
         )
         sat_slider.pack(fill=tk.X, pady=(0, 20))

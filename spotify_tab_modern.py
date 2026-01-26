@@ -20,14 +20,22 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from PIL import Image, ImageTk, ImageDraw, ImageFilter
 
-# --- FARBEN ---
-COLOR_DARK_BG = "#0b1220"
-COLOR_CARD_BG = "#0f172a"
-COLOR_ACCENT = "#1f2a44"
-COLOR_PRIMARY = "#38bdf8"
-COLOR_SUCCESS = "#10b981"
-COLOR_TEXT = "#e5e7eb"
-COLOR_SUBTEXT = "#8ba2c7"
+# --- FARBEN aus ui/styles ---
+from ui.styles import (
+    COLOR_ROOT,
+    COLOR_CARD,
+    COLOR_BORDER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+)
+from ui.components.card import Card
+
+# Aliases für alte Code-Kompatibilität
+COLOR_DARK_BG = COLOR_ROOT
+COLOR_CARD_BG = COLOR_CARD
+COLOR_ACCENT = COLOR_BORDER
 
 class SpotifyTab:
     """
@@ -351,8 +359,7 @@ class SpotifyTab:
             vol_inner,
             from_=0, to=100,
             variable=self.volume_var,
-            command=self._on_volume_slide,
-            bootstyle="info"
+            command=self._on_volume_slide
         )
         vol_slider.pack(side=tk.LEFT, fill="x", expand=True, padx=10)
         

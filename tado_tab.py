@@ -1,8 +1,18 @@
 import threading
 import time
 import tkinter as tk
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
+from tkinter import ttk
+from ui.styles import (
+    COLOR_ROOT,
+    COLOR_CARD,
+    COLOR_BORDER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+)
+from ui.components.card import Card
 
 # --- KONFIGURATION ---
 TADO_USER = "laurenzbandzauner@gmail.com"  # <--- HIER ÄNDERN
@@ -24,8 +34,8 @@ class TadoTab:
         self.var_power = tk.IntVar(value=0) # Heizleistung 0-100%
 
         # Frame erstellen
-        self.tab_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_frame, text=" Klima ")
+        self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
+        self.notebook.add(self.tab_frame, text="🌡️ Klima")
 
         self._build_ui()
         
@@ -35,31 +45,31 @@ class TadoTab:
     def _build_ui(self):
         # Header
         header = ttk.Frame(self.tab_frame)
-        header.pack(fill=X, pady=10, padx=10)
-        ttk.Label(header, text="Schlafzimmer Klima", font=("Arial", 20, "bold"), bootstyle="inverse-dark").pack(side=LEFT)
-        ttk.Label(header, textvariable=self.var_status, bootstyle="secondary").pack(side=RIGHT)
+        header.pack(fill=tk.X, pady=10, padx=10)
+        ttk.Label(header, text="Schlafzimmer Klima", font=("Arial", 20, "bold")).pack(side=tk.LEFT)
+        ttk.Label(header, textvariable=self.var_status).pack(side=tk.RIGHT)
 
         # Content Grid
         content = ttk.Frame(self.tab_frame)
-        content.pack(fill=BOTH, expand=YES, padx=20, pady=10)
+        content.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
         
         # Linke Seite: IST-Werte (Groß)
-        left = ttk.Labelframe(content, text="Aktuell", padding=15, bootstyle="info")
-        left.pack(side=LEFT, fill=BOTH, expand=YES, padx=(0, 10))
+        left = ttk.Labelframe(content, text="Aktuell", padding=15)
+        left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
         # Temperatur Groß
         ttk.Label(left, text="Temperatur:", font=("Arial", 12)).pack(anchor="w")
-        ttk.Label(left, textvariable=self.var_temp_ist, font=("Arial", 48, "bold"), bootstyle="info").pack(pady=10)
+        ttk.Label(left, textvariable=self.var_temp_ist, font=("Arial", 48, "bold")).pack(pady=10)
         
         # Feuchtigkeit
         hum_row = ttk.Frame(left)
-        hum_row.pack(fill=X, pady=10)
-        ttk.Label(hum_row, text="Luftfeuchtigkeit:", font=("Arial", 12)).pack(side=LEFT)
-        ttk.Label(hum_row, textvariable=self.var_humidity, font=("Arial", 16, "bold"), bootstyle="secondary").pack(side=RIGHT)
+        hum_row.pack(fill=tk.X, pady=10)
+        ttk.Label(hum_row, text="Luftfeuchtigkeit:", font=("Arial", 12)).pack(side=tk.LEFT)
+        ttk.Label(hum_row, textvariable=self.var_humidity, font=("Arial", 16, "bold")).pack(side=tk.RIGHT)
 
         # Rechte Seite: Steuerung
-        right = ttk.Labelframe(content, text="Steuerung", padding=15, bootstyle="warning")
-        right.pack(side=LEFT, fill=BOTH, expand=YES, padx=(10, 0))
+        right = ttk.Labelframe(content, text="Steuerung", padding=15)
+        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0))
         
         # Ziel-Temperatur mit +/- Buttons (Touch optimiert)
         ttk.Label(right, text="Ziel-Temperatur:", font=("Arial", 12)).pack(anchor="center")
@@ -67,13 +77,13 @@ class TadoTab:
         ctrl_frame = ttk.Frame(right)
         ctrl_frame.pack(pady=15)
         
-        ttk.Button(ctrl_frame, text="-", width=4, bootstyle="outline", command=lambda: self._change_temp(-1)).pack(side=LEFT, padx=10)
-        ttk.Label(ctrl_frame, textvariable=self.var_temp_soll, font=("Arial", 32, "bold"), bootstyle="warning").pack(side=LEFT, padx=10)
-        ttk.Button(ctrl_frame, text="+", width=4, bootstyle="outline", command=lambda: self._change_temp(+1)).pack(side=LEFT, padx=10)
+        ttk.Button(ctrl_frame, text="-", width=4, command=lambda: self._change_temp(-1)).pack(side=tk.LEFT, padx=10)
+        ttk.Label(ctrl_frame, textvariable=self.var_temp_soll, font=("Arial", 32, "bold")).pack(side=tk.LEFT, padx=10)
+        ttk.Button(ctrl_frame, text="+", width=4, command=lambda: self._change_temp(+1)).pack(side=tk.LEFT, padx=10)
 
         # Heizleistung Balken
         ttk.Label(right, text="Heizleistung:", font=("Arial", 10)).pack(anchor="w", pady=(20, 5))
-        ttk.Progressbar(right, variable=self.var_power, maximum=100, bootstyle="warning-striped").pack(fill=X)
+        ttk.Progressbar(right, variable=self.var_power, maximum=100).pack(fill=tk.X)
 
     def _loop(self):
         # 1. Login

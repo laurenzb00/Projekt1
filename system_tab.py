@@ -1,12 +1,22 @@
 import threading
 import time
 import tkinter as tk
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
+from tkinter import ttk
 import psutil
 import platform
 import os
 from datetime import datetime, timedelta
+from ui.styles import (
+    COLOR_ROOT,
+    COLOR_CARD,
+    COLOR_BORDER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+)
+from ui.components.card import Card
 from modern_widgets import CircularProgressWidget
 
 class SystemTab:
@@ -24,8 +34,8 @@ class SystemTab:
         self.var_uptime = tk.StringVar(value="00:00:00")
         self.var_status = tk.StringVar(value="Läuft stabil")
         
-        self.tab_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_frame, text=" System ")
+        self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
+        self.notebook.add(self.tab_frame, text="⚙️ System")
         
         self._build_ui()
         threading.Thread(target=self._loop, daemon=True).start()
@@ -36,58 +46,58 @@ class SystemTab:
     def _build_ui(self):
         # Header
         header = ttk.Frame(self.tab_frame)
-        header.pack(fill=X, pady=15, padx=15)
-        ttk.Label(header, text="Systemstatus (Raspberry Pi)", font=("Arial", 22, "bold"), bootstyle="inverse-dark").pack(side=LEFT)
-        ttk.Label(header, textvariable=self.var_uptime, font=("Arial", 14), bootstyle="info").pack(side=RIGHT)
+        header.pack(fill=tk.X, pady=15, padx=15)
+        ttk.Label(header, text="Systemstatus (Raspberry Pi)", font=("Arial", 22, "bold")).pack(side=tk.LEFT)
+        ttk.Label(header, textvariable=self.var_uptime, font=("Arial", 14)).pack(side=tk.RIGHT)
 
         # Hauptbereich Grid
         content = ttk.Frame(self.tab_frame)
-        content.pack(fill=BOTH, expand=YES, padx=15, pady=5)
+        content.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
         
         # Oben: 3 Kacheln (CPU, RAM, Disk) mit modernen Circular Progress
         row1 = ttk.Frame(content)
-        row1.pack(fill=X, expand=YES)
+        row1.pack(fill=tk.X, expand=True)
         
         # CPU
-        card_cpu = ttk.Labelframe(row1, text="CPU Last", bootstyle="primary", padding=10)
-        card_cpu.pack(side=LEFT, fill=BOTH, expand=YES, padx=(0,5))
+        card_cpu = ttk.Labelframe(row1, text="CPU Last", padding=10)
+        card_cpu.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0,5))
         self.cpu_widget = CircularProgressWidget(card_cpu, size=140, title="CPU")
         self.cpu_widget.pack()
 
         # RAM
-        card_ram = ttk.Labelframe(row1, text="RAM Nutzung", bootstyle="warning", padding=10)
-        card_ram.pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+        card_ram = ttk.Labelframe(row1, text="RAM Nutzung", padding=10)
+        card_ram.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
         self.ram_widget = CircularProgressWidget(card_ram, size=140, title="RAM")
         self.ram_widget.pack()
 
         # Disk mit Circular Progress
-        card_disk = ttk.Labelframe(row1, text="SD-Karte", bootstyle="success", padding=10)
-        card_disk.pack(side=LEFT, fill=BOTH, expand=YES, padx=(5,0))
+        card_disk = ttk.Labelframe(row1, text="SD-Karte", padding=10)
+        card_disk.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5,0))
         self.disk_widget = CircularProgressWidget(card_disk, size=140, title="Disk")
         self.disk_widget.pack()
         
         # Temperatur-Anzeige darunter
         temp_frame = ttk.Frame(content)
-        temp_frame.pack(fill=X, pady=10)
+        temp_frame.pack(fill=tk.X, pady=10)
         ttk.Label(temp_frame, text="CPU Temperatur:", font=("Arial", 12, "bold")).pack()
-        ttk.Label(temp_frame, textvariable=self.var_temp, font=("Arial", 28, "bold"), bootstyle="danger").pack(pady=5)
+        ttk.Label(temp_frame, textvariable=self.var_temp, font=("Arial", 28, "bold")).pack(pady=5)
 
         # Unten: App Info / Logs
-        row2 = ttk.Labelframe(content, text="Programm Information", bootstyle="secondary", padding=10)
-        row2.pack(fill=BOTH, expand=YES, pady=10)
+        row2 = ttk.Labelframe(content, text="Programm Information", padding=10)
+        row2.pack(fill=tk.BOTH, expand=True, pady=10)
         
         info_txt = (
             f"OS: {platform.system()} {platform.release()}\n"
             f"Python: {platform.python_version()}\n"
             f"Prozess ID: {os.getpid()}"
         )
-        ttk.Label(row2, text=info_txt, font=("Consolas", 10), justify=LEFT).pack(side=LEFT, padx=10)
+        ttk.Label(row2, text=info_txt, font=("Consolas", 10), justify=tk.LEFT).pack(side=tk.LEFT, padx=10)
         
         # Status Box rechts
         stat_box = ttk.Frame(row2)
-        stat_box.pack(side=RIGHT, fill=Y)
+        stat_box.pack(side=tk.RIGHT, fill=tk.Y)
         ttk.Label(stat_box, text="App Status:", font=("Arial", 12, "bold")).pack(anchor="e")
-        ttk.Label(stat_box, textvariable=self.var_status, font=("Arial", 12), bootstyle="success").pack(anchor="e")
+        ttk.Label(stat_box, textvariable=self.var_status, font=("Arial", 12)).pack(anchor="e")
 
     def _get_cpu_temp(self):
         # Versucht Temperatur auf Raspberry Pi zu lesen

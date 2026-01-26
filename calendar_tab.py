@@ -1,14 +1,24 @@
 import threading
 import time
 import tkinter as tk
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
+from tkinter import ttk
 import requests
 import icalendar
 import recurring_ical_events
 import datetime
 import calendar
 import pytz
+from ui.styles import (
+    COLOR_ROOT,
+    COLOR_CARD,
+    COLOR_BORDER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+)
+from ui.components.card import Card
 
 # --- KONFIGURATION ---
 # Tragen Sie hier alle Ihre Kalender-Links ein (durch Kommas getrennt):
@@ -34,17 +44,17 @@ class CalendarTab:
         self.events_data = [] 
         
         # Tab erstellen
-        self.tab_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_frame, text=" Kalender ")
+        self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
+        self.notebook.add(self.tab_frame, text="📅 Kalender")
         
         self._build_header()
         
         # Scrollbarer Bereich
-        self.canvas = tk.Canvas(self.tab_frame, highlightthickness=0)
-        self.canvas.configure(bg="#0f172a")
+        self.canvas = tk.Canvas(self.tab_frame, highlightthickness=0, bg=COLOR_ROOT)
+        self.canvas.configure(bg=COLOR_ROOT)
         
         self.scrollbar = ttk.Scrollbar(self.tab_frame, orient="vertical", command=self.canvas.yview)
-        self.scroll_frame = tk.Frame(self.canvas, bg="#0f172a")
+        self.scroll_frame = tk.Frame(self.canvas, bg=COLOR_ROOT)
         
         self.scroll_frame.bind(
             "<Configure>",
@@ -64,31 +74,31 @@ class CalendarTab:
 
     def _build_header(self):
         header = ttk.Frame(self.tab_frame)
-        header.pack(fill=X, padx=15, pady=(15, 5))
+        header.pack(fill=tk.X, padx=15, pady=(15, 5))
         
         # Linker Button (Monat zurück)
         ttk.Button(
-            header, text="◀ Vorheriger", bootstyle="secondary-outline",
+            header, text="◀ Vorheriger",
             command=self._prev_month, width=12
-        ).pack(side=LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
         
         # Titel
-        ttk.Label(header, text="Kalender", font=("Arial", 18, "bold"), bootstyle="inverse-dark").pack(side=LEFT, padx=20)
+        ttk.Label(header, text="Kalender", font=("Arial", 18, "bold")).pack(side=tk.LEFT, padx=20)
         
         # Rechter Button (Monat vor)
         ttk.Button(
-            header, text="Nächster ▶", bootstyle="secondary-outline",
+            header, text="Nächster ▶",
             command=self._next_month, width=12
-        ).pack(side=LEFT, padx=5)
+        ).pack(side=tk.LEFT, padx=5)
         
         # Refresh Button
         ttk.Button(
-            header, text="↻", bootstyle="secondary-outline",
+            header, text="↻",
             command=lambda: threading.Thread(target=self._fetch_calendar, daemon=True).start()
-        ).pack(side=RIGHT, padx=10)
+        ).pack(side=tk.RIGHT, padx=10)
         
         # Status
-        ttk.Label(header, textvariable=self.status_var, bootstyle="info").pack(side=RIGHT)
+        ttk.Label(header, textvariable=self.status_var).pack(side=tk.RIGHT)
 
     def _prev_month(self):
         """Monat zurück"""
