@@ -71,7 +71,10 @@ class CalendarTab:
 
     # --- Thread-Safe Kalender-Funktion ---
     def _fetch_calendar_safe(self):
-        self.root.after(0, lambda: self._fetch_calendar())
+        if threading.current_thread() is threading.main_thread():
+            self.root.after(0, lambda: self._fetch_calendar())
+        else:
+            print("Warnung: _fetch_calendar_safe wurde außerhalb des Hauptthreads aufgerufen.")
 
     # --- Thread-Loop ---
     def _loop(self):

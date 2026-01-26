@@ -194,6 +194,17 @@ class LivePlotApp:
 
         update_puffer_animation()
 
+        # Initialisierung der gauge_puffer
+        self.gauge_puffer = ttk.Meter(
+            master=self.root,
+            bootstyle="success",
+            subtext="Pufferspeicher Oben",
+            interactive=False,
+            amounttotal=100,
+            amountused=0,
+        )
+        self.gauge_puffer.pack(pady=10)
+
     def setup_plot_tabs(self):
         # Alle Tabs aktiv
         self.create_single_plot_tab("PV-Leistung", "fronius")
@@ -400,3 +411,11 @@ class LivePlotApp:
     def show_historical_data(self):
         print("Historische Daten anzeigen")
         # Hier könnte ein Diagramm oder eine Ansicht geöffnet werden
+
+        # Sicherstellen, dass die Animation ohne Icon funktioniert
+        try:
+            icon_path = os.path.join(WORKING_DIRECTORY, "icons/puffer.png")
+            if not os.path.exists(icon_path):
+                print("Warnung: Icon icons/puffer.png konnte nicht geladen werden.")
+        except Exception as e:
+            print(f"Fehler beim Laden des Icons: {e}")
