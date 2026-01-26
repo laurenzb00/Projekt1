@@ -22,7 +22,7 @@ class EnergyFlowView(tk.Frame):
 
         self.width = width
         self.height = height
-        self.node_radius = 52
+        self.node_radius = 46
         self._tk_img = None
         self._font_big = ImageFont.truetype("arial.ttf", 32) if self._has_font("arial.ttf") else None
         self._font_small = ImageFont.truetype("arial.ttf", 14) if self._has_font("arial.ttf") else None
@@ -41,14 +41,14 @@ class EnergyFlowView(tk.Frame):
     def _define_nodes(self):
         w, h = self.width, self.height
         margin_x = int(w * 0.06)
-        margin_top = 36
-        margin_bottom = 170  # Noch mehr Platz unten für Batterie/SOC
+        margin_top = 40
+        margin_bottom = 90  # Platz für SoC-Text unter der Batterie
         usable_h = h - margin_top - margin_bottom
         return {
-            "pv": (margin_x + int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.05)),
-            "grid": (w - margin_x - int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.05)),
-            "home": (w // 2, margin_top + int(usable_h * 0.42)),
-            "battery": (w // 2, margin_top + int(usable_h * 0.96)),
+            "pv": (margin_x + int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.15)),
+            "grid": (w - margin_x - int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.15)),
+            "home": (w // 2, margin_top + int(usable_h * 0.55)),
+            "battery": (w // 2, margin_top + int(usable_h * 0.90)),
         }
 
     def _render_background(self) -> Image.Image:

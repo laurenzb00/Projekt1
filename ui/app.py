@@ -118,7 +118,7 @@ class MainApp:
         self.buffer_card = Card(self.body)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=0)
         self.buffer_card.add_title("Pufferspeicher", icon="🔥")
-        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=320)
+        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=280)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar
