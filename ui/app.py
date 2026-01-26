@@ -56,8 +56,14 @@ class MainApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Smart Home Dashboard")
+        # Fix DPI scaling and use fullscreen for Pi display
+        try:
+            self.root.tk.call("tk", "scaling", 1.0)
+        except Exception:
+            pass
         self.root.geometry("1024x600")
         self.root.resizable(False, False)
+        self.root.attributes("-fullscreen", True)
         init_style(self.root)
 
         # Grid Setup: rows 0/1/2/3, cols 0 (full width)
@@ -95,7 +101,8 @@ class MainApp:
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
         self.energy_view = EnergyFlowView(self.energy_card.content())
-        self.energy_view.pack(fill=tk.BOTH, expand=True)
+        # Center the canvas without over-expanding on small screens
+        self.energy_view.pack(anchor="center", pady=8)
 
         # Buffer Card (30%)
         self.buffer_card = Card(self.body)
