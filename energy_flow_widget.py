@@ -21,7 +21,7 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
-    print("⚠ Plotly nicht installiert. Nutze Matplotlib-Fallback.")
+    print("[!] Plotly nicht installiert. Nutze Matplotlib-Fallback.")
 
 class EnergyFlowWidget:
     """Energiefluss-Visualisierung mit Sankey-Diagramm"""

@@ -21,7 +21,7 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
-    print("⚠ Plotly nicht installiert. Installiere mit: pip install plotly")
+    print("[!] Plotly nicht installiert. Installiere mit: pip install plotly")
 
 # --- FARBEN ---
 COLOR_DARK_BG = "#0b1220"

@@ -23,7 +23,7 @@ import datetime
 from PIL import Image, ImageDraw, ImageTk
 from boiler_widget import ModernBoilerWidget  # <--- MODERNES BOILER WIDGET
 from modern_widgets import BatteryGaugeWidget  # <--- BATTERIE GAUGE
-from energy_flow_widget import EnergyFlowWidget  # <--- ENERGIEFLUSS SANKEY
+from energy_flow_widget_v2 import EnergyFlowWidgetV2  # <--- NEUE SCHÖNE ENERGIEFLUSS
 
 # Matplotlib Stil
 plt.style.use("dark_background")
@@ -183,49 +183,34 @@ class LivePlotApp:
         main_container = tk.Frame(self.dashboard_frame, bg=COLOR_DARK_BG)
         main_container.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
         
-        # LEFT: Large Energiefluss (55% width)
+        # LEFT: Large Energiefluss (70% width - dominant)
         left_frame = tk.Frame(main_container, bg=COLOR_DARK_BG)
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2, pady=2)
         self._create_pv_main_card(parent=left_frame)
         
-        # RIGHT: Vertical stack (45% width)
+        # RIGHT: Vertical stack (30% width - compact)
         right_frame = tk.Frame(main_container, bg=COLOR_DARK_BG)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False, padx=2, pady=2)
-        right_frame.configure(width=450)  # Fixed width for right panel
+        right_frame.configure(width=320)  # Fixed width for right panel
         
-        # RIGHT TOP: Battery + Light Buttons (Horizontal)
-        right_top = tk.Frame(right_frame, bg=COLOR_DARK_BG)
-        right_top.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        
-        # Battery (left in top-right section)
-        battery_card = self._create_chart_card(
-            parent=right_top,
-            row=None, col=None,
-            title="Batterie"
-        )
-        battery_card.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
-        self.battery_card = battery_card
-        self._create_battery_status_widget()
-        
-        # Light Control (right in top-right section)
+        # RIGHT TOP: Light Buttons only (no battery here anymore)
         light_card = self._create_chart_card(
-            parent=right_top,
+            parent=right_frame,
             row=None, col=None,
             title="Beleuchtung"
         )
-        light_card.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=2)
+        light_card.pack(fill=tk.BOTH, expand=False, padx=2, pady=2)
         self.light_card = light_card
         self._create_light_control_widget()
         
         # RIGHT BOTTOM: Pufferspeicher (Full width in right panel)
-        right_bottom = tk.Frame(right_frame, bg=COLOR_DARK_BG)
-        right_bottom.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        
         self.puffer_card = self._create_chart_card(
-            parent=right_bottom,
+            parent=right_frame,
             row=None, col=None,
             title="Pufferspeicher"
         )
+        self.puffer_card.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        
         # Modernes Boiler-Widget mit Heatmap
         self.boiler_widget = ModernBoilerWidget(
             self.puffer_card, 
@@ -240,14 +225,14 @@ class LivePlotApp:
         self.update_flow_clock_animation()
 
     def _create_pv_main_card(self, parent=None):
-        """Großes PV-Haupt-Feld mit verbessertem Design"""
+        """Großes PV-Haupt-Feld mit neuer schöner Energiefluss-Animation"""
         if parent is None:
             parent = self.dashboard_frame
             
         outer_frame = tk.Frame(parent, bg="#0a0f1a")
         outer_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
         
-        # Haupt-Karte mit Gradient-Effekt (hellblau oben, dunkler unten)
+        # Haupt-Karte
         card = tk.Frame(
             outer_frame,
             bg=COLOR_PV,
@@ -262,32 +247,20 @@ class LivePlotApp:
         header = tk.Frame(card, bg=COLOR_PV)
         header.pack(fill=tk.X, padx=8, pady=(8, 6))
         
-        tk.Label(header, text="☀", font=("Segoe UI", 18), bg=COLOR_PV, fg="white").pack(side=tk.LEFT)
+        tk.Label(header, text="⚡", font=("Segoe UI", 18), bg=COLOR_PV, fg="white").pack(side=tk.LEFT)
         tk.Label(
-            header, text="Energiefluss",
+            header, text="Energiefluss (Echtzeitübersicht)",
             font=("Segoe UI", 12, "bold"), bg=COLOR_PV, fg="white"
         ).pack(side=tk.LEFT, padx=6)
 
-        # Content: 2 Bereiche - Energiefluss Animation + Batterie
+        # Content: Großer Energiefluss
         content = tk.Frame(card, bg=COLOR_CARD_BG)
         content.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-
-        # === Links: Energiefluss-Animation ===
-        flow_frame = tk.Frame(content, bg=COLOR_CARD_BG)
-        flow_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=8)
         
-        # Energiefluss Widget mit matplotlib style
-        self.energy_flow_widget = EnergyFlowWidget(flow_frame, width=360, height=220, style="matplotlib")
-        self.pv_card = flow_frame  # Für spätere Highlight-Funktionen
-        self.verbrauch_card = flow_frame
-
-        # === Rechts: Batterie Widget (ohne Label) ===
-        battery_frame = tk.Frame(content, bg=COLOR_CARD_BG)
-        battery_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=8)
-        
-        # Modern Battery Gauge Widget - nur Batterie-Symbol
-        self.battery_widget = BatteryGaugeWidget(battery_frame, width=140, height=220, style="pil")
-        self.battery_widget.pack()
+        # Großer Energiefluss mit neuen schönen Icons
+        self.energy_flow_widget = EnergyFlowWidgetV2(content, width=650, height=240, style="modern")
+        self.pv_card = content  # Für spätere Highlight-Funktionen
+        self.verbrauch_card = content
 
         return outer_frame
     
@@ -537,11 +510,7 @@ class LivePlotApp:
                 self.dash_pv_now.set(f"{pv:.2f} kW")
                 self.dash_haus_now.set(f"{haus:.2f} kW")
                 
-                # Update Battery Widget (positiv = laden)
-                charging = battery_power > 0
-                self.battery_widget.update_soc(int(soc), charging)
-                
-                # Speichere SOC für Uhrzeit-Widget
+                # Speichere SOC für Energiefluss-Widget (neue Batterie-Anzeige)
                 self.last_battery_soc = int(soc)
                 
                 # Speichere Werte für Energiefluss (später nutzbar)
@@ -550,12 +519,13 @@ class LivePlotApp:
                 self.current_battery = battery_power * 1000
                 self.current_grid = last.get("Netz-Leistung (kW)", 0) * 1000
                 
-                # Update Energiefluss-Widget
+                # Update Energiefluss-Widget mit neuer schöner Anzeige UND Battery SOC
                 self.energy_flow_widget.update_flows(
                     self.current_pv,
                     self.current_load,
                     self.current_battery,
-                    self.current_grid
+                    self.current_grid,
+                    battery_soc=float(self.last_battery_soc)
                 )
                 
                 self._update_battery_color(soc)
@@ -595,7 +565,9 @@ class LivePlotApp:
                 # self._update_combined_trend(fronius_df, bmk_df, now)  # Removed - old tab visualization
                 self.dash_status.set("PV Daten aktuell.")
             except Exception as e:
+                import traceback
                 print(f"Fronius Update Fehler: {e}")
+                traceback.print_exc()
 
         if bmk_df is not None and not bmk_df.empty:
             try:
