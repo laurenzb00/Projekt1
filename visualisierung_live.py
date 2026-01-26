@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
 import numpy as np
+from ttkbootstrap.icons import Icon
 
 # Matplotlib fest auf Dunkel setzen
 plt.style.use("dark_background")
@@ -100,11 +101,13 @@ class LivePlotApp:
         f1.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         ttk.Label(f1, textvariable=self.dash_pv_now, font=("Arial", 28, "bold"), bootstyle="warning").pack(anchor="center")
         ttk.Label(f1, text="Aktuelle Leistung", font=("Arial", 9)).pack(anchor="center")
+        ttk.Label(f1, image=Icon("sun"), bootstyle="warning").pack(anchor="center")
 
         f2 = ttk.Labelframe(self.dash_frame, text="Verbrauch", padding=10, bootstyle="info")
         f2.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
         ttk.Label(f2, textvariable=self.dash_haus_now, font=("Arial", 28, "bold"), bootstyle="info").pack(anchor="center")
         ttk.Label(f2, text="Hauslast", font=("Arial", 9)).pack(anchor="center")
+        ttk.Label(f2, image=Icon("home"), bootstyle="info").pack(anchor="center")
 
         f3 = ttk.Labelframe(self.dash_frame, text="Speicher", padding=5, bootstyle="success")
         f3.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5, pady=5)
@@ -113,6 +116,7 @@ class LivePlotApp:
             subtext="SoC", bootstyle="success", interactive=False, textright="%"
         )
         self.meter_batt.pack(expand=YES, pady=5)
+        ttk.Label(f3, image=Icon("battery"), bootstyle="success").pack(anchor="center")
 
         # --- ZEILE 1: Zusatzinfos ---
         f4 = ttk.Frame(self.dash_frame)
@@ -168,8 +172,21 @@ class LivePlotApp:
         
         ttk.Label(f_bot, text="Außen:", font=("Arial", 16)).pack(side=LEFT, anchor="s", pady=5)
         ttk.Label(f_bot, textvariable=self.dash_aussen, font=("Arial", 42, "bold"), bootstyle="inverse-primary").pack(side=LEFT, padx=15)
-        
+        ttk.Label(f_bot, image=Icon("thermometer"), bootstyle="inverse-primary").pack(side=LEFT, padx=15)
+
         ttk.Label(f_bot, textvariable=self.dash_status, font=("Arial", 10), bootstyle="secondary").pack(side=RIGHT, anchor="s", pady=5)
+
+        # --- ZEILE 4: Zusätzliche Informationen ---
+        f_extra = ttk.Labelframe(self.dash_frame, text="Zusätzliche Informationen", padding=10, bootstyle="info")
+        f_extra.grid(row=4, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
+        ttk.Label(f_extra, text="Wetter: Sonnig, 5°C", font=("Arial", 12)).pack(anchor="center")
+        ttk.Label(f_extra, text="Systemstatus: Stabil", font=("Arial", 12)).pack(anchor="center")
+
+        # --- Interaktive Buttons ---
+        f_buttons = ttk.Frame(self.dash_frame)
+        f_buttons.grid(row=5, column=0, columnspan=3, sticky="ew", padx=5, pady=10)
+        ttk.Button(f_buttons, text="Verbrauchsdetails", bootstyle="primary", command=self.show_consumption_details).pack(side=LEFT, padx=10)
+        ttk.Button(f_buttons, text="Historische Daten", bootstyle="secondary", command=self.show_historical_data).pack(side=LEFT, padx=10)
 
     def setup_plot_tabs(self):
         # Alle Tabs aktiv
@@ -368,3 +385,12 @@ class LivePlotApp:
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.'))
             self.bmk_fig.autofmt_xdate()
         self.bmk_canvas.draw()
+
+    # --- Neue Funktionen für Buttons ---
+    def show_consumption_details(self):
+        print("Verbrauchsdetails anzeigen")
+        # Hier könnte ein neues Fenster oder eine Ansicht geöffnet werden
+
+    def show_historical_data(self):
+        print("Historische Daten anzeigen")
+        # Hier könnte ein Diagramm oder eine Ansicht geöffnet werden
