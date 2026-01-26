@@ -376,3 +376,13 @@ class LivePlotApp:
                 print("Warnung: Icon icons/puffer.png konnte nicht geladen werden.")
         except Exception as e:
             print(f"Fehler beim Laden des Icons: {e}")
+
+    def get_color(self, temp):
+        if temp < 20:
+            return "blue"
+        elif temp < 40:
+            return "green"
+        elif temp < 60:
+            return "yellow"
+        else:
+            return "red"
