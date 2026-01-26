@@ -20,9 +20,9 @@ class HeaderBar(tk.Frame):
 
         # Border + inner card
         border = tk.Frame(self, bg=COLOR_BORDER)
-        border.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        border.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         inner = tk.Frame(border, bg=COLOR_CARD)
-        inner.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        inner.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
         inner.grid_columnconfigure(0, weight=1, minsize=200, uniform="hdr")
         inner.grid_columnconfigure(1, weight=2, uniform="hdr")

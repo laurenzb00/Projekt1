@@ -56,7 +56,7 @@ class MainApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("Smart Home Dashboard")
-        # Fix DPI scaling and use fullscreen for Pi display
+        # Fix DPI scaling and force fullscreen for Pi display
         try:
             self.root.tk.call("tk", "scaling", 1.0)
         except Exception:
@@ -64,6 +64,10 @@ class MainApp:
         self.root.geometry("1024x600")
         self.root.resizable(False, False)
         self.root.attributes("-fullscreen", True)
+        try:
+            self.root.attributes("-zoomed", True)
+        except Exception:
+            pass
         init_style(self.root)
 
         # Grid Setup: rows 0/1/2/3, cols 0 (full width)
@@ -91,7 +95,8 @@ class MainApp:
 
         # Body (Energy + Buffer)
         self.body = tk.Frame(self.dashboard_tab, bg=COLOR_ROOT)
-        self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        # minimal padding to win vertical space on 600px height
+        self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=(0,2))
         self.body.grid_columnconfigure(0, weight=7)
         self.body.grid_columnconfigure(1, weight=3)
         self.body.grid_rowconfigure(0, weight=1)
