@@ -66,6 +66,10 @@ class LivePlotApp:
         self.setup_bottom_bar()
         self.update_plots()
 
+        # Ensure the application starts in fullscreen mode
+        self.root.attributes('-fullscreen', True)
+        self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
+
     def init_variables(self):
         self.dash_pv_now = StringVar(value="-- kW")
         self.dash_haus_now = StringVar(value="-- kW")

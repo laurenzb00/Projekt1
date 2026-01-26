@@ -107,11 +107,16 @@ class CalendarTab:
                     day_frame.grid(row=row, column=col, sticky="nsew", padx=5, pady=5)
                     ttk.Label(day_frame, text=str(current_date.day), font=("Arial", 10)).pack(anchor="nw")
 
+                    # Highlight the current day
+                    if current_date == now.date():
+                        day_frame.configure(bootstyle="primary")
+
                     # Add events for the day
                     for event in self.events_data:
                         event_date = event.get("start").date()
                         if event_date == current_date:
-                            ttk.Label(day_frame, text=event.get("summary"), font=("Arial", 8), wraplength=100).pack(anchor="w")
+                            # Adjust event display
+                            ttk.Label(day_frame, text=event.get("summary"), font=("Arial", 8), wraplength=80, anchor="w", bootstyle="info").pack(anchor="w")
 
                 current_date += datetime.timedelta(days=1)
             row += 1
