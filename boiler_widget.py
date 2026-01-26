@@ -7,6 +7,7 @@ Features:
 - Matplotlib imshow für detaillierte Wärmeverteilung
 - Animierte Wellen-Effekte
 - Touch-optimiert
+- Moderne Chip-Style Temperature Labels
 """
 
 import tkinter as tk
@@ -19,10 +20,15 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.cm as cm
 
-# --- FARBEN ---
-COLOR_DARK_BG = "#0b1220"
-COLOR_CARD_BG = "#0f172a"
-COLOR_ACCENT = "#1f2a44"
+# --- GLASMORPHISM FARBEN ---
+COLOR_DARK_BG = "#0a0e1a"
+COLOR_GLASS_BG = "#1a1f2e"
+COLOR_PRIMARY = "#3b82f6"
+COLOR_SUCCESS = "#10b981"
+COLOR_WARNING = "#f59e0b"
+COLOR_TEXT = "#e2e8f0"
+COLOR_SUBTEXT = "#64748b"
+COLOR_BORDER = "#2d3548"
 
 class ModernBoilerWidget:
     """Moderne Pufferspeicher-Visualisierung mit Heatmap"""
@@ -40,8 +46,8 @@ class ModernBoilerWidget:
         self.temp_mid_var = StringVar(value="0")
         self.temp_bot_var = StringVar(value="0")
         
-        # Container
-        self.frame = tk.Frame(parent, bg=COLOR_CARD_BG)
+        # Container mit Glasmorphism
+        self.frame = tk.Frame(parent, bg=COLOR_GLASS_BG)
         
         if style == "heatmap":
             self._create_matplotlib_heatmap()
@@ -58,12 +64,12 @@ class ModernBoilerWidget:
     
     # ========== MATPLOTLIB HEATMAP VERSION ==========
     def _create_matplotlib_heatmap(self):
-        """Erstellt detaillierte Heatmap mit Matplotlib imshow"""
+        """Erstellt detaillierte Heatmap mit Glasmorphism"""
         
         # Figure erstellen (klein und kompakt)
         self.fig, self.ax = plt.subplots(figsize=(2.2, 2.8), dpi=85)
-        self.fig.patch.set_facecolor(COLOR_CARD_BG)
-        self.ax.set_facecolor(COLOR_CARD_BG)
+        self.fig.patch.set_facecolor(COLOR_GLASS_BG)
+        self.ax.set_facecolor(COLOR_GLASS_BG)
         
         # Canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
@@ -73,76 +79,121 @@ class ModernBoilerWidget:
         self._update_heatmap(0, 0, 0)
     
     def _update_heatmap(self, temp_top, temp_mid, temp_bot, temp_kessel=None):
-        """Aktualisiert die Heatmap"""
+        """Aktualisiert die Heatmap mit modernen Chip-Style Labels"""
         self.ax.clear()
         
-        # Erstelle simulierte Temperaturverteilung (20 Schichten - Mittelweg)
-        layers = 20
+        # Erstelle simulierte Temperaturverteilung (24 Schichten - glatterer Gradient)
+        layers = 24
         temps = np.linspace(temp_bot, temp_top, layers)
         
-        # 2D Array für Heatmap (mittlere Breite)
-        heatmap_data = np.tile(temps[:, np.newaxis], (1, 4))
+        # 2D Array für Heatmap (etwas breiter für bessere Visualisierung)
+        heatmap_data = np.tile(temps[:, np.newaxis], (1, 5))
         
-        # Nicht-lineare Normalisierung für stärkere Unterschiede bei 50-70°C
+        # Verbesserte Normalisierung für besseren Kontrast
         from matplotlib.colors import TwoSlopeNorm
-        norm = TwoSlopeNorm(vmin=40, vcenter=60, vmax=80)
+        norm = TwoSlopeNorm(vmin=35, vcenter=57, vmax=75)
         
-        # Imshow mit Temperatur-Colormap und nicht-linearer Norm
+        # Imshow mit verbesserter Colormap
         self.ax.imshow(
             heatmap_data,
             aspect='auto',
             cmap='RdYlBu_r',  # Rot=heiß, Blau=kalt
             norm=norm,
-            interpolation='bilinear',
+            interpolation='gaussian',  # Weicher als bilinear
             origin='lower'
         )
         
-        # Annotations für Temperaturen (ohne Boxen)
+        # Moderne Chip-Style Temperature Labels (kompakt & elegant)
         mid_layer = layers // 2
         
-        # Temperaturen rechts neben Heatmap
-        self.ax.text(
-            4.3, layers - 1, f"{temp_top:.0f}°",
-            ha='left', va='center',
-            fontsize=10, fontweight='bold',
-            color='white'
-        )
-        
-        self.ax.text(
-            4.3, mid_layer, f"{temp_mid:.0f}°",
-            ha='left', va='center',
-            fontsize=10, fontweight='bold',
-            color='white'
-        )
-        
-        self.ax.text(
-            4.3, 0, f"{temp_bot:.0f}°",
-            ha='left', va='center',
-            fontsize=10, fontweight='bold',
-            color='white'
-        )
-        
-        # Kesseltemperatur wenn vorhanden (unten rechts)
-        if temp_kessel is not None:
+        # Funktion für Chip-Style Badge
+        def add_temp_chip(y_pos, temp, label):
+            """Fügt moderne Chip-Style Temperature Badge hinzu"""
+            # Hintergrund-Box (rounded)
+            from matplotlib.patches import FancyBboxPatch
+            
+            # Farbe basierend auf Temperatur
+            if temp >= 65:
+                chip_color = COLOR_SUCCESS
+                text_color = 'white'
+            elif temp >= 55:
+                chip_color = COLOR_WARNING
+                text_color = 'white'
+            else:
+                chip_color = COLOR_BORDER
+                text_color = COLOR_SUBTEXT
+            
+            # Chip Position rechts neben Heatmap
+            chip_x = 5.5
+            chip_width = 1.8
+            chip_height = 1.6
+            
+            box = FancyBboxPatch(
+                (chip_x, y_pos - chip_height/2),
+                chip_width,
+                chip_height,
+                boxstyle="round,pad=0.05",
+                facecolor=chip_color,
+                edgecolor='none',
+                alpha=0.9
+            )
+            self.ax.add_patch(box)
+            
+            # Temperatur-Text (fett, weiß)
             self.ax.text(
-                4.3, -2, f"Kessel: {temp_kessel:.0f}°",
-                ha='left', va='center',
-                fontsize=8, 
-                color='#a855f7'  # Lila für Kessel
+                chip_x + chip_width/2, y_pos,
+                f"{temp:.0f}°",
+                ha='center', va='center',
+                fontsize=9, fontweight='bold',
+                color=text_color
+            )
+            
+            # Label (klein, gedimmt) - links von der Heatmap
+            self.ax.text(
+                -0.5, y_pos,
+                label,
+                ha='right', va='center',
+                fontsize=8,
+                color=COLOR_SUBTEXT
             )
         
-        # Dezente Y-Labels
-        self.ax.set_yticks([0, mid_layer, layers-1])
-        self.ax.set_yticklabels(['Unten', 'Mitte', 'Oben'], fontsize=7, color='#6b7280')
+        # Temperature Chips hinzufügen
+        add_temp_chip(layers - 1.5, temp_top, "Oben")
+        add_temp_chip(mid_layer, temp_mid, "Mitte")
+        add_temp_chip(1.5, temp_bot, "Unten")
+        
+        # Kesseltemperatur (wenn vorhanden) - als Badge unten
+        if temp_kessel is not None:
+            from matplotlib.patches import FancyBboxPatch
+            box = FancyBboxPatch(
+                (1, -3.5), 3, 1.3,
+                boxstyle="round,pad=0.05",
+                facecolor=COLOR_PRIMARY,
+                edgecolor='none',
+                alpha=0.85
+            )
+            self.ax.add_patch(box)
+            self.ax.text(
+                2.5, -2.9,
+                f"🔥 Kessel {temp_kessel:.0f}°",
+                ha='center', va='center',
+                fontsize=8, fontweight='bold',
+                color='white'
+            )
+        
+        # Saubere Achsen (keine Labels)
         self.ax.set_xticks([])
+        self.ax.set_yticks([])
         
-        # Dezente Spines
-        for spine in ['top', 'right', 'bottom']:
-            self.ax.spines[spine].set_visible(False)
-        self.ax.spines['left'].set_color('#374151')
-        self.ax.spines['left'].set_linewidth(1)
+        # Alle Spines unsichtbar
+        for spine in self.ax.spines.values():
+            spine.set_visible(False)
         
-        self.fig.tight_layout(pad=0.3)
+        # Leichtes Padding
+        self.ax.set_xlim(-1.5, 7.5)
+        self.ax.set_ylim(-4, layers)
+        
+        self.fig.tight_layout(pad=0.1)
         self.canvas.draw()
     
     # ========== PIL GRADIENT VERSION ==========

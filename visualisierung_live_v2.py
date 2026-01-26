@@ -40,16 +40,32 @@ MAX_PLOT_POINTS = 10000
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 600
 
-# Moderne Farbpalette
-COLOR_DARK_BG = "#0b1220"
-COLOR_CARD_BG = "#0f172a"
-COLOR_ACCENT_LIGHT = "#1f2a44"
-COLOR_PV = "#38bdf8"
-COLOR_LOAD = "#f472b6"
-COLOR_BATTERY = "#34d399"
-COLOR_GRID = "#ef4444"
-COLOR_TEXT = "#e5e7eb"
-COLOR_SUBTEXT = "#8ba2c7"
+# Typografie
+FONT_FAMILY = "Segoe UI"
+FONT_SIZE_LARGE = 42
+FONT_SIZE_MEDIUM = 16
+FONT_SIZE_SMALL = 11
+FONT_SIZE_TINY = 9
+
+# Glasmorphism Design-System (dunkel & transparent)
+COLOR_DARK_BG = "#0a0e1a"      # Sehr dunkler Hintergrund (fast schwarz)
+COLOR_CARD_BG = "#1a1f2e"      # Transparente Cards (dunkel)
+COLOR_GLASS_BG = "#1a1f2e"     # Glass Cards mit Transparency
+COLOR_CARD_HOVER = "#242938"   # Hover State
+COLOR_PRIMARY = "#3b82f6"      # Primary Blau (Tabs, Buttons)
+COLOR_SUCCESS = "#10b981"      # Grün für positive Flows
+COLOR_WARNING = "#f59e0b"      # Orange für Verbrauch
+COLOR_DANGER = "#ef4444"       # Rot nur für Fehler
+COLOR_TEXT = "#e2e8f0"         # Off-White für Text
+COLOR_SUBTEXT = "#64748b"      # Gedimmtes Grau für Secondary
+COLOR_BORDER = "#2d3548"       # Glass Border (subtiler)
+
+# Backward Compatibility: Alte Farbnamen → Neue Farben (für Plot-Code)
+COLOR_PV = COLOR_SUCCESS       # PV = Grün (Produktion)
+COLOR_LOAD = COLOR_WARNING     # Load = Orange (Verbrauch)
+COLOR_BATTERY = COLOR_PRIMARY  # Battery = Primary Blue
+COLOR_GRID = COLOR_DANGER      # Grid = Rot (Netzbezug)
+COLOR_ACCENT_LIGHT = COLOR_BORDER  # Accent = Border
 
 # --- HILFSFUNKTIONEN ---
 def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
@@ -101,7 +117,32 @@ class LivePlotApp:
         self.main_container = ttk.Frame(self.root)
         self.main_container.pack(fill=BOTH, expand=YES)
 
-        self.notebook = ttk.Notebook(self.main_container, bootstyle="primary")
+        self.notebook = ttk.Notebook(self.main_container)
+        
+        # Custom Tab Styling (modernes flaches Design) - verwende tkinter.ttk.Style statt ttkbootstrap
+        from tkinter import ttk as tkinter_ttk
+        style = tkinter_ttk.Style()
+        
+        try:
+            style.theme_use('clam')  # Modernes Theme als Basis
+        except:
+            pass  # Falls Theme nicht verfügbar, nutze Standard
+        
+        # Tab-Hintergrund (sehr dunkel für Glasmorphism)
+        style.configure('TNotebook', background=COLOR_DARK_BG, borderwidth=0)
+        style.configure('TNotebook.Tab', 
+                       background=COLOR_GLASS_BG,
+                       foreground=COLOR_SUBTEXT,
+                       padding=[16, 12],
+                       borderwidth=0,
+                       font=('Segoe UI', 10))
+        
+        # Aktiver Tab (Primary Blue mit leichtem Glow)
+        style.map('TNotebook.Tab',
+                 background=[('selected', COLOR_PRIMARY), ('active', COLOR_GLASS_BG)],
+                 foreground=[('selected', '#ffffff'), ('active', COLOR_TEXT)],
+                 expand=[('selected', [1, 1, 1, 0])])
+        
         self.notebook.pack(fill=BOTH, expand=YES)
 
         # Dashboard Tab
@@ -181,128 +222,224 @@ class LivePlotApp:
         
         # ===== MAIN CONTAINER (Asymmetric Layout) =====
         main_container = tk.Frame(self.dashboard_frame, bg=COLOR_DARK_BG)
-        main_container.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=16)
         
         # LEFT: Large Energiefluss (70% width - dominant)
         left_frame = tk.Frame(main_container, bg=COLOR_DARK_BG)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2, pady=2)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 12))
         self._create_pv_main_card(parent=left_frame)
         
         # RIGHT: Vertical stack (fixed ~320px, lässt mehr Breite für Energiefluss)
         right_frame = tk.Frame(main_container, bg=COLOR_DARK_BG, width=320)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False, padx=2, pady=2)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False)
         
         # RIGHT TOP: Pufferspeicher (jetzt oben, da Light-Buttons im Header sind)
-        self.puffer_card = self._create_chart_card(
+        puffer_container = self._create_glass_card(
             parent=right_frame,
-            row=None, col=None,
-            title="Pufferspeicher"
+            title="Pufferspeicher",
+            icon="🔥"
         )
-        self.puffer_card.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
         # Modernes Boiler-Widget mit Heatmap
         self.boiler_widget = ModernBoilerWidget(
-            self.puffer_card, 
-            width=320, 
-            height=360,
+            puffer_container, 
+            width=300, 
+            height=340,
             style="heatmap"
         )
-        self.boiler_widget.pack(pady=5, expand=True)
+        self.boiler_widget.pack(padx=12, pady=8, fill=tk.BOTH, expand=True)
+        
+        # Initiale Testwerte für Pufferspeicher
+        self.boiler_widget.update_temperatures(65, 58, 48, 70)
 
         # Start Animationen
         self.update_puffer_animation()
         self.update_flow_clock_animation()
 
     def _create_pv_main_card(self, parent=None):
-        """Großes PV-Haupt-Feld mit neuer schöner Energiefluss-Animation"""
+        """Großes PV-Haupt-Feld mit Glasmorphism Energiefluss-Animation"""
         if parent is None:
             parent = self.dashboard_frame
             
-        outer_frame = tk.Frame(parent, bg="#0a0f1a")
-        outer_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
-        
-        # Haupt-Karte
-        card = tk.Frame(
-            outer_frame,
-            bg=COLOR_PV,
-            relief=tk.FLAT,
-            bd=0,
-            highlightbackground=COLOR_ACCENT_LIGHT,
-            highlightthickness=1
+        # Glass Card mit transparentem Effekt
+        card = self._create_glass_card(
+            parent=parent,
+            title="Energiefluss",
+            icon="⚡"
         )
-        card.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
-        
-        # Header
-        header = tk.Frame(card, bg=COLOR_PV)
-        header.pack(fill=tk.X, padx=8, pady=(8, 6))
-        
-        tk.Label(header, text="⚡", font=("Segoe UI", 18), bg=COLOR_PV, fg="white").pack(side=tk.LEFT)
-        tk.Label(
-            header, text="Energiefluss (Echtzeitübersicht)",
-            font=("Segoe UI", 12, "bold"), bg=COLOR_PV, fg="white"
-        ).pack(side=tk.LEFT, padx=6)
-
         # Content: Großer Energiefluss
-        content = tk.Frame(card, bg=COLOR_CARD_BG)
-        content.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        content = tk.Frame(card, bg=COLOR_GLASS_BG)
+        content.pack(fill=tk.BOTH, expand=True, padx=16, pady=12)
         
         # Großer Energiefluss mit neuen schönen Icons - maximaler Platz
-        self.energy_flow_widget = EnergyFlowWidgetV2(content, width=760, height=440, style="modern")
+        self.energy_flow_widget = EnergyFlowWidgetV2(content, width=700, height=400, style="glass")
+        self.energy_flow_widget.frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Initiale Darstellung mit Testwerten (wird später durch echte Daten ersetzt)
+        self.energy_flow_widget.update_flows(2500, 1800, -500, 200, 65)
+        
         self.pv_card = content  # Für spätere Highlight-Funktionen
         self.verbrauch_card = content
 
-        return outer_frame
+        return card
+    
+    def _create_glass_card(self, parent, title="", icon="", subtitle=""):
+        """Erstellt Glasmorphism Card mit transparentem Blur-Effekt"""
+        # Outer Container für Glow-Effekt (wird ins Parent gepackt)
+        container = tk.Frame(parent, bg=COLOR_DARK_BG)
+        container.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        
+        # Glass Card mit Border (simuliert Glasrand)
+        glass_border = tk.Frame(
+            container,
+            bg=COLOR_BORDER,
+            highlightthickness=0
+        )
+        glass_border.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        
+        # Haupt Glass Card (transparenter Effekt durch dunkle Farbe)
+        card = tk.Frame(
+            glass_border,
+            bg=COLOR_GLASS_BG,
+            highlightthickness=0
+        )
+        card.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        
+        # Header mit Titel
+        if title or icon:
+            header = tk.Frame(card, bg=COLOR_GLASS_BG)
+            header.pack(fill=tk.X, padx=16, pady=(16, 8))
+            
+            if icon:
+                tk.Label(
+                    header, 
+                    text=icon, 
+                    font=("Segoe UI", 16), 
+                    bg=COLOR_GLASS_BG, 
+                    fg=COLOR_TEXT
+                ).pack(side=tk.LEFT, padx=(0, 10))
+            
+            title_frame = tk.Frame(header, bg=COLOR_GLASS_BG)
+            title_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            tk.Label(
+                title_frame, 
+                text=title,
+                font=("Segoe UI", 13, "bold"), 
+                bg=COLOR_GLASS_BG, 
+                fg=COLOR_TEXT
+            ).pack(anchor="w")
+            
+            if subtitle:
+                tk.Label(
+                    title_frame,
+                    text=subtitle,
+                    font=("Segoe UI", 9),
+                    bg=COLOR_GLASS_BG,
+                    fg=COLOR_SUBTEXT
+                ).pack(anchor="w")
+        
+        return card
+    
+    def _create_modern_card(self, parent, title="", icon="", subtitle=""):
+        """Legacy wrapper - nutzt jetzt Glass Cards"""
+        return self._create_glass_card(parent, title, icon, subtitle)
     
     def _create_header_info_widget(self):
-        """Erstellt Top-Zeile mit Datum, Uhrzeit und Außentemperatur"""
-        header = tk.Frame(self.dashboard_frame, bg=COLOR_CARD_BG, height=80)
-        header.pack(fill=tk.X, padx=4, pady=4)
-        header.pack_propagate(False)
+        """Erstellt Top-Zeile mit Glasmorphism Header"""
+        # Glass Card für Header
+        header_card = tk.Frame(self.dashboard_frame, bg=COLOR_GLASS_BG, height=80)
+        header_card.pack(fill=tk.X, padx=20, pady=(16, 12))
+        header_card.pack_propagate(False)
         
-        # Linke Seite: Datum
-        left_frame = tk.Frame(header, bg=COLOR_CARD_BG)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=15)
+        # Border für Glass-Effekt
+        border_frame = tk.Frame(header_card, bg=COLOR_BORDER)
+        border_frame.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
         
-        tk.Label(left_frame, text="Datum", font=("Segoe UI", 10), 
-                fg=COLOR_SUBTEXT, bg=COLOR_CARD_BG).pack(anchor="w")
-        self.date_header_label = tk.Label(left_frame, text="", font=("Segoe UI", 16, "bold"),
-                                         fg="white", bg=COLOR_CARD_BG)
-        self.date_header_label.pack(anchor="w")
+        header_content = tk.Frame(border_frame, bg=COLOR_GLASS_BG)
+        header_content.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
         
-        # Mitte: Uhrzeit (groß)
-        middle_frame = tk.Frame(header, bg=COLOR_CARD_BG)
+        inner_content = tk.Frame(header_content, bg=COLOR_GLASS_BG)
+        inner_content.pack(fill=tk.BOTH, expand=True, padx=20, pady=12)
+        
+        # Linke Seite: Datum (kleiner, gedimmter)
+        left_frame = tk.Frame(inner_content, bg=COLOR_GLASS_BG)
+        left_frame.pack(side=tk.LEFT, fill=tk.Y)
+        
+        tk.Label(
+            left_frame, 
+            text="DATUM", 
+            font=("Segoe UI", 8, "bold"), 
+            fg=COLOR_SUBTEXT, 
+            bg=COLOR_GLASS_BG
+        ).pack(anchor="w")
+        self.date_header_label = tk.Label(
+            left_frame, 
+            text="", 
+            font=("Segoe UI", 14),
+            fg=COLOR_TEXT, 
+            bg=COLOR_GLASS_BG
+        )
+        self.date_header_label.pack(anchor="w", pady=(2, 0))
+        
+        # Mitte: Uhrzeit (dominant, Primary Farbe)
+        middle_frame = tk.Frame(inner_content, bg=COLOR_GLASS_BG)
         middle_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        self.clock_header_label = tk.Label(middle_frame, text="--:--", font=("Segoe UI", 40, "bold"),
-                                          fg="#38bdf8", bg=COLOR_CARD_BG)
+        self.clock_header_label = tk.Label(
+            middle_frame, 
+            text="--:--", 
+            font=("Segoe UI", 38, "bold"),
+            fg=COLOR_PRIMARY, 
+            bg=COLOR_GLASS_BG
+        )
         self.clock_header_label.pack()
         
-        # Rechte Seite: Außentemperatur + Light Buttons
-        right_frame = tk.Frame(header, bg=COLOR_CARD_BG)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=15)
+        # Rechte Seite: Außentemperatur + Light Toggle Buttons
+        right_frame = tk.Frame(inner_content, bg=COLOR_GLASS_BG)
+        right_frame.pack(side=tk.RIGHT, fill=tk.Y)
         
         # Oben: Außentemperatur
-        tk.Label(right_frame, text="Außen", font=("Segoe UI", 10),
-                fg=COLOR_SUBTEXT, bg=COLOR_CARD_BG).pack(anchor="e")
-        self.aussen_header_label = tk.Label(right_frame, text="-- °C", font=("Segoe UI", 16, "bold"),
-                                           fg="#f59e0b", bg=COLOR_CARD_BG)
+        temp_frame = tk.Frame(right_frame, bg=COLOR_GLASS_BG)
+        temp_frame.pack(anchor="e", pady=(0, 8))
+        
+        tk.Label(
+            temp_frame, 
+            text="AUẞEN", 
+            font=("Segoe UI", 8, "bold"),
+            fg=COLOR_SUBTEXT, 
+            bg=COLOR_GLASS_BG
+        ).pack(anchor="e")
+        self.aussen_header_label = tk.Label(
+            temp_frame, 
+            text="-- °C", 
+            font=("Segoe UI", 16, "bold"),
+            fg=COLOR_WARNING, 
+            bg=COLOR_GLASS_BG
+        )
         self.aussen_header_label.pack(anchor="e")
         
-        # Unten: Light Buttons (kompakt)
-        light_buttons_frame = tk.Frame(right_frame, bg=COLOR_CARD_BG)
+        # Unten: Light Toggle Buttons (Glasmorphism Style)
+        light_buttons_frame = tk.Frame(right_frame, bg=COLOR_GLASS_BG)
         light_buttons_frame.pack(anchor="e", pady=(10, 0))
         
+        # Glass Button Style
         self.light_on_btn = tk.Button(
             light_buttons_frame,
             text="💡 AN",
             font=("Segoe UI", 9, "bold"),
-            bg="#10b981",
+            bg=COLOR_SUCCESS,
             fg="white",
-            padx=8,
-            pady=4,
+            padx=10,
+            pady=5,
             command=self.turn_lights_on,
             relief=tk.FLAT,
-            cursor="hand2"
+            cursor="hand2",
+            activebackground="#0d9668",
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=COLOR_BORDER,
+            highlightcolor=COLOR_BORDER
         )
         self.light_on_btn.pack(side=tk.LEFT, padx=3)
         
@@ -310,13 +447,18 @@ class LivePlotApp:
             light_buttons_frame,
             text="🌙 AUS",
             font=("Segoe UI", 9, "bold"),
-            bg="#6b7280",
-            fg="white",
-            padx=8,
-            pady=4,
+            bg=COLOR_BORDER,
+            fg=COLOR_TEXT,
+            padx=10,
+            pady=5,
             command=self.turn_lights_off,
             relief=tk.FLAT,
-            cursor="hand2"
+            cursor="hand2",
+            activebackground="#1f2937",
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=COLOR_BORDER,
+            highlightcolor=COLOR_BORDER
         )
         self.light_off_btn.pack(side=tk.LEFT, padx=3)
         

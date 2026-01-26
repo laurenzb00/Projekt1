@@ -1,7 +1,7 @@
 """
-ENERGIEFLUSS WIDGET V2 - OpenHAB Style
-======================================
-Visualisiert Energiefluss mit echten PNG-Icons und abgerundeten Kästen
+ENERGIEFLUSS WIDGET V2 - Glasmorphism Design
+=============================================
+Visualisiert Energiefluss mit modernem Glasmorphism-Effekt
 """
 
 import tkinter as tk
@@ -10,8 +10,18 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 
+# Glasmorphism Farbpalette (dunkel & transparent)
+COLOR_GLASS_BG = "#1a1f2e"     # Transparente Glass Cards
+COLOR_DARK_BG = "#0a0e1a"      # Sehr dunkler Hintergrund
+COLOR_SUCCESS = "#10b981"      # Grün für Produktion/OK
+COLOR_WARNING = "#f59e0b"      # Orange für Verbrauch
+COLOR_DANGER = "#ef4444"       # Rot für Bezug
+COLOR_TEXT = "#e2e8f0"         # Hellerer Text
+COLOR_SUBTEXT = "#64748b"      # Gedimmter Text
+COLOR_BORDER = "#2d3548"       # Glass Border
+
 class EnergyFlowWidgetV2:
-    """OpenHAB-Style Energiefluss-Visualisierung"""
+    """Moderne Card-basierte Energiefluss-Visualisierung"""
     
     def __init__(self, parent, width=700, height=280, style="modern"):
         self.parent = parent
@@ -19,12 +29,12 @@ class EnergyFlowWidgetV2:
         self.height = height
         self.style = style
         
-        # Standardwerte
-        self.pv_power = 0
-        self.load_power = 0
-        self.battery_power = 0
-        self.grid_power = 0
-        self.battery_soc = 50
+        # Standardwerte (mit sichtbaren Testwerten für initiale Darstellung)
+        self.pv_power = 2500  # 2.5 kW
+        self.load_power = 1800  # 1.8 kW
+        self.battery_power = -500  # -500W (Laden)
+        self.grid_power = 200  # 200W Bezug
+        self.battery_soc = 65  # 65%
         
         # kWh Werte (Tagesertrag)
         self.pv_kwh = 0
@@ -33,19 +43,27 @@ class EnergyFlowWidgetV2:
         self.load_kwh = 0
         
         # Frame
-        self.frame = tk.Frame(parent, width=width, height=height, bg="#0f172a")
+        self.frame = tk.Frame(parent, width=width, height=height, bg=COLOR_DARK_BG)
         self.frame.pack_propagate(False)
-        self.frame.pack(fill=tk.BOTH, expand=True)
         
         # Canvas
         self.canvas = Canvas(self.frame, width=width, height=height,
-                            bg="#0f172a", highlightthickness=0)
+                            bg=COLOR_DARK_BG, highlightthickness=0)
         self.canvas.pack()
         
         # Icons laden
         self._load_icons()
         
         self.photo_image = None
+        self._draw()
+    
+    def update(self, pv=0, load=0, battery=0, grid=0, battery_soc=50):
+        """Update widget mit neuen Werten"""
+        self.pv_power = pv
+        self.load_power = load
+        self.battery_power = battery
+        self.grid_power = grid
+        self.battery_soc = battery_soc
         self._draw()
     
     def _load_icons(self):
@@ -103,99 +121,103 @@ class EnergyFlowWidgetV2:
         return img.resize(size)
     
     def _draw(self):
-        """Zeichnet OpenHAB-Style Energiefluss"""
-        # PIL Image erstellen mit RGBA für Transparenzunterstützung
-        img = Image.new('RGBA', (self.width, self.height), color=(15, 23, 42, 255))
+        """Zeichnet Glasmorphism Energiefluss-Visualisierung"""
+        # PIL Image erstellen mit dunklem Hintergrund
+        img = Image.new('RGBA', (self.width, self.height), color=(10, 14, 26, 255))
         draw = ImageDraw.Draw(img)
         
-        # Layout-Positionen (schön gewinkelt, Höhe priorisiert)
-        # PV links-oben, Grid rechts-oben, Haus mittig, Batterie unten mittig
+        # Layout-Positionen (kompakt, verteilt)
+        # Glasmorphism Cards statt harte Boxen
 
-        # ===== KÄSTEN MIT ICONS (größer, diagonal verteilt) =====
+        # ===== GLASMORPHISM CARDS MIT ICONS =====
 
-        # 1. PV (Gelb) links-oben — breiter
-        self._draw_box(draw, 110, 40, 300, 120, "#fbbf24", "#fbbf24")
+        # 1. PV (Glass Card) links-oben
+        self._draw_glass_card(draw, 120, 40, 260, 100, "Solar")
         if 'pv' in self.icons:
-            img.paste(self.icons['pv'], (150, 50), mask=self.icons['pv'])
+            img.paste(self.icons['pv'], (160, 45), mask=self.icons['pv'])
         else:
-            self._draw_sun(draw, 195, 75)
-        draw.text((205, 135), f"▼ {int(self.pv_power)}W", fill="#fbbf24", anchor="mm")
+            self._draw_sun(draw, 190, 65)
+        draw.text((190, 115), f"{int(self.pv_power)}W", fill=COLOR_TEXT, anchor="mm", font=None)
 
-        # 2. GRID (Rot/Blau) rechts-oben — breiter
-        grid_color = "#ef4444" if self.grid_power > 0 else "#38bdf8"
-        self._draw_box(draw, 460, 90, 650, 170, grid_color, grid_color)
+        # 2. GRID (Glass Card) rechts-oben
+        self._draw_glass_card(draw, 440, 40, 580, 100, "Netz")
         if 'grid' in self.icons:
-            img.paste(self.icons['grid'], (505, 100), mask=self.icons['grid'])
+            img.paste(self.icons['grid'], (480, 45), mask=self.icons['grid'])
         else:
-            self._draw_lightning(draw, 555, 125, grid_color)
-        draw.text((555, 185), f"▼ {int(abs(self.grid_power))}W", fill=grid_color, anchor="mm")
+            self._draw_lightning(draw, 510, 65, COLOR_TEXT)
+        draw.text((510, 115), f"{int(abs(self.grid_power))}W", fill=COLOR_TEXT, anchor="mm")
 
-        # 3. HAUS (Mitte) — größer
-        self._draw_box(draw, 300, 210, 520, 300, "#f472b6", "#f472b6")
+        # 3. HAUS (Glass Card, Mitte)
+        self._draw_glass_card(draw, 280, 170, 420, 240, "Verbrauch")
         if 'house' in self.icons:
-            img.paste(self.icons['house'], (340, 205), mask=self.icons['house'])
+            img.paste(self.icons['house'], (310, 175), mask=self.icons['house'])
         else:
-            self._draw_house(draw, 410, 250)
-        draw.text((410, 320), f"{int(self.load_power)}W", fill="#ffffff", anchor="mm", font=None)
-        draw.text((410, 338), "Verbrauch", fill="#8ba2c7", anchor="mm")
+            self._draw_house(draw, 350, 200)
+        draw.text((350, 255), f"{int(self.load_power)}W", fill=COLOR_TEXT, anchor="mm", font=None)
 
-        # 4. BATTERIE (Orange) unten mittig — breiter
-        batt_color = "#f59e0b"
-        self._draw_box(draw, 280, 330, 540, 410, batt_color, batt_color)
+        # 4. BATTERIE (Glass Card) unten mittig
+        self._draw_glass_card(draw, 280, 290, 420, 350, f"Batterie {int(self.battery_soc)}%")
         if 'battery' in self.icons:
-            img.paste(self.icons['battery'], (360, 340), mask=self.icons['battery'])
+            img.paste(self.icons['battery'], (310, 295), mask=self.icons['battery'])
         else:
-            self._draw_battery(draw, 410, 360, self.battery_soc)
-        draw.text((410, 425), f"{int(self.battery_soc)}%", fill="#ffffff", anchor="mm")
-        draw.text((410, 325), f"↓ {int(abs(self.battery_power))}W", fill=batt_color, anchor="mm")
+            self._draw_battery(draw, 350, 315, self.battery_soc)
+        draw.text((350, 365), f"{int(abs(self.battery_power))}W", fill=COLOR_TEXT, anchor="mm")
         
-        # ===== PFEILE MIT LEISTUNGSWERTEN (gewinkelt über die Höhe) =====
+        # ===== GLOWING SMART ARROWS =====
 
-        # PV → Haus (schräg nach rechts unten)
+        # PV → Haus (GRÜN für Produktion)
         if self.pv_power > 10:
-            self._draw_connection(draw, 260, 120, 380, 215, "#fbbf24", int(self.pv_power / 500) + 1)
+            self._draw_glow_arrow(draw, 230, 100, 310, 175, COLOR_SUCCESS, 3)
 
-        # Grid → Haus oder Haus → Grid (schräg nach links unten/oben)
-        if self.grid_power > 10:
-            self._draw_connection(draw, 555, 170, 440, 245, "#ef4444", int(self.grid_power / 500) + 1)
-        elif self.grid_power < -10:
-            self._draw_connection(draw, 440, 245, 555, 170, "#38bdf8", int(abs(self.grid_power) / 500) + 1)
+        # Grid → Haus (ORANGE) oder Haus → Grid (GRÜN)
+        if self.grid_power > 10:  # Netzbezug
+            self._draw_glow_arrow(draw, 470, 100, 390, 175, COLOR_WARNING, 3)
+        elif self.grid_power < -10:  # Einspeisung
+            self._draw_glow_arrow(draw, 390, 175, 470, 100, COLOR_SUCCESS, 3)
 
-        # Batterie → Haus oder Haus → Batterie (leicht schräg nach oben)
-        if self.battery_power > 10:  # Entladen
-            self._draw_connection(draw, 410, 330, 410, 305, "#34d399", int(self.battery_power / 500) + 1)
+        # Batterie ↔ Haus
+        if self.battery_power > 10:  # Entladen (gut)
+            self._draw_glow_arrow(draw, 350, 290, 350, 240, COLOR_SUCCESS, 3)
         elif self.battery_power < -10:  # Laden
-            self._draw_connection(draw, 410, 305, 410, 330, "#34d399", int(abs(self.battery_power) / 500) + 1)
+            self._draw_glow_arrow(draw, 350, 240, 350, 290, COLOR_WARNING, 3)
         
-        # Speichern als PhotoImage (RGBA → RGB für Tkinter)
+        # Speichern als PhotoImage
         img_rgb = img.convert('RGB')
         self.photo_image = tk.PhotoImage(data=self._pil_to_ppm(img_rgb))
         self.canvas.delete("all")
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo_image)
     
-    def _draw_box(self, draw, x1, y1, x2, y2, border_color, fill_color=None):
-        """Zeichnet abgerundeten Kasten"""
-        radius = 15
+    def _draw_glass_card(self, draw, x1, y1, x2, y2, label=""):
+        """Zeichnet Glasmorphism Card mit transparentem Effekt"""
+        radius = 16
         
-        # Hintergrund (schwarz mit Transparenz)
-        if fill_color is None:
-            fill_color = "#1f2937"
-        else:
-            fill_color = "#1f2937"  # Dunkler Hintergrund
+        # Glass Hintergrund (dunkel transparent)
+        draw.rounded_rectangle(
+            [x1, y1, x2, y2], 
+            radius=radius, 
+            fill=COLOR_GLASS_BG, 
+            outline=COLOR_BORDER, 
+            width=2
+        )
         
-        # Abgerundetes Rechteck
-        draw.rounded_rectangle([x1, y1, x2, y2], radius=radius, fill=fill_color, outline=border_color, width=3)
+        # Label oben links (klein, gedimmt)
+        if label:
+            try:
+                label_font = ImageFont.truetype("segoeui.ttf", 9)
+            except:
+                label_font = None
+            draw.text((x1 + 10, y1 + 8), label, fill=COLOR_SUBTEXT, anchor="lm", font=label_font)
     
-    def _draw_connection(self, draw, x1, y1, x2, y2, color, width=2):
-        """Zeichnet Verbindungslinie mit Pfeil"""
+    def _draw_glow_arrow(self, draw, x1, y1, x2, y2, color, width=3):
+        """Zeichnet glühende Arrows mit Glow-Effekt"""
         import math
         
-        # Linie
-        draw.line([(x1, y1), (x2, y2)], fill=color, width=int(width))
+        # Zeichne Linie mit fester Breite (sauberer)
+        draw.line([(x1, y1), (x2, y2)], fill=color, width=width)
         
         # Pfeilspitze
         angle = math.atan2(y2 - y1, x2 - x1)
-        arrow_size = 12
+        arrow_size = 15
         
         p1_x = x2 - arrow_size * math.cos(angle - math.pi / 6)
         p1_y = y2 - arrow_size * math.sin(angle - math.pi / 6)
