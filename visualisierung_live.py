@@ -87,138 +87,43 @@ class LivePlotApp:
 
     # --- UI SETUP ---
     def setup_dashboard_tab(self):
-        self.dash_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.dash_frame, text=" Dashboard ")
-        
-        self.dash_frame.columnconfigure((0,1,2), weight=1)
-        self.dash_frame.rowconfigure(0, weight=0) 
-        self.dash_frame.rowconfigure(1, weight=0) 
-        self.dash_frame.rowconfigure(2, weight=1) 
-        self.dash_frame.rowconfigure(3, weight=0) 
+            # Neues Layout für das Dashboard
+            self.dashboard_frame = ttk.Frame(self.root, padding=10)
+            self.dashboard_frame.pack(fill=tk.BOTH, expand=True)
 
-        # --- Icons laden ---
-        def load_icon(filename):
-            try:
-                return tk.PhotoImage(file=os.path.join(WORKING_DIRECTORY, filename))
-            except Exception as e:
-                print(f"Warnung: Icon {filename} konnte nicht geladen werden ({e})")
-                return None
+            # PV-Leistung und Verbrauch
+            self.pv_frame = ttk.Frame(self.dashboard_frame, padding=10, bootstyle="info")
+            self.pv_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+            ttk.Label(self.pv_frame, text="PV Erzeugung", font=("Arial", 14)).pack()
+            ttk.Label(self.pv_frame, text="1.70 kW", font=("Arial", 24)).pack()
 
-        self.icon_sun = load_icon("icons/sun.png")
-        self.icon_home = load_icon("icons/home.png")
-        self.icon_battery = load_icon("icons/battery.png")
-        self.icon_puffer = load_icon("icons/puffer.png")
+            self.verbrauch_frame = ttk.Frame(self.dashboard_frame, padding=10, bootstyle="info")
+            self.verbrauch_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+            ttk.Label(self.verbrauch_frame, text="Verbrauch", font=("Arial", 14)).pack()
+            ttk.Label(self.verbrauch_frame, text="6.40 kW", font=("Arial", 24)).pack()
 
-        # --- ZEILE 0: Hauptwerte ---
-        f1 = ttk.Labelframe(self.dash_frame, text="PV Erzeugung", padding=10, bootstyle="warning")
-        f1.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        ttk.Label(f1, textvariable=self.dash_pv_now, font=("Arial", 28, "bold"), bootstyle="warning").pack(anchor="center")
-        ttk.Label(f1, text="Aktuelle Leistung", font=("Arial", 9)).pack(anchor="center")
-        if self.icon_sun:
-            ttk.Label(f1, image=self.icon_sun).pack(anchor="center", pady=5)
+            # Speicher
+            self.speicher_frame = ttk.Frame(self.dashboard_frame, padding=10, bootstyle="success")
+            self.speicher_frame.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
+            ttk.Label(self.speicher_frame, text="Speicher", font=("Arial", 14)).pack()
+            ttk.Label(self.speicher_frame, text="8 % SoC", font=("Arial", 24)).pack()
 
-        f2 = ttk.Labelframe(self.dash_frame, text="Verbrauch", padding=10, bootstyle="info")
-        f2.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        ttk.Label(f2, textvariable=self.dash_haus_now, font=("Arial", 28, "bold"), bootstyle="info").pack(anchor="center")
-        ttk.Label(f2, text="Hauslast", font=("Arial", 9)).pack(anchor="center")
-        if self.icon_home:
-            ttk.Label(f2, image=self.icon_home).pack(anchor="center", pady=5)
+            # Pufferspeicher
+            self.puffer_frame = ttk.Frame(self.dashboard_frame, padding=10, bootstyle="danger")
+            self.puffer_frame.grid(row=1, column=0, columnspan=3, sticky="nsew", padx=5, pady=5)
+            ttk.Label(self.puffer_frame, text="Pufferspeicher", font=("Arial", 14)).pack()
 
-        f3 = ttk.Labelframe(self.dash_frame, text="Speicher", padding=5, bootstyle="success")
-        f3.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5, pady=5)
-        self.meter_batt = ttk.Meter(
-            f3, metersize=160, amountused=0, metertype="semi", 
-            subtext="SoC", bootstyle="success", interactive=False, textright="%"
-        )
-        self.meter_batt.pack(expand=YES, pady=5)
-        if self.icon_battery:
-            ttk.Label(f3, image=self.icon_battery).pack(anchor="center", pady=5)
+            self.canvas_puffer = tk.Canvas(self.puffer_frame, width=200, height=180, bg="black")
+            self.canvas_puffer.pack(anchor="center", pady=10)
 
-        # --- ZEILE 2: Pufferspeicher ---
-        f_puffer = ttk.Labelframe(self.dash_frame, text="Pufferspeicher", padding=10, bootstyle="danger")
-        f_puffer.grid(row=2, column=0, columnspan=3, sticky="nsew", padx=5, pady=10)
+            update_puffer_animation()
 
-        ttk.Label(f_puffer, text="Temperaturen", font=("Arial", 14, "bold"), bootstyle="danger").pack(anchor="center", pady=5)
-
-        temp_frame = ttk.Frame(f_puffer)
-        temp_frame.pack(fill=BOTH, expand=YES)
-
-        ttk.Label(temp_frame, text="Oben:", font=("Arial", 12)).pack(side=LEFT, padx=10)
-        ttk.Label(temp_frame, textvariable=self.dash_temp_top_str, font=("Arial", 18, "bold"), bootstyle="danger").pack(side=LEFT, padx=10)
-
-        ttk.Label(temp_frame, text="Mitte:", font=("Arial", 12)).pack(side=LEFT, padx=10)
-        ttk.Label(temp_frame, textvariable=self.dash_temp_mid_str, font=("Arial", 18, "bold"), bootstyle="warning").pack(side=LEFT, padx=10)
-
-        ttk.Label(temp_frame, text="Unten:", font=("Arial", 12)).pack(side=LEFT, padx=10)
-        ttk.Label(temp_frame, textvariable=self.dash_temp_bot_str, font=("Arial", 18, "bold"), bootstyle="primary").pack(side=LEFT, padx=10)
-
-        if self.icon_puffer:
-            ttk.Label(f_puffer, image=self.icon_puffer).pack(anchor="center", pady=10)
-
-        # --- Pufferspeicher Animation ---
-        def get_color(temp):
-            if temp < 50:
-                return "#0000FF"  # Blau
-            elif temp > 60:
-                return "#FF0000"  # Rot
-            else:
-                mix_ratio = (temp - 50) / 10
-                r = int(255 * mix_ratio)
-                b = int(255 * (1 - mix_ratio))
-                return f"#{r:02X}00{b:02X}"
-
-        def update_puffer_animation():
-            try:
-                top_temp = float(self.dash_temp_top_str.get().replace("°C", "") or 0)
-                mid_temp = float(self.dash_temp_mid_str.get().replace("°C", "") or 0)
-                bot_temp = float(self.dash_temp_bot_str.get().replace("°C", "") or 0)
-            except ValueError:
-                top_temp, mid_temp, bot_temp = 0, 0, 0  # Standardwerte bei Fehler
-
-            self.canvas_puffer.delete("all")
-
-            # Batterie mit Farbverlauf
-            self.canvas_puffer.create_rectangle(
-                50, 10, 100, 160, fill="black", outline="white", width=2
-            )
-            self.canvas_puffer.create_rectangle(
-                50, 10, 100, 60, fill=get_color(top_temp), outline="white"
-            )
-            self.canvas_puffer.create_rectangle(
-                50, 60, 100, 110, fill=get_color(mid_temp), outline="white"
-            )
-            self.canvas_puffer.create_rectangle(
-                50, 110, 100, 160, fill=get_color(bot_temp), outline="white"
-            )
-
-            # Temperaturen neben den Abschnitten
-            self.canvas_puffer.create_text(
-                110, 35, text=f"{top_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
-            )
-            self.canvas_puffer.create_text(
-                110, 85, text=f"{mid_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
-            )
-            self.canvas_puffer.create_text(
-                110, 135, text=f"{bot_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
-            )
-
-            self.root.after(1000, update_puffer_animation)  # Aktualisierung alle 1 Sekunde
-
-        self.canvas_puffer = tk.Canvas(f_puffer, width=200, height=180, bg="black")
-        self.canvas_puffer.pack(anchor="center", pady=10)
-
-        update_puffer_animation()
-
-        # Initialisierung der gauge_puffer
-        self.gauge_puffer = ttk.Meter(
-            master=self.root,
-            bootstyle="success",
-            subtext="Pufferspeicher Oben",
-            interactive=False,
-            amounttotal=100,
-            amountused=0,
-        )
-        self.gauge_puffer.pack(pady=10)
+            # Dynamische Größenanpassung
+            self.root.grid_rowconfigure(0, weight=1)
+            self.root.grid_rowconfigure(1, weight=1)
+            self.root.grid_columnconfigure(0, weight=1)
+            self.root.grid_columnconfigure(1, weight=1)
+            self.root.grid_columnconfigure(2, weight=1)
 
     def setup_plot_tabs(self):
         # Alle Tabs aktiv
