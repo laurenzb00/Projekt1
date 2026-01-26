@@ -188,22 +188,11 @@ class LivePlotApp:
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2, pady=2)
         self._create_pv_main_card(parent=left_frame)
         
-        # RIGHT: Vertical stack (30% width - compact)
-        right_frame = tk.Frame(main_container, bg=COLOR_DARK_BG)
+        # RIGHT: Vertical stack (fixed ~320px, lässt mehr Breite für Energiefluss)
+        right_frame = tk.Frame(main_container, bg=COLOR_DARK_BG, width=320)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False, padx=2, pady=2)
-        right_frame.configure(width=320)  # Fixed width for right panel
         
-        # RIGHT TOP: Light Buttons only (no battery here anymore)
-        light_card = self._create_chart_card(
-            parent=right_frame,
-            row=None, col=None,
-            title="Beleuchtung"
-        )
-        light_card.pack(fill=tk.BOTH, expand=False, padx=2, pady=2)
-        self.light_card = light_card
-        self._create_light_control_widget()
-        
-        # RIGHT BOTTOM: Pufferspeicher (Full width in right panel)
+        # RIGHT TOP: Pufferspeicher (jetzt oben, da Light-Buttons im Header sind)
         self.puffer_card = self._create_chart_card(
             parent=right_frame,
             row=None, col=None,
@@ -214,8 +203,8 @@ class LivePlotApp:
         # Modernes Boiler-Widget mit Heatmap
         self.boiler_widget = ModernBoilerWidget(
             self.puffer_card, 
-            width=240, 
-            height=240,
+            width=320, 
+            height=360,
             style="heatmap"
         )
         self.boiler_widget.pack(pady=5, expand=True)
@@ -257,8 +246,8 @@ class LivePlotApp:
         content = tk.Frame(card, bg=COLOR_CARD_BG)
         content.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         
-        # Großer Energiefluss mit neuen schönen Icons
-        self.energy_flow_widget = EnergyFlowWidgetV2(content, width=650, height=240, style="modern")
+        # Großer Energiefluss mit neuen schönen Icons - maximaler Platz
+        self.energy_flow_widget = EnergyFlowWidgetV2(content, width=760, height=440, style="modern")
         self.pv_card = content  # Für spätere Highlight-Funktionen
         self.verbrauch_card = content
 
@@ -288,15 +277,51 @@ class LivePlotApp:
                                           fg="#38bdf8", bg=COLOR_CARD_BG)
         self.clock_header_label.pack()
         
-        # Rechte Seite: Außentemperatur
+        # Rechte Seite: Außentemperatur + Light Buttons
         right_frame = tk.Frame(header, bg=COLOR_CARD_BG)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=15)
         
+        # Oben: Außentemperatur
         tk.Label(right_frame, text="Außen", font=("Segoe UI", 10),
                 fg=COLOR_SUBTEXT, bg=COLOR_CARD_BG).pack(anchor="e")
         self.aussen_header_label = tk.Label(right_frame, text="-- °C", font=("Segoe UI", 16, "bold"),
                                            fg="#f59e0b", bg=COLOR_CARD_BG)
         self.aussen_header_label.pack(anchor="e")
+        
+        # Unten: Light Buttons (kompakt)
+        light_buttons_frame = tk.Frame(right_frame, bg=COLOR_CARD_BG)
+        light_buttons_frame.pack(anchor="e", pady=(10, 0))
+        
+        self.light_on_btn = tk.Button(
+            light_buttons_frame,
+            text="💡 AN",
+            font=("Segoe UI", 9, "bold"),
+            bg="#10b981",
+            fg="white",
+            padx=8,
+            pady=4,
+            command=self.turn_lights_on,
+            relief=tk.FLAT,
+            cursor="hand2"
+        )
+        self.light_on_btn.pack(side=tk.LEFT, padx=3)
+        
+        self.light_off_btn = tk.Button(
+            light_buttons_frame,
+            text="🌙 AUS",
+            font=("Segoe UI", 9, "bold"),
+            bg="#6b7280",
+            fg="white",
+            padx=8,
+            pady=4,
+            command=self.turn_lights_off,
+            relief=tk.FLAT,
+            cursor="hand2"
+        )
+        self.light_off_btn.pack(side=tk.LEFT, padx=3)
+        
+        # Speichere Referenz für Updates (optional)
+        self.light_status_label = None
     
     def _create_battery_status_widget(self):
         """Erstellt Batterie-Status Widget mit großem Symbol"""
@@ -310,68 +335,27 @@ class LivePlotApp:
         self.battery_main_widget = BatteryGaugeWidget(battery_frame, width=150, height=200, style="pil")
         self.battery_main_widget.pack()
     
-    def _create_light_control_widget(self):
-        """Erstellt Licht-Kontroll Widget mit An/Aus Buttons"""
-        content = tk.Frame(self.light_card, bg=COLOR_CARD_BG)
-        content.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
-        
-        # Buttons nebeneinander
-        buttons_frame = tk.Frame(content, bg=COLOR_CARD_BG)
-        buttons_frame.pack(expand=True, pady=10)
-        
-        # Licht AN Button
-        self.light_on_btn = tk.Button(
-            buttons_frame,
-            text="💡 AN",
-            font=("Segoe UI", 16, "bold"),
-            bg="#10b981",
-            fg="white",
-            padx=20,
-            pady=15,
-            command=self.turn_lights_on,
-            relief=tk.FLAT,
-            cursor="hand2"
-        )
-        self.light_on_btn.pack(side=tk.LEFT, padx=10)
-        
-        # Licht AUS Button
-        self.light_off_btn = tk.Button(
-            buttons_frame,
-            text="🌙 AUS",
-            font=("Segoe UI", 16, "bold"),
-            bg="#6b7280",
-            fg="white",
-            padx=20,
-            pady=15,
-            command=self.turn_lights_off,
-            relief=tk.FLAT,
-            cursor="hand2"
-        )
-        self.light_off_btn.pack(side=tk.LEFT, padx=10)
-        
-        # Status-Anzeige
-        status_frame = tk.Frame(content, bg=COLOR_CARD_BG)
-        status_frame.pack(pady=15)
-        
-        tk.Label(status_frame, text="Status:", font=("Segoe UI", 11),
-                fg=COLOR_SUBTEXT, bg=COLOR_CARD_BG).pack(anchor="w")
-        
-        self.light_status_label = tk.Label(status_frame, text="Abgerufen...",
-                                          font=("Segoe UI", 12, "bold"),
-                                          fg="#10b981", bg=COLOR_CARD_BG)
-        self.light_status_label.pack(anchor="w", pady=5)
-    
     def turn_lights_on(self):
-        """Schaltet Licht an"""
+        """Schaltet alle Lichter an"""
         self.light_status_label.configure(text="✓ Licht AN", fg="#10b981")
         print("Licht AN geklickt")
-        # TODO: Integriere Hue-Ansteuerung
+        try:
+            if hasattr(self, 'bridge') and self.bridge:
+                for light in self.bridge.lights:
+                    light.on = True
+        except Exception as e:
+            print(f"Fehler beim Einschalten: {e}")
     
     def turn_lights_off(self):
-        """Schaltet Licht aus"""
+        """Schaltet alle Lichter aus"""
         self.light_status_label.configure(text="✗ Licht AUS", fg="#6b7280")
         print("Licht AUS geklickt")
-        # TODO: Integriere Hue-Ansteuerung
+        try:
+            if hasattr(self, 'bridge') and self.bridge:
+                for light in self.bridge.lights:
+                    light.on = False
+        except Exception as e:
+            print(f"Fehler beim Ausschalten: {e}")
         """Erstellt Uhrzeit-Widget mit Batterie-Status integriert"""
         content = tk.Frame(self.clock_card, bg=COLOR_CARD_BG)
         content.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)

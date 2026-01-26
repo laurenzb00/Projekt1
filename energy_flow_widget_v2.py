@@ -108,71 +108,64 @@ class EnergyFlowWidgetV2:
         img = Image.new('RGBA', (self.width, self.height), color=(15, 23, 42, 255))
         draw = ImageDraw.Draw(img)
         
-        # Layout-Positionen (wie OpenHAB)
-        # Oben links: PV (x=100, y=40)
-        # Oben rechts: Grid (x=550, y=40)
-        # Mitte: Haus (x=325, y=140)
-        # Unten links: Batterie (x=100, y=180)
-        
-        # ===== KÄSTEN MIT ICONS =====
-        
-        # 1. PV KASTEN (Gelb)
-        self._draw_box(draw, 30, 20, 170, 100, "#fbbf24", "#fbbf24")
+        # Layout-Positionen (schön gewinkelt, Höhe priorisiert)
+        # PV links-oben, Grid rechts-oben, Haus mittig, Batterie unten mittig
+
+        # ===== KÄSTEN MIT ICONS (größer, diagonal verteilt) =====
+
+        # 1. PV (Gelb) links-oben — breiter
+        self._draw_box(draw, 110, 40, 300, 120, "#fbbf24", "#fbbf24")
         if 'pv' in self.icons:
-            img.paste(self.icons['pv'], (70, 30), mask=self.icons['pv'])
+            img.paste(self.icons['pv'], (150, 50), mask=self.icons['pv'])
         else:
-            # Zeichne Sonne
-            self._draw_sun(draw, 90, 55)
-        draw.text((100, 105), f"▶ {int(self.pv_power)}W", fill="#fbbf24", anchor="mm")
-        
-        # 2. GRID KASTEN (Blau/Rot)
+            self._draw_sun(draw, 195, 75)
+        draw.text((205, 135), f"▼ {int(self.pv_power)}W", fill="#fbbf24", anchor="mm")
+
+        # 2. GRID (Rot/Blau) rechts-oben — breiter
         grid_color = "#ef4444" if self.grid_power > 0 else "#38bdf8"
-        self._draw_box(draw, 480, 20, 620, 100, grid_color, grid_color)
+        self._draw_box(draw, 460, 90, 650, 170, grid_color, grid_color)
         if 'grid' in self.icons:
-            img.paste(self.icons['grid'], (520, 30), mask=self.icons['grid'])
+            img.paste(self.icons['grid'], (505, 100), mask=self.icons['grid'])
         else:
-            # Zeichne Blitz
-            self._draw_lightning(draw, 550, 55, grid_color)
-        draw.text((550, 105), f"▶ {int(abs(self.grid_power))}W", fill=grid_color, anchor="mm")
-        
-        # 3. HAUS (Mitte)
-        self._draw_box(draw, 270, 120, 380, 180, "#f472b6", "#f472b6")
+            self._draw_lightning(draw, 555, 125, grid_color)
+        draw.text((555, 185), f"▼ {int(abs(self.grid_power))}W", fill=grid_color, anchor="mm")
+
+        # 3. HAUS (Mitte) — größer
+        self._draw_box(draw, 300, 210, 520, 300, "#f472b6", "#f472b6")
         if 'house' in self.icons:
-            img.paste(self.icons['house'], (285, 110), mask=self.icons['house'])
+            img.paste(self.icons['house'], (340, 205), mask=self.icons['house'])
         else:
-            # Zeichne Haus
-            self._draw_house(draw, 325, 145)
-        draw.text((325, 195), f"{int(self.load_power)}W", fill="#ffffff", anchor="mm", font=None)
-        draw.text((325, 210), "Verbrauch", fill="#8ba2c7", anchor="mm")
-        
-        # 4. BATTERIE KASTEN (Orange)
+            self._draw_house(draw, 410, 250)
+        draw.text((410, 320), f"{int(self.load_power)}W", fill="#ffffff", anchor="mm", font=None)
+        draw.text((410, 338), "Verbrauch", fill="#8ba2c7", anchor="mm")
+
+        # 4. BATTERIE (Orange) unten mittig — breiter
         batt_color = "#f59e0b"
-        self._draw_box(draw, 30, 180, 170, 260, batt_color, batt_color)
+        self._draw_box(draw, 280, 330, 540, 410, batt_color, batt_color)
         if 'battery' in self.icons:
-            img.paste(self.icons['battery'], (70, 190), mask=self.icons['battery'])
+            img.paste(self.icons['battery'], (360, 340), mask=self.icons['battery'])
         else:
-            # Zeichne Batterie
-            self._draw_battery(draw, 100, 220, self.battery_soc)
-        draw.text((100, 265), f"{int(self.battery_soc)}%", fill="#ffffff", anchor="mm")
-        draw.text((100, 175), f"◀ {int(abs(self.battery_power))}W", fill=batt_color, anchor="mm")
+            self._draw_battery(draw, 410, 360, self.battery_soc)
+        draw.text((410, 425), f"{int(self.battery_soc)}%", fill="#ffffff", anchor="mm")
+        draw.text((410, 325), f"↓ {int(abs(self.battery_power))}W", fill=batt_color, anchor="mm")
         
-        # ===== PFEILE MIT LEISTUNGSWERTEN =====
-        
-        # PV → Haus
+        # ===== PFEILE MIT LEISTUNGSWERTEN (gewinkelt über die Höhe) =====
+
+        # PV → Haus (schräg nach rechts unten)
         if self.pv_power > 10:
-            self._draw_connection(draw, 170, 60, 270, 150, "#fbbf24", int(self.pv_power / 500) + 1)
-        
-        # Grid → Haus oder Haus → Grid
+            self._draw_connection(draw, 260, 120, 380, 215, "#fbbf24", int(self.pv_power / 500) + 1)
+
+        # Grid → Haus oder Haus → Grid (schräg nach links unten/oben)
         if self.grid_power > 10:
-            self._draw_connection(draw, 480, 60, 380, 150, "#ef4444", int(self.grid_power / 500) + 1)
+            self._draw_connection(draw, 555, 170, 440, 245, "#ef4444", int(self.grid_power / 500) + 1)
         elif self.grid_power < -10:
-            self._draw_connection(draw, 380, 150, 480, 60, "#38bdf8", int(abs(self.grid_power) / 500) + 1)
-        
-        # Batterie → Haus oder Haus → Batterie
+            self._draw_connection(draw, 440, 245, 555, 170, "#38bdf8", int(abs(self.grid_power) / 500) + 1)
+
+        # Batterie → Haus oder Haus → Batterie (leicht schräg nach oben)
         if self.battery_power > 10:  # Entladen
-            self._draw_connection(draw, 170, 220, 270, 150, "#34d399", int(self.battery_power / 500) + 1)
+            self._draw_connection(draw, 410, 330, 410, 305, "#34d399", int(self.battery_power / 500) + 1)
         elif self.battery_power < -10:  # Laden
-            self._draw_connection(draw, 270, 150, 170, 220, "#34d399", int(abs(self.battery_power) / 500) + 1)
+            self._draw_connection(draw, 410, 305, 410, 330, "#34d399", int(abs(self.battery_power) / 500) + 1)
         
         # Speichern als PhotoImage (RGBA → RGB für Tkinter)
         img_rgb = img.convert('RGB')
