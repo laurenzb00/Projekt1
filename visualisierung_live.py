@@ -36,6 +36,13 @@ def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
         skip_rows = max(1, total_lines - max_rows)
         df = pd.read_csv(path, sep=",", names=col_names, skiprows=skip_rows)
         df.columns = df.columns.str.strip()
+        
+        # Zeitstempel sofort konvertieren
+        if "Zeitstempel" in df.columns:
+            df["Zeitstempel"] = pd.to_datetime(df["Zeitstempel"], errors='coerce')
+            # Entferne Zeilen mit ungültigem Zeitstempel
+            df = df.dropna(subset=["Zeitstempel"])
+        
         return df
     except Exception as e:
         print(f"Fehler beim Lesen von {path}: {e}")
@@ -91,15 +98,15 @@ class LivePlotApp:
     def setup_dashboard_tab(self):
         # Hauptcontainer mit dunklem Hintergrund
         self.dashboard_frame = tk.Frame(self.dashboard_tab, bg="#1a1d2e")
-        self.dashboard_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.dashboard_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Grid-Konfiguration für gleichmäßige Verteilung
+        # Grid-Konfiguration für gleichmäßige Verteilung (jetzt 2 Zeilen statt 3)
         for i in range(4):
             self.dashboard_frame.grid_columnconfigure(i, weight=1)
-        for i in range(3):
+        for i in range(2):
             self.dashboard_frame.grid_rowconfigure(i, weight=1)
 
-        # ===== OBERE REIHE: Metrikkarten =====
+        # ===== OBERE REIHE: 4 Metrikkarten =====
         # PV Erzeugung - Gradient Cyan-Blue
         self.pv_card = self._create_metric_card(
             parent=self.dashboard_frame,
@@ -110,9 +117,9 @@ class LivePlotApp:
         )
         self.pv_value_label = tk.Label(
             self.pv_card, textvariable=self.dash_pv_now,
-            font=("Segoe UI", 36, "bold"), fg="white", bg="#0ea5e9"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#0ea5e9"
         )
-        self.pv_value_label.pack(pady=(10, 5))
+        self.pv_value_label.pack(pady=15)
 
         # Verbrauch - Gradient Purple-Pink
         self.verbrauch_card = self._create_metric_card(
@@ -124,9 +131,9 @@ class LivePlotApp:
         )
         self.verbrauch_value_label = tk.Label(
             self.verbrauch_card, textvariable=self.dash_haus_now,
-            font=("Segoe UI", 36, "bold"), fg="white", bg="#ec4899"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#ec4899"
         )
-        self.verbrauch_value_label.pack(pady=(10, 5))
+        self.verbrauch_value_label.pack(pady=15)
 
         # Batterie SoC - Gradient Green-Emerald
         self.battery_card = self._create_metric_card(
@@ -139,9 +146,9 @@ class LivePlotApp:
         self.battery_soc_var = tk.StringVar(value="0 %")
         self.battery_value_label = tk.Label(
             self.battery_card, textvariable=self.battery_soc_var,
-            font=("Segoe UI", 36, "bold"), fg="white", bg="#059669"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#059669"
         )
-        self.battery_value_label.pack(pady=(10, 5))
+        self.battery_value_label.pack(pady=15)
 
         # Tagesertrag - Gradient Orange-Amber
         self.ertrag_card = self._create_metric_card(
@@ -153,73 +160,55 @@ class LivePlotApp:
         )
         self.ertrag_value_label = tk.Label(
             self.ertrag_card, textvariable=self.dash_ertrag_heute,
-            font=("Segoe UI", 36, "bold"), fg="white", bg="#d97706"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#d97706"
         )
-        self.ertrag_value_label.pack(pady=(10, 5))
+        self.ertrag_value_label.pack(pady=15)
 
-        # ===== MITTLERE REIHE: Autarkie & Live-Charts =====
-        # Autarkie Gauge
-        self.autarkie_card = self._create_chart_card(
-            parent=self.dashboard_frame,
-            row=1, col=0, colspan=1,
-            title="Autarkie"
-        )
-        self.autarkie_canvas = tk.Canvas(
-            self.autarkie_card, width=200, height=200, 
-            bg="#16213e", highlightthickness=0
-        )
-        self.autarkie_canvas.pack(pady=10)
-
-        # Pufferspeicher Visualisierung (verbessert)
+        # ===== UNTERE REIHE: Pufferspeicher + 2 Charts =====
+        # Pufferspeicher Visualisierung (größer, mehr Platz)
         self.puffer_card = self._create_chart_card(
             parent=self.dashboard_frame,
-            row=1, col=1, colspan=2,
+            row=1, col=0, colspan=1,
             title="Pufferspeicher"
         )
         self.canvas_puffer = tk.Canvas(
-            self.puffer_card, width=400, height=200,
+            self.puffer_card, width=250, height=280,
             bg="#16213e", highlightthickness=0
         )
-        self.canvas_puffer.pack(pady=10)
+        self.canvas_puffer.pack(pady=5, expand=True)
 
-        # Außentemperatur Display
-        self.aussen_card = self._create_metric_card(
+        # Außentemperatur Display (eigene Karte)
+        self.aussen_card = self._create_chart_card(
             parent=self.dashboard_frame,
-            row=1, col=3,
-            title="Außentemperatur",
-            bg_start="#6366f1", bg_end="#4f46e5",
-            icon="🌡"
+            row=1, col=1, colspan=1,
+            title="Außentemperatur"
         )
+        aussen_inner = tk.Frame(self.aussen_card, bg="#16213e")
+        aussen_inner.pack(expand=True, fill=tk.BOTH)
+        
+        tk.Label(
+            aussen_inner, text="🌡", 
+            font=("Segoe UI", 48), fg="#6366f1", bg="#16213e"
+        ).pack(pady=(20, 5))
+        
         self.aussen_value_label = tk.Label(
-            self.aussen_card, textvariable=self.dash_aussen,
-            font=("Segoe UI", 32, "bold"), fg="white", bg="#4f46e5"
+            aussen_inner, textvariable=self.dash_aussen,
+            font=("Segoe UI", 38, "bold"), fg="white", bg="#16213e"
         )
-        self.aussen_value_label.pack(pady=(10, 5))
+        self.aussen_value_label.pack(pady=5)
 
-        # ===== UNTERE REIHE: Mini Charts =====
-        # PV Trend (letzte 24h)
+        # PV Trend (letzte 24h) - größer
         self.pv_trend_card = self._create_chart_card(
             parent=self.dashboard_frame,
-            row=2, col=0, colspan=2,
-            title="PV Trend (24h)"
+            row=1, col=2, colspan=2,
+            title="Leistung & Temperatur Trend (24h)"
         )
         self.pv_trend_fig, self.pv_trend_ax = self._create_mini_chart()
         self.pv_trend_canvas = FigureCanvasTkAgg(self.pv_trend_fig, master=self.pv_trend_card)
-        self.pv_trend_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.pv_trend_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
-        # Temperatur Trend
-        self.temp_trend_card = self._create_chart_card(
-            parent=self.dashboard_frame,
-            row=2, col=2, colspan=2,
-            title="Temperatur Trend (24h)"
-        )
-        self.temp_trend_fig, self.temp_trend_ax = self._create_mini_chart()
-        self.temp_trend_canvas = FigureCanvasTkAgg(self.temp_trend_fig, master=self.temp_trend_card)
-        self.temp_trend_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
-        # Start Animationen
+        # Start Animation
         self.update_puffer_animation()
-        self.update_autarkie_gauge()
 
     def _create_metric_card(self, parent, row, col, title, bg_start, bg_end, icon):
         """Erstellt eine moderne Metrik-Karte mit Gradient"""
@@ -263,15 +252,15 @@ class LivePlotApp:
 
     def _create_mini_chart(self):
         """Erstellt ein kleines Chart für Trends"""
-        fig, ax = plt.subplots(figsize=(5, 2), dpi=80)
+        fig, ax = plt.subplots(figsize=(6, 3), dpi=90)
         fig.patch.set_facecolor("#16213e")
         ax.set_facecolor("#16213e")
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.spines['left'].set_color('#2d3a5f')
         ax.spines['bottom'].set_color('#2d3a5f')
-        ax.tick_params(colors='#8892b0', labelsize=8)
-        ax.grid(False)
+        ax.tick_params(colors='#8892b0', labelsize=9)
+        ax.grid(True, color='#2d3a5f', linestyle='--', alpha=0.2)
         return fig, ax
 
     def setup_plot_tabs(self):
@@ -315,7 +304,6 @@ class LivePlotApp:
         # 1. PV Daten
         if fronius_df is not None and not fronius_df.empty:
             try:
-                fronius_df["Zeitstempel"] = pd.to_datetime(fronius_df["Zeitstempel"])
                 last = fronius_df.iloc[-1]
                 
                 pv = last.get("PV-Leistung (kW)", 0)
@@ -344,7 +332,7 @@ class LivePlotApp:
                 self._plot_fronius(fronius_df, now)
                 self._plot_battery(fronius_df, now)
                 self._plot_ertrag(fronius_df, now)
-                self._update_pv_trend(fronius_df, now)
+                self._update_combined_trend(fronius_df, bmk_df, now)
                 self.dash_status.set("PV Daten aktuell.")
             except Exception as e:
                 print(f"Fronius Update Fehler: {e}")
@@ -352,7 +340,6 @@ class LivePlotApp:
         # 2. Temperatur Daten
         if bmk_df is not None and not bmk_df.empty:
             try:
-                bmk_df["Zeitstempel"] = pd.to_datetime(bmk_df["Zeitstempel"])
                 last = bmk_df.iloc[-1]
                 
                 top = last.get("Pufferspeicher Oben", 0)
@@ -366,7 +353,6 @@ class LivePlotApp:
                 self.dash_aussen.set(f"{aussen:.1f} °C")
                 
                 self._plot_temps(bmk_df, now)
-                self._update_temp_trend(bmk_df, now)
             except Exception as e:
                 print(f"BMK Update Fehler: {e}")
 
@@ -555,8 +541,8 @@ class LivePlotApp:
         self.canvas_puffer.delete("all")
 
         # Moderner Pufferspeicher mit 3D-Effekt
-        x_start, y_start = 100, 30
-        width, height_per_section = 100, 50
+        x_start, y_start = 75, 20
+        width, height_per_section = 100, 70
 
         # Schatten
         self.canvas_puffer.create_rectangle(
@@ -582,24 +568,17 @@ class LivePlotApp:
             
             # Temperaturanzeige mit modernem Stil
             self.canvas_puffer.create_text(
-                x_start + width + 30, y_pos + height_per_section // 2,
+                x_start + width // 2, y_pos + height_per_section // 2,
                 text=f"{temp:.1f}°C",
-                fill="white", font=("Segoe UI", 14, "bold"), anchor="w"
+                fill="white", font=("Segoe UI", 16, "bold")
             )
             
-            # Label
+            # Label klein drunter
             self.canvas_puffer.create_text(
-                x_start + width // 2, y_pos + height_per_section // 2,
+                x_start + width // 2, y_pos + height_per_section // 2 + 20,
                 text=label,
-                fill="white", font=("Segoe UI", 10, "bold")
+                fill="#8892b0", font=("Segoe UI", 9)
             )
-
-        # Überschrift
-        self.canvas_puffer.create_text(
-            200, 10,
-            text="Pufferspeicher Status",
-            fill="#8892b0", font=("Segoe UI", 12, "bold")
-        )
 
         if self.root.winfo_exists():
             self.root.after(2000, self.update_puffer_animation)
@@ -617,122 +596,65 @@ class LivePlotApp:
         else:
             return "#dc2626"  # Dunkelrot
 
-    def update_autarkie_gauge(self):
-        """Erstellt eine moderne Autarkie-Anzeige"""
-        try:
-            autarkie_str = self.dash_autarkie.get().replace(" %", "").replace("-- ", "0")
-            autarkie = float(autarkie_str)
-        except (ValueError, AttributeError):
-            autarkie = 0
-
-        self.autarkie_canvas.delete("all")
-
-        # Kreisförmige Gauge
-        center_x, center_y = 100, 100
-        radius = 70
-
-        # Hintergrund-Kreis
-        self.autarkie_canvas.create_oval(
-            center_x - radius, center_y - radius,
-            center_x + radius, center_y + radius,
-            fill="#1e2a47", outline="#2d3a5f", width=3
-        )
-
-        # Fortschritts-Bogen
-        extent = -360 * (autarkie / 100)
-        color = "#10b981" if autarkie >= 70 else "#f59e0b" if autarkie >= 40 else "#ef4444"
-        
-        self.autarkie_canvas.create_arc(
-            center_x - radius + 10, center_y - radius + 10,
-            center_x + radius - 10, center_y + radius - 10,
-            start=90, extent=extent, fill=color, outline="", width=0
-        )
-
-        # Innerer Kreis
-        inner_radius = 50
-        self.autarkie_canvas.create_oval(
-            center_x - inner_radius, center_y - inner_radius,
-            center_x + inner_radius, center_y + inner_radius,
-            fill="#16213e", outline=""
-        )
-
-        # Prozentzahl
-        self.autarkie_canvas.create_text(
-            center_x, center_y,
-            text=f"{int(autarkie)}%",
-            fill="white", font=("Segoe UI", 24, "bold")
-        )
-
-        # Label
-        self.autarkie_canvas.create_text(
-            center_x, center_y + 30,
-            text="Autarkie",
-            fill="#8892b0", font=("Segoe UI", 10)
-        )
-
-        if self.root.winfo_exists():
-            self.root.after(2000, self.update_autarkie_gauge)
-
-    def _update_pv_trend(self, df, now):
-        """Aktualisiert den PV-Trend Mini-Chart"""
+    def _update_combined_trend(self, df_pv, df_temp, now):
+        """Kombinierter Chart für PV und Temperatur"""
         ax = self.pv_trend_ax
         ax.clear()
         
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
-        df_sub = df.loc[mask]
+        mask_pv = df_pv["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
+        df_pv_sub = df_pv.loc[mask_pv]
         
-        if not df_sub.empty:
-            # Gradient Fill
+        mask_temp = df_temp["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
+        df_temp_sub = df_temp.loc[mask_temp]
+        
+        if not df_pv_sub.empty:
+            # PV auf linker Achse
+            color_pv = "#22d3ee"
             ax.fill_between(
-                df_sub["Zeitstempel"], df_sub["PV-Leistung (kW)"],
-                alpha=0.6, color="#22d3ee"
+                df_pv_sub["Zeitstempel"], df_pv_sub["PV-Leistung (kW)"],
+                alpha=0.4, color=color_pv
             )
             ax.plot(
-                df_sub["Zeitstempel"], df_sub["PV-Leistung (kW)"],
-                color="#0ea5e9", linewidth=2
+                df_pv_sub["Zeitstempel"], df_pv_sub["PV-Leistung (kW)"],
+                color="#0ea5e9", linewidth=2.5, label="PV Leistung"
             )
+            ax.set_ylabel("PV (kW)", color="#0ea5e9", fontsize=10, fontweight='bold')
+            ax.tick_params(axis='y', labelcolor="#0ea5e9")
             
-            ax.set_facecolor("#16213e")
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_color('#2d3a5f')
-            ax.spines['bottom'].set_color('#2d3a5f')
-            ax.tick_params(colors='#8892b0', labelsize=8)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            ax.set_ylabel("kW", color="#8892b0", fontsize=9)
+        if not df_temp_sub.empty:
+            # Temperatur auf rechter Achse
+            ax2 = ax.twinx()
+            ax2.plot(
+                df_temp_sub["Zeitstempel"], df_temp_sub["Pufferspeicher Oben"],
+                color="#ef4444", linewidth=2.5, label="Puffer Oben", marker='o', markersize=3, alpha=0.8
+            )
+            ax2.set_ylabel("Temp (°C)", color="#ef4444", fontsize=10, fontweight='bold')
+            ax2.tick_params(axis='y', labelcolor="#ef4444")
+            ax2.spines['right'].set_color('#2d3a5f')
+            ax2.spines['left'].set_color('#2d3a5f')
+            ax2.spines['top'].set_visible(False)
+            ax2.spines['bottom'].set_color('#2d3a5f')
+            
+        ax.set_facecolor("#16213e")
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_color('#2d3a5f')
+        ax.spines['bottom'].set_color('#2d3a5f')
+        ax.tick_params(colors='#8892b0', labelsize=9)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        ax.grid(True, color='#2d3a5f', linestyle='--', alpha=0.3, linewidth=0.8)
+        
+        # Legende kombiniert
+        lines1, labels1 = ax.get_legend_handles_labels()
+        if not df_temp_sub.empty:
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax.legend(lines1 + lines2, labels1 + labels2, 
+                     loc='upper left', fontsize=8, facecolor='#16213e', 
+                     edgecolor='#2d3a5f', labelcolor='#8892b0', framealpha=0.9)
+        else:
+            ax.legend(loc='upper left', fontsize=8, facecolor='#16213e', 
+                     edgecolor='#2d3a5f', labelcolor='#8892b0', framealpha=0.9)
             
         self.pv_trend_canvas.draw()
-
-    def _update_temp_trend(self, df, now):
-        """Aktualisiert den Temperatur-Trend Mini-Chart"""
-        ax = self.temp_trend_ax
-        ax.clear()
-        
-        mask = df["Zeitstempel"] >= (now - pd.Timedelta(hours=24))
-        df_sub = df.loc[mask]
-        
-        if not df_sub.empty:
-            ax.plot(
-                df_sub["Zeitstempel"], df_sub["Pufferspeicher Oben"],
-                color="#ef4444", linewidth=2, label="Oben"
-            )
-            ax.plot(
-                df_sub["Zeitstempel"], df_sub["Außentemperatur"],
-                color="#3b82f6", linewidth=2, linestyle="--", label="Außen"
-            )
-            
-            ax.set_facecolor("#16213e")
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_color('#2d3a5f')
-            ax.spines['bottom'].set_color('#2d3a5f')
-            ax.tick_params(colors='#8892b0', labelsize=8)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            ax.set_ylabel("°C", color="#8892b0", fontsize=9)
-            ax.legend(loc='upper left', fontsize=8, facecolor='#16213e', 
-                     edgecolor='#2d3a5f', labelcolor='#8892b0')
-            
-        self.temp_trend_canvas.draw()
 
     def get_color(self, temp):
         if temp < 20:
