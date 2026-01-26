@@ -69,7 +69,7 @@ class LivePlotApp:
         self.main_container.pack(fill=BOTH, expand=YES)
 
         self.notebook = ttk.Notebook(self.main_container, bootstyle="primary")
-        self.notebook.pack(fill=BOTH, expand=YES)
+        self.notebook.pack(fill=BOTH, expand=YES, padx=5, pady=5)
 
         # Tabs erstellen
         self.dashboard_tab = ttk.Frame(self.notebook)
@@ -110,9 +110,9 @@ class LivePlotApp:
 
     # --- UI SETUP ---
     def setup_dashboard_tab(self):
-        # Hauptcontainer (optimiert für 1024x600 Touchscreen)
-        self.dashboard_frame = tk.Frame(self.dashboard_tab, bg="#0f1419")
-        self.dashboard_frame.pack(fill=tk.BOTH, expand=True)
+        # Hauptcontainer mit dunklem Hintergrund
+        self.dashboard_frame = tk.Frame(self.dashboard_tab, bg="#1a1d2e")
+        self.dashboard_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Grid-Konfiguration für gleichmäßige Verteilung (jetzt 2 Zeilen statt 3)
         for i in range(4):
@@ -121,105 +121,105 @@ class LivePlotApp:
             self.dashboard_frame.grid_rowconfigure(i, weight=1)
 
         # ===== OBERE REIHE: 4 Metrikkarten =====
-        # PV Erzeugung
-        self.pv_card = self._create_modern_card(
+        # PV Erzeugung - Gradient Cyan-Blue
+        self.pv_card = self._create_metric_card(
             parent=self.dashboard_frame,
             row=0, col=0,
             title="PV Erzeugung",
-            bg_color="#0ea5e9",
+            bg_start="#22d3ee", bg_end="#0ea5e9",
             icon="☀"
         )
         self.pv_value_label = tk.Label(
             self.pv_card, textvariable=self.dash_pv_now,
-            font=("Segoe UI", 28, "bold"), fg="white", bg="#0ea5e9"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#0ea5e9"
         )
-        self.pv_value_label.pack(pady=4)
+        self.pv_value_label.pack(pady=15)
 
-        # Verbrauch
-        self.verbrauch_card = self._create_modern_card(
+        # Verbrauch - Gradient Purple-Pink
+        self.verbrauch_card = self._create_metric_card(
             parent=self.dashboard_frame,
             row=0, col=1,
             title="Verbrauch",
-            bg_color="#ec4899",
+            bg_start="#a855f7", bg_end="#ec4899",
             icon="⚡"
         )
         self.verbrauch_value_label = tk.Label(
             self.verbrauch_card, textvariable=self.dash_haus_now,
-            font=("Segoe UI", 28, "bold"), fg="white", bg="#ec4899"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#ec4899"
         )
-        self.verbrauch_value_label.pack(pady=4)
+        self.verbrauch_value_label.pack(pady=15)
 
-        # Batterie SoC
-        self.battery_card = self._create_modern_card(
+        # Batterie SoC - Gradient Green-Emerald
+        self.battery_card = self._create_metric_card(
             parent=self.dashboard_frame,
             row=0, col=2,
             title="Batterie",
-            bg_color="#10b981",
+            bg_start="#10b981", bg_end="#059669",
             icon="🔋"
         )
         self.battery_soc_var = tk.StringVar(value="0 %")
         self.battery_value_label = tk.Label(
             self.battery_card, textvariable=self.battery_soc_var,
-            font=("Segoe UI", 28, "bold"), fg="white", bg="#10b981"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#059669"
         )
-        self.battery_value_label.pack(pady=4)
+        self.battery_value_label.pack(pady=15)
 
-        # Tagesertrag
-        self.ertrag_card = self._create_modern_card(
+        # Tagesertrag - Gradient Orange-Amber
+        self.ertrag_card = self._create_metric_card(
             parent=self.dashboard_frame,
             row=0, col=3,
             title="Tagesertrag",
-            bg_color="#f59e0b",
+            bg_start="#f59e0b", bg_end="#d97706",
             icon="📊"
         )
         self.ertrag_value_label = tk.Label(
             self.ertrag_card, textvariable=self.dash_ertrag_heute,
-            font=("Segoe UI", 28, "bold"), fg="white", bg="#f59e0b"
+            font=("Segoe UI", 42, "bold"), fg="white", bg="#d97706"
         )
-        self.ertrag_value_label.pack(pady=4)
+        self.ertrag_value_label.pack(pady=15)
 
-        # ===== UNTERE REIHE: Kompakt für 1024x600 =====
-        # Pufferspeicher (schmaler)
+        # ===== UNTERE REIHE: Pufferspeicher + 2 Charts =====
+        # Pufferspeicher Visualisierung (größer, mehr Platz)
         self.puffer_card = self._create_chart_card(
             parent=self.dashboard_frame,
             row=1, col=0, colspan=1,
-            title="Puffer"
+            title="Pufferspeicher"
         )
         self.canvas_puffer = tk.Canvas(
-            self.puffer_card, width=200, height=210,
+            self.puffer_card, width=250, height=280,
             bg="#16213e", highlightthickness=0
         )
-        self.canvas_puffer.pack(pady=2, expand=True)
+        self.canvas_puffer.pack(pady=5, expand=True)
 
-        # Außentemperatur (schmaler)
+        # Außentemperatur Display (eigene Karte)
         self.aussen_card = self._create_chart_card(
             parent=self.dashboard_frame,
             row=1, col=1, colspan=1,
-            title="Außen"
+            title="Außentemperatur"
         )
         aussen_inner = tk.Frame(self.aussen_card, bg="#16213e")
         aussen_inner.pack(expand=True, fill=tk.BOTH)
         
         tk.Label(
             aussen_inner, text="🌡", 
-            font=("Segoe UI", 28), fg="#6366f1", bg="#16213e"
-        ).pack(pady=(8, 2))
+            font=("Segoe UI", 48), fg="#6366f1", bg="#16213e"
+        ).pack(pady=(20, 5))
         
         self.aussen_value_label = tk.Label(
             aussen_inner, textvariable=self.dash_aussen,
-            font=("Segoe UI", 24, "bold"), fg="white", bg="#16213e"
+            font=("Segoe UI", 38, "bold"), fg="white", bg="#16213e"
         )
-        self.aussen_value_label.pack(pady=2)
+        self.aussen_value_label.pack(pady=5)
 
-        # Trend Chart (größer, 2 Spalten breit)
+        # PV Trend (letzte 24h) - größer
         self.pv_trend_card = self._create_chart_card(
             parent=self.dashboard_frame,
             row=1, col=2, colspan=2,
-            title="24h Trend"
+            title="Leistung & Temperatur Trend (24h)"
         )
         self.pv_trend_fig, self.pv_trend_ax = self._create_mini_chart()
         self.pv_trend_canvas = FigureCanvasTkAgg(self.pv_trend_fig, master=self.pv_trend_card)
-        self.pv_trend_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        self.pv_trend_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=3, pady=3)
 
         # Start Animation
         self.update_puffer_animation()
@@ -245,61 +245,35 @@ class LivePlotApp:
         
         return card
 
-    def _create_modern_card(self, parent, row, col, title, bg_color, icon):
-        """Erstellt moderne Touch-optimierte Karte für 1024x600"""
-        # Außen-Frame mit Schatten-Effekt (simuliert)
-        outer_frame = tk.Frame(parent, bg="#000000")
-        outer_frame.grid(row=row, column=col, sticky="nsew", padx=4, pady=4)
-        
-        # Haupt-Karte
-        card = tk.Frame(outer_frame, bg=bg_color, relief=tk.FLAT, bd=0)
-        card.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
-        
-        # Header (kompakt für Touchscreen)
-        header = tk.Frame(card, bg=bg_color)
-        header.pack(fill=tk.X, padx=8, pady=(8, 2))
-        
-        icon_label = tk.Label(header, text=icon, font=("Segoe UI", 18), bg=bg_color, fg="white")
-        icon_label.pack(side=tk.LEFT)
-        
-        title_label = tk.Label(
-            header, text=title, 
-            font=("Segoe UI", 11, "bold"), 
-            bg=bg_color, fg="white"
-        )
-        title_label.pack(side=tk.LEFT, padx=6)
-        
-        return card
-
     def _create_chart_card(self, parent, row, col, colspan, title):
-        """Erstellt eine Karte für Charts (Touchscreen-optimiert)"""
+        """Erstellt eine Karte für Charts"""
         card = tk.Frame(parent, bg="#16213e", relief=tk.FLAT, bd=0)
-        card.grid(row=row, column=col, columnspan=colspan, sticky="nsew", padx=4, pady=4)
+        card.grid(row=row, column=col, columnspan=colspan, sticky="nsew", padx=8, pady=8)
         
-        # Header (kompakter)
+        # Header
         header = tk.Frame(card, bg="#1e2a47")
         header.pack(fill=tk.X)
         
         title_label = tk.Label(
             header, text=title,
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg="#1e2a47", fg="white",
-            pady=6, padx=10
+            pady=10, padx=15
         )
         title_label.pack(anchor="w")
         
         return card
 
     def _create_mini_chart(self):
-        """Erstellt Chart für 1024x600 Auflösung"""
-        fig, ax = plt.subplots(figsize=(5.5, 2.5), dpi=85)
+        """Erstellt ein kleines Chart für Trends"""
+        fig, ax = plt.subplots(figsize=(6, 3), dpi=90)
         fig.patch.set_facecolor("#16213e")
         ax.set_facecolor("#16213e")
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.spines['left'].set_color('#2d3a5f')
         ax.spines['bottom'].set_color('#2d3a5f')
-        ax.tick_params(colors='#8892b0', labelsize=8)
+        ax.tick_params(colors='#8892b0', labelsize=9)
         ax.grid(True, color='#2d3a5f', linestyle='--', alpha=0.2)
         return fig, ax
 
@@ -331,11 +305,8 @@ class LivePlotApp:
     def setup_bottom_bar(self):
         bar = ttk.Frame(self.root, bootstyle="dark")
         bar.pack(side=BOTTOM, fill=X)
-        # Kompaktere Bottom-Bar für Touchscreen
-        ttk.Button(bar, text="✕ Beenden", bootstyle="danger-outline", 
-                  command=self.root.destroy, width=12).pack(side=LEFT, padx=3, pady=3)
-        ttk.Label(bar, textvariable=self.status_time_var, 
-                 bootstyle="inverse-dark", font=("Segoe UI", 8)).pack(side=RIGHT, padx=8)
+        ttk.Button(bar, text="Beenden", bootstyle="danger-outline", command=self.root.destroy).pack(side=LEFT, padx=5, pady=5)
+        ttk.Label(bar, textvariable=self.status_time_var, bootstyle="inverse-dark").pack(side=RIGHT, padx=10)
 
     # --- UPDATE LOGIC ---
     def update_plots(self):
@@ -583,13 +554,13 @@ class LivePlotApp:
 
         self.canvas_puffer.delete("all")
 
-        # Kompakter Pufferspeicher für 1024x600
-        x_start, y_start = 60, 15
-        width, height_per_section = 80, 60
+        # Moderner Pufferspeicher mit 3D-Effekt
+        x_start, y_start = 75, 20
+        width, height_per_section = 100, 70
 
         # Schatten
         self.canvas_puffer.create_rectangle(
-            x_start + 3, y_start + 3, x_start + width + 3, y_start + height_per_section * 3 + 3,
+            x_start + 5, y_start + 5, x_start + width + 5, y_start + height_per_section * 3 + 5,
             fill="#000000", outline="", stipple="gray50"
         )
 
@@ -603,24 +574,24 @@ class LivePlotApp:
         for temp, label, y_pos in sections:
             color = self._get_temp_gradient_color(temp)
             
-            # Sektion
+            # Sektion mit Gradient-Effekt
             self.canvas_puffer.create_rectangle(
                 x_start, y_pos, x_start + width, y_pos + height_per_section,
                 fill=color, outline="#2d3a5f", width=2
             )
             
-            # Temperaturanzeige (kompakt)
+            # Temperaturanzeige mit modernem Stil
             self.canvas_puffer.create_text(
-                x_start + width // 2, y_pos + height_per_section // 2 - 5,
+                x_start + width // 2, y_pos + height_per_section // 2,
                 text=f"{temp:.1f}°C",
-                fill="white", font=("Segoe UI", 14, "bold")
+                fill="white", font=("Segoe UI", 16, "bold")
             )
             
-            # Label
+            # Label klein drunter
             self.canvas_puffer.create_text(
-                x_start + width // 2, y_pos + height_per_section // 2 + 15,
+                x_start + width // 2, y_pos + height_per_section // 2 + 20,
                 text=label,
-                fill="#8892b0", font=("Segoe UI", 8)
+                fill="#8892b0", font=("Segoe UI", 9)
             )
 
         if self.root.winfo_exists():

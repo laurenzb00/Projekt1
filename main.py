@@ -51,7 +51,7 @@ def main():
 
     # --- GUI START ---
     root = Window(themename="superhero") 
-    root.geometry("1100x650") 
+    root.geometry("1024x600")  # Optimiert für 10,1" Touchscreen
     root.resizable(False, False)
     root.title("Smart Energy Dashboard Pro")
     
