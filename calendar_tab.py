@@ -7,6 +7,7 @@ import requests
 import icalendar
 import recurring_ical_events
 import datetime
+import calendar
 import pytz
 
 # --- KONFIGURATION ---
@@ -93,34 +94,105 @@ class CalendarTab:
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
-        # Tagesansicht mit Events (einfacher)
-        now = datetime.datetime.now()
-        
-        if not self.events_data:
+        # Monatsübersicht
+        now_local = datetime.datetime.now().astimezone()
+        first_day = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        weekday_offset, days_in_month = calendar.monthrange(first_day.year, first_day.month)
+        # calendar.monthrange: Monday=0, Sunday=6
+        weekday_offset = (weekday_offset + 6) % 7  # Start bei Montag als erste Spalte
+
+        today_date = now_local.date()
+        month_title = first_day.strftime("%B %Y")
+
+        ttk.Label(
+            self.scroll_frame,
+            text=month_title,
+            font=("Arial", 18, "bold"),
+            bootstyle="inverse-dark"
+        ).grid(row=0, column=0, columnspan=7, pady=(5, 12))
+
+        day_names = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+        for idx, name in enumerate(day_names):
             ttk.Label(
-                self.scroll_frame, 
-                text="Keine Termine in den nächsten 30 Tagen", 
-                font=("Arial", 14), 
+                self.scroll_frame,
+                text=name,
+                font=("Arial", 10, "bold"),
                 bootstyle="secondary"
-            ).pack(pady=50)
-            return
-        
-        # Zeige Termine an
-        for idx, event in enumerate(self.events_data[:20]):  # Max 20 Termine
-            event_frame = ttk.Labelframe(
-                self.scroll_frame, 
-                text=event["start"].strftime("%d.%m.%Y %H:%M"),
-                bootstyle="primary",
-                padding=15
+            ).grid(row=1, column=idx, padx=4, pady=(0, 6))
+
+        # Events nach Datum gruppieren
+        events_by_date = {}
+        for event in self.events_data:
+            try:
+                local_dt = event["start"].astimezone(now_local.tzinfo)
+            except Exception:
+                local_dt = event["start"]
+            date_key = local_dt.date()
+            events_by_date.setdefault(date_key, []).append(event["summary"])
+
+        # Tage rendern
+        row_base = 2
+        for day in range(1, days_in_month + 1):
+            col = (weekday_offset + day - 1) % 7
+            row = row_base + (weekday_offset + day - 1) // 7
+            cell_date = first_day.date().replace(day=day)
+
+            cell_bg = "#0f172a"
+            border_color = "#1f2a44"
+            if cell_date == today_date:
+                border_color = "#38bdf8"
+
+            cell = tk.Frame(
+                self.scroll_frame,
+                bg=cell_bg,
+                highlightbackground=border_color,
+                highlightthickness=1,
+                bd=0,
+                padx=6,
+                pady=4
             )
-            event_frame.pack(fill=X, padx=10, pady=8)
-            
-            ttk.Label(
-                event_frame, 
-                text=event["summary"], 
-                font=("Arial", 14, "bold"),
-                wraplength=800
-            ).pack(anchor="w")
+            cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
+
+            # Datum-Kopf
+            tk.Label(
+                cell,
+                text=str(day),
+                font=("Segoe UI", 11, "bold"),
+                fg="#e5e7eb",
+                bg=cell_bg
+            ).pack(anchor="nw")
+
+            # Events auflisten (max 3)
+            items = events_by_date.get(cell_date, [])
+            if not items:
+                tk.Label(
+                    cell,
+                    text="frei",
+                    font=("Segoe UI", 9),
+                    fg="#6b7280",
+                    bg=cell_bg
+                ).pack(anchor="nw", pady=(2, 0))
+            else:
+                for ev in items[:3]:
+                    tk.Label(
+                        cell,
+                        text=f"• {ev}",
+                        font=("Segoe UI", 9),
+                        fg="#c7d2fe",
+                        bg=cell_bg,
+                        wraplength=120,
+                        justify="left"
+                    ).pack(anchor="nw", pady=(1, 0))
+
+                # Hinweis auf mehr Einträge
+                if len(items) > 3:
+                    tk.Label(
+                        cell,
+                        text=f"+{len(items) - 3} mehr",
+                        font=("Segoe UI", 8),
+                        fg="#9ca3af",
+                        bg=cell_bg
+                    ).pack(anchor="nw", pady=(2, 0))
 
     def _fetch_calendar(self):
         self.status_var.set("Kalender wird geladen...")

@@ -5,7 +5,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
 # --- KONFIGURATION ---
-HUE_BRIDGE_IP = "192.168.1.68" # <--- HIER DEINE BRIDGE IP EINTRAGEN!
+HUE_BRIDGE_IP = "192.168.1.111" # <--- HIER DEINE BRIDGE IP EINTRAGEN!
 
 class HueTab:
     def __init__(self, root, notebook):
