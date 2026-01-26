@@ -228,9 +228,10 @@ class LivePlotApp:
                 today_mask = fronius_df["Zeitstempel"].dt.date == now.date()
                 df_today = fronius_df[today_mask]
                 if not df_today.empty:
-                    avg_p = df_today["PV-Leistung (kW)"].mean()
-                    duration_h = (df_today["Zeitstempel"].max() - df_today["Zeitstempel"].min()).total_seconds() / 3600
-                    kwh_today = avg_p * duration_h
+                    df_today = df_today.sort_values(by="Zeitstempel")
+                    df_today["TimeDiff"] = df_today["Zeitstempel"].diff().dt.total_seconds().fillna(0) / 3600
+                    df_today["Energy"] = df_today["PV-Leistung (kW)"] * df_today["TimeDiff"]
+                    kwh_today = df_today["Energy"].sum()
                     self.dash_ertrag_heute.set(f"{kwh_today:.1f} kWh")
 
                 self._plot_fronius(fronius_df, now)
@@ -320,25 +321,28 @@ class LivePlotApp:
         ax = self.ertrag_ax
         ax.clear()
         self._style_ax(ax)
-        
+
         try:
             df_calc = df.copy()
             df_calc.set_index("Zeitstempel", inplace=True)
             df_hourly = df_calc["PV-Leistung (kW)"].resample('h').mean()
-            df_daily = df_hourly.resample('D').sum() 
-            
-            start_date = (now - pd.Timedelta(days=7)).replace(hour=0, minute=0, second=0)
+            df_daily = df_hourly.resample('D').sum()
+
+            # Adjust to show daily yields for the last 30 days
+            start_date = (now - pd.Timedelta(days=30)).replace(hour=0, minute=0, second=0)
             df_daily = df_daily[df_daily.index >= start_date]
 
             if not df_daily.empty:
                 ax.bar(df_daily.index, df_daily.values, color="#f1c40f", width=0.5)
-                ax.set_title("Tagesertrag (letzte 7 Tage) in kWh", color="white")
+                ax.set_title("Tagesertrag (letzte 30 Tage) in kWh", color="white")
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.'))
+                ax.set_xlabel("Datum", color="white")
+                ax.set_ylabel("Ertrag (kWh)", color="white")
             else:
-                ax.text(0.5, 0.5, "Daten laden...", color="white", ha="center")
+                ax.text(0.5, 0.5, "Keine Daten verfügbar", color="white", ha="center")
         except Exception as e:
             print(f"Ertrag Plot Fehler: {e}")
-            
+
         self.ertrag_canvas.draw()
 
     def _plot_temps(self, df, now):

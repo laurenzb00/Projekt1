@@ -77,101 +77,71 @@ class CalendarTab:
                 time.sleep(1)
             self._fetch_calendar()
 
-    def _fetch_calendar(self):
-        self.status_var.set("Aktualisiere...")
-        all_events = []
-        error_occurred = False
-
-        # Zeitraum: Heute bis in 60 Tagen
-        now = datetime.datetime.now(pytz.utc)
-        end = now + datetime.timedelta(days=60)
-
-        for url in ICAL_URLS:
-            if "http" not in url: continue
-            try:
-                response = requests.get(url.strip())
-                response.raise_for_status()
-                
-                cal = icalendar.Calendar.from_ical(response.content)
-                # Events auflösen
-                events = recurring_ical_events.of(cal).between(now, end)
-                all_events.extend(events)
-                
-            except Exception as e:
-                print(f"Fehler bei Kalender-URL '{url}': {e}")
-                error_occurred = True
-
-        # Sortieren nach Startzeit (wichtig, da Events jetzt aus versch. Quellen kommen)
-        try:
-            all_events.sort(key=lambda x: x.get("DTSTART").dt)
-        except:
-            pass # Fallback falls Sortierung fehlschlägt
-
-        # UI Update
-        self.root.after(0, lambda: self._update_ui(all_events))
-        
-        timestamp = datetime.datetime.now().strftime('%H:%M')
-        if error_occurred:
-            self.status_var.set(f"Teilweise Fehler ({timestamp})")
-        else:
-            self.status_var.set(f"Aktuell ({timestamp})")
-
-    def _update_ui(self, events):
-        for widget in self.scroll_frame.winfo_children():
+    def _build_calendar(self):
+        # Clear existing widgets
+        for widget in self.tab_frame.winfo_children():
             widget.destroy()
-            
-        if not events:
-            ttk.Label(self.scroll_frame, text="Keine Termine gefunden (oder URL fehlt).", font=("Arial", 12)).pack(pady=20)
-            return
 
-        current_day_str = ""
-        
-        # Limit auf z.B. 15 Termine, damit die Liste nicht explodiert
-        for event in events[:20]:
-            # Daten extrahieren
-            summary = str(event.get("SUMMARY"))
-            start_dt = event.get("DTSTART").dt
-            
-            # Ganztägig Check
-            is_all_day = False
-            if not isinstance(start_dt, datetime.datetime):
-                start_dt = datetime.datetime.combine(start_dt, datetime.time.min)
-                is_all_day = True
-            
-            # Datum Header
-            day_str = start_dt.strftime("%A, %d.%m.")
-            days_map = {'Monday': 'Montag', 'Tuesday': 'Dienstag', 'Wednesday': 'Mittwoch', 'Thursday': 'Donnerstag', 'Friday': 'Freitag', 'Saturday': 'Samstag', 'Sunday': 'Sonntag'}
-            eng_day = start_dt.strftime("%A")
-            if eng_day in days_map:
-                day_str = day_str.replace(eng_day, days_map[eng_day])
+        # Create a calendar grid
+        calendar_frame = ttk.Frame(self.tab_frame)
+        calendar_frame.pack(fill=BOTH, expand=YES, padx=15, pady=10)
 
-            if day_str != current_day_str:
-                # Kleiner Abstand vor neuem Tag
-                pad_top = 15 if current_day_str != "" else 5
-                ttk.Label(self.scroll_frame, text=day_str, font=("Arial", 14, "bold", "underline"), bootstyle="warning").pack(anchor="w", pady=(pad_top, 5))
-                current_day_str = day_str
-            
-            # Termin Zeile
-            row = ttk.Frame(self.scroll_frame)
-            row.pack(fill=X, pady=2)
-            
-            if is_all_day:
-                time_str = "Ganztag"
-                clr = "info"
-            else:
-                # Zeitzone
-                try:
-                    local_dt = start_dt.astimezone(pytz.timezone("Europe/Berlin"))
-                except:
-                    local_dt = start_dt # Fallback wenn naiv
-                time_str = local_dt.strftime("%H:%M")
-                clr = "light"
+        # Days of the week
+        days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+        for col, day in enumerate(days):
+            ttk.Label(calendar_frame, text=day, font=("Arial", 12, "bold"), anchor="center", bootstyle="secondary").grid(row=0, column=col, sticky="nsew", padx=5, pady=5)
 
-            lbl_time = ttk.Label(row, text=time_str, font=("Arial", 12, "bold"), bootstyle=clr, width=9)
-            lbl_time.pack(side=LEFT)
-            
-            lbl_text = ttk.Label(row, text=summary, font=("Arial", 12))
-            lbl_text.pack(side=LEFT)
-            
-            # Dünne Trennlinie
-            ttk.Separator(self.scroll_frame).pack(fill=X, pady=2, padx=10)
+        # Generate dates for the current month
+        now = datetime.datetime.now()
+        first_day = datetime.date(now.year, now.month, 1)
+        start_day = first_day - datetime.timedelta(days=first_day.weekday())
+        end_day = first_day + datetime.timedelta(days=32)
+        end_day = end_day.replace(day=1) - datetime.timedelta(days=1)
+
+        current_date = start_day
+        row = 1
+        while current_date <= end_day:
+            for col in range(7):
+                if current_date.month == now.month:
+                    day_frame = ttk.Frame(calendar_frame, bootstyle="light")
+                    day_frame.grid(row=row, column=col, sticky="nsew", padx=5, pady=5)
+                    ttk.Label(day_frame, text=str(current_date.day), font=("Arial", 10)).pack(anchor="nw")
+
+                    # Add events for the day
+                    for event in self.events_data:
+                        event_date = event.get("start").date()
+                        if event_date == current_date:
+                            ttk.Label(day_frame, text=event.get("summary"), font=("Arial", 8), wraplength=100).pack(anchor="w")
+
+                current_date += datetime.timedelta(days=1)
+            row += 1
+
+        # Adjust column weights
+        for col in range(7):
+            calendar_frame.columnconfigure(col, weight=1)
+        for r in range(row):
+            calendar_frame.rowconfigure(r, weight=1)
+
+    def _fetch_calendar(self):
+        self.status_var.set("Kalender wird geladen...")
+        self.events_data = []
+
+        try:
+            for url in ICAL_URLS:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    cal = icalendar.Calendar.from_ical(response.content)
+                    events = recurring_ical_events.of(cal).between(datetime.datetime.now(pytz.UTC), datetime.datetime.now(pytz.UTC) + datetime.timedelta(days=30))
+                    for event in events:
+                        self.events_data.append({
+                            "start": event.get("dtstart").dt,
+                            "summary": event.get("summary")
+                        })
+
+            self.events_data.sort(key=lambda x: x["start"])
+            self.status_var.set("Kalender aktualisiert.")
+        except Exception as e:
+            self.status_var.set("Fehler beim Laden des Kalenders.")
+            print(f"Kalender Fehler: {e}")
+
+        self._build_calendar()
