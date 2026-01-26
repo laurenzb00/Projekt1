@@ -168,9 +168,12 @@ class LivePlotApp:
                 return f"#{r:02X}00{b:02X}"
 
         def update_puffer_animation():
-            top_temp = float(self.dash_temp_top_str.get().replace("°C", "") or 0)
-            mid_temp = float(self.dash_temp_mid_str.get().replace("°C", "") or 0)
-            bot_temp = float(self.dash_temp_bot_str.get().replace("°C", "") or 0)
+            try:
+                top_temp = float(self.dash_temp_top_str.get().replace("°C", "") or 0)
+                mid_temp = float(self.dash_temp_mid_str.get().replace("°C", "") or 0)
+                bot_temp = float(self.dash_temp_bot_str.get().replace("°C", "") or 0)
+            except ValueError:
+                top_temp, mid_temp, bot_temp = 0, 0, 0  # Standardwerte bei Fehler
 
             self.canvas_puffer.delete("all")
 
