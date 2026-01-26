@@ -100,15 +100,15 @@ class MainApp:
         self.energy_card = Card(self.body)
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
-        self.energy_view = EnergyFlowView(self.energy_card.content())
+        self.energy_view = EnergyFlowView(self.energy_card.content(), width=620, height=360)
         # Center the canvas without over-expanding on small screens
-        self.energy_view.pack(anchor="center", pady=8)
+        self.energy_view.pack(anchor="center", pady=6)
 
         # Buffer Card (30%)
         self.buffer_card = Card(self.body)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=0)
         self.buffer_card.add_title("Pufferspeicher", icon="🔥")
-        self.buffer_view = BufferStorageView(self.buffer_card.content())
+        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=320)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar

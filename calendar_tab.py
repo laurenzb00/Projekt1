@@ -60,7 +60,16 @@ class CalendarTab:
             "<Configure>",
             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         )
-        self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
+        self.window_id = self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
+
+        # Stretch inner frame to canvas width so der Kalender nutzt den Platz
+        def _resize_inner(event):
+            try:
+                self.canvas.itemconfigure(self.window_id, width=event.width)
+            except Exception:
+                pass
+        self.canvas.bind("<Configure>", _resize_inner)
+
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         
         self.canvas.pack(side="left", fill="both", expand=True, padx=15, pady=10)

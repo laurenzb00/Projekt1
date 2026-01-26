@@ -15,7 +15,7 @@ from ui.styles import (
 class EnergyFlowView(tk.Frame):
     """PIL-basierter, flimmerfreier Energiefluss. Ein Canvas-Image pro Update."""
 
-    def __init__(self, parent: tk.Widget, width: int = 700, height: int = 420):
+    def __init__(self, parent: tk.Widget, width: int = 620, height: int = 360):
         super().__init__(parent, bg=COLOR_CARD)
         self.canvas = tk.Canvas(self, width=width, height=height, highlightthickness=0, bg=COLOR_CARD)
         self.canvas.pack(fill=tk.BOTH, expand=True)

@@ -39,7 +39,7 @@ class HeaderBar(tk.Frame):
         # Mitte: Uhrzeit groß
         center = tk.Frame(inner, bg=COLOR_CARD)
         center.grid(row=0, column=1, sticky="nsew")
-        self.clock_label = tk.Label(center, text="--:--", font=("Segoe UI", 36, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD)
+        self.clock_label = tk.Label(center, text="--:--", font=("Segoe UI", 32, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD)
         self.clock_label.pack(expand=True, fill="both")
 
         # Rechts: Außentemp + Toggles

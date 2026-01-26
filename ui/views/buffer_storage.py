@@ -19,14 +19,14 @@ from ui.styles import (
 class BufferStorageView(tk.Frame):
     """Modernes Matplotlib-Heatmap Widget für Pufferspeicher."""
 
-    def __init__(self, parent: tk.Widget, height: int = 360):
+    def __init__(self, parent: tk.Widget, height: int = 320):
         super().__init__(parent, bg=COLOR_CARD)
         self.height = height
         self.data = np.array([[60.0], [50.0], [40.0]])
         self._chip_boxes: list[FancyBboxPatch] = []
         self._chip_stripes: list[Rectangle] = []
 
-        self.fig, self.ax = plt.subplots(figsize=(3.4, 3.6), dpi=100)
+        self.fig, self.ax = plt.subplots(figsize=(3.0, 3.2), dpi=100)
         self.fig.patch.set_facecolor(COLOR_CARD)
         self.ax.set_facecolor(COLOR_CARD)
 
