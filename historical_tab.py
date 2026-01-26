@@ -85,7 +85,7 @@ class HistoricalTab:
         if not os.path.exists(path):
             return []
         rows = []
-        cutoff = datetime.now() - timedelta(days=7)
+        cutoff = datetime.now() - timedelta(days=30)
         try:
             with open(path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
@@ -94,9 +94,9 @@ class HistoricalTab:
                         ts = datetime.fromisoformat(row.get("Zeit", row.get("Zeitstempel", "")))
                         if ts < cutoff:
                             continue
-                        top = float(row.get("Puffer_Top", row.get("PufferTop", row.get("puffer_top", 0))))
-                        mid = float(row.get("Puffer_Mitte", row.get("PufferMid", row.get("puffer_mid", 0))))
-                        bot = float(row.get("Puffer_Bottom", row.get("PufferBot", row.get("puffer_bot", 0))))
+                        top = float(row.get("Puffer_Top", row.get("PufferTop", row.get("puffer_top", row.get("Pufferspeicher Oben", 0)))))
+                        mid = float(row.get("Puffer_Mitte", row.get("PufferMid", row.get("puffer_mid", row.get("Pufferspeicher Mitte", 0)))))
+                        bot = float(row.get("Puffer_Bottom", row.get("PufferBot", row.get("puffer_bot", row.get("Pufferspeicher Unten", 0)))))
                         rows.append((ts, top, mid, bot))
                     except Exception:
                         continue

@@ -65,8 +65,11 @@ class MainApp:
         sh = max(1, self.root.winfo_screenheight())
         target_w = min(sw, 1024)
         target_h = min(sh, 600)
+        # Kleine Top-Offset, damit Header/Tabbar nicht unter einer System-Taskleiste liegen
+        offset_y = 12
+        usable_h = max(200, target_h - offset_y)
         self.root.overrideredirect(True)  # remove window chrome
-        self.root.geometry(f"{target_w}x{target_h}+0+0")
+        self.root.geometry(f"{target_w}x{usable_h}+0+{offset_y}")
         self.root.resizable(False, False)
         try:
             self.root.attributes("-fullscreen", True)
@@ -87,6 +90,7 @@ class MainApp:
             self.root,
             on_toggle_a=self.on_toggle_a,
             on_toggle_b=self.on_toggle_b,
+            on_exit=self.on_exit,
         )
         self.header.grid(row=0, column=0, sticky="nsew", padx=12, pady=(12, 6))
 
@@ -111,8 +115,8 @@ class MainApp:
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
         self.energy_view = EnergyFlowView(self.energy_card.content(), width=620, height=360)
-        # Center the canvas without over-expanding on small screens
-        self.energy_view.pack(anchor="center", pady=6)
+        # Fill to nutzen: sorgt dafür, dass Energie- und Puffer-Card die gleiche Höhe bekommen
+        self.energy_view.pack(fill=tk.BOTH, expand=True, pady=6)
 
         # Buffer Card (30%)
         self.buffer_card = Card(self.body)
@@ -163,10 +167,24 @@ class MainApp:
 
     # --- Callbacks ---
     def on_toggle_a(self):
-        pass
+        self.status.update_status("Hue: Alle an")
+        try:
+            if hasattr(self, "hue_tab") and self.hue_tab:
+                self.hue_tab._threaded_group_cmd(True)
+        except Exception:
+            pass
 
     def on_toggle_b(self):
-        pass
+        self.status.update_status("Hue: Alle aus")
+        try:
+            if hasattr(self, "hue_tab") and self.hue_tab:
+                self.hue_tab._threaded_group_cmd(False)
+        except Exception:
+            pass
+
+    def on_exit(self):
+        self.status.update_status("Beende...")
+        self.root.after(100, self.root.quit)
 
     # --- Update Loop mit echten Daten ---
     def _loop(self):

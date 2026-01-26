@@ -44,11 +44,12 @@ class EnergyFlowView(tk.Frame):
         margin_top = 40
         margin_bottom = 90  # Platz für SoC-Text unter der Batterie
         usable_h = h - margin_top - margin_bottom
+        battery_dx = -140  # weit nach links versetzen, damit Haus/Batterie genügend Abstand haben
         return {
             "pv": (margin_x + int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.15)),
             "grid": (w - margin_x - int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.15)),
             "home": (w // 2, margin_top + int(usable_h * 0.55)),
-            "battery": (w // 2, margin_top + int(usable_h * 0.90)),
+            "battery": (w // 2 + battery_dx, margin_top + int(usable_h * 0.94)),
         }
 
     def _render_background(self) -> Image.Image:
