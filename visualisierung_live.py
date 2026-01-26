@@ -332,6 +332,43 @@ class LivePlotApp:
         print("Historische Daten anzeigen")
         # Hier könnte ein Diagramm oder eine Ansicht geöffnet werden
 
+    def update_puffer_animation(self):
+        try:
+            top_temp = float(self.dash_temp_top_str.get().replace("°C", "") or 0)
+            mid_temp = float(self.dash_temp_mid_str.get().replace("°C", "") or 0)
+            bot_temp = float(self.dash_temp_bot_str.get().replace("°C", "") or 0)
+        except ValueError:
+            top_temp, mid_temp, bot_temp = 0, 0, 0  # Standardwerte bei Fehler
+
+        self.canvas_puffer.delete("all")
+
+        # Batterie mit Farbverlauf
+        self.canvas_puffer.create_rectangle(
+            50, 10, 100, 160, fill="black", outline="white", width=2
+        )
+        self.canvas_puffer.create_rectangle(
+            50, 10, 100, 60, fill=self.get_color(top_temp), outline="white"
+        )
+        self.canvas_puffer.create_rectangle(
+            50, 60, 100, 110, fill=self.get_color(mid_temp), outline="white"
+        )
+        self.canvas_puffer.create_rectangle(
+            50, 110, 100, 160, fill=self.get_color(bot_temp), outline="white"
+        )
+
+        # Temperaturen neben den Abschnitten
+        self.canvas_puffer.create_text(
+            110, 35, text=f"{top_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
+        )
+        self.canvas_puffer.create_text(
+            110, 85, text=f"{mid_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
+        )
+        self.canvas_puffer.create_text(
+            110, 135, text=f"{bot_temp:.1f}°C", fill="yellow", font=("Arial", 10), anchor="w"
+        )
+
+        self.root.after(1000, self.update_puffer_animation)  # Aktualisierung alle 1 Sekunde
+
         # Sicherstellen, dass die Animation ohne Icon funktioniert
         try:
             icon_path = os.path.join(WORKING_DIRECTORY, "icons/puffer.png")
