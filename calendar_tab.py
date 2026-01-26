@@ -69,13 +69,15 @@ class CalendarTab:
         # Refresh Button
         ttk.Button(header, text="↻", bootstyle="secondary-outline", command=lambda: threading.Thread(target=self._fetch_calendar, daemon=True).start()).pack(side=RIGHT, padx=10)
 
+    # --- Thread-Safe Kalender-Funktion ---
+    def _fetch_calendar_safe(self):
+        self.root.after(0, self._fetch_calendar)
+
+    # --- Thread-Loop ---
     def _loop(self):
-        self._fetch_calendar()
-        while self.alive:
-            for _ in range(900): # 15 min
-                if not self.alive: return
-                time.sleep(1)
-            self._fetch_calendar()
+        while True:
+            self._fetch_calendar_safe()
+            time.sleep(60)  # Beispiel: alle 60 Sekunden aktualisieren
 
     def _build_calendar(self):
         # Clear existing widgets

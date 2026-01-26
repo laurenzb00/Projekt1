@@ -96,18 +96,19 @@ class LivePlotApp:
         self.dash_frame.rowconfigure(2, weight=1) 
         self.dash_frame.rowconfigure(3, weight=0) 
 
-        # --- Icons laden mit Fallback ---
-        def load_icon(filename):
+        # --- Icons laden mit angepasster Größe ---
+        def load_icon(filename, size):
             try:
-                return tk.PhotoImage(file=os.path.join(WORKING_DIRECTORY, filename))
+                icon = tk.PhotoImage(file=os.path.join(WORKING_DIRECTORY, filename))
+                return icon.subsample(size, size)
             except Exception as e:
                 print(f"Warnung: Icon {filename} konnte nicht geladen werden ({e})")
                 return None
 
-        self.icon_sun = load_icon("icons/sun.png")
-        self.icon_home = load_icon("icons/home.png")
-        self.icon_battery = load_icon("icons/battery.png")
-        self.icon_thermometer = load_icon("icons/thermometer.png")
+        self.icon_sun = load_icon("icons/sun.png", 4)
+        self.icon_home = load_icon("icons/home.png", 4)
+        self.icon_battery = load_icon("icons/battery.png", 4)
+        self.icon_thermometer = load_icon("icons/thermometer.png", 4)
 
         # --- ZEILE 0: Hauptwerte ---
         f1 = ttk.Labelframe(self.dash_frame, text="PV Erzeugung", padding=10, bootstyle="warning")
@@ -115,14 +116,14 @@ class LivePlotApp:
         ttk.Label(f1, textvariable=self.dash_pv_now, font=("Arial", 28, "bold"), bootstyle="warning").pack(anchor="center")
         ttk.Label(f1, text="Aktuelle Leistung", font=("Arial", 9)).pack(anchor="center")
         if self.icon_sun:
-            ttk.Label(f1, image=self.icon_sun).pack(anchor="center")
+            ttk.Label(f1, image=self.icon_sun).pack(anchor="center", pady=5)
 
         f2 = ttk.Labelframe(self.dash_frame, text="Verbrauch", padding=10, bootstyle="info")
         f2.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
         ttk.Label(f2, textvariable=self.dash_haus_now, font=("Arial", 28, "bold"), bootstyle="info").pack(anchor="center")
         ttk.Label(f2, text="Hauslast", font=("Arial", 9)).pack(anchor="center")
         if self.icon_home:
-            ttk.Label(f2, image=self.icon_home).pack(anchor="center")
+            ttk.Label(f2, image=self.icon_home).pack(anchor="center", pady=5)
 
         f3 = ttk.Labelframe(self.dash_frame, text="Speicher", padding=5, bootstyle="success")
         f3.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5, pady=5)
@@ -132,7 +133,7 @@ class LivePlotApp:
         )
         self.meter_batt.pack(expand=YES, pady=5)
         if self.icon_battery:
-            ttk.Label(f3, image=self.icon_battery).pack(anchor="center")
+            ttk.Label(f3, image=self.icon_battery).pack(anchor="center", pady=5)
 
         # --- ZEILE 1: Zusatzinfos ---
         f4 = ttk.Frame(self.dash_frame)
@@ -189,7 +190,7 @@ class LivePlotApp:
         ttk.Label(f_bot, text="Außen:", font=("Arial", 16)).pack(side=LEFT, anchor="s", pady=5)
         ttk.Label(f_bot, textvariable=self.dash_aussen, font=("Arial", 42, "bold"), bootstyle="inverse-primary").pack(side=LEFT, padx=15)
         if self.icon_thermometer:
-            ttk.Label(f_bot, image=self.icon_thermometer).pack(side=LEFT, padx=15)
+            ttk.Label(f_bot, image=self.icon_thermometer).pack(side=LEFT, padx=15, pady=5)
 
         ttk.Label(f_bot, textvariable=self.dash_status, font=("Arial", 10), bootstyle="secondary").pack(side=RIGHT, anchor="s", pady=5)
 
