@@ -177,33 +177,19 @@ class LivePlotApp:
 
             self.canvas_puffer.delete("all")
 
-            # Oben
-            self.canvas_puffer.create_rectangle(
-                10, 10, 90, 50, fill=get_color(top_temp), outline="white"
-            )
-            self.canvas_puffer.create_text(
-                50, 30, text=f"Oben: {top_temp}°C", fill="white", font=("Arial", 10)
-            )
-
-            # Mitte
-            self.canvas_puffer.create_rectangle(
-                10, 60, 90, 100, fill=get_color(mid_temp), outline="white"
-            )
-            self.canvas_puffer.create_text(
-                50, 80, text=f"Mitte: {mid_temp}°C", fill="white", font=("Arial", 10)
-            )
-
-            # Unten
-            self.canvas_puffer.create_rectangle(
-                10, 110, 90, 150, fill=get_color(bot_temp), outline="white"
-            )
-            self.canvas_puffer.create_text(
-                50, 130, text=f"Unten: {bot_temp}°C", fill="white", font=("Arial", 10)
-            )
+            # Übergänge zwischen den Feldern
+            gradient_colors = [get_color(top_temp), get_color(mid_temp), get_color(bot_temp)]
+            for i in range(3):
+                self.canvas_puffer.create_rectangle(
+                    10, 10 + i * 50, 90, 50 + i * 50, fill=gradient_colors[i], outline="white"
+                )
+                self.canvas_puffer.create_text(
+                    100, 30 + i * 50, text=f"{['Oben', 'Mitte', 'Unten'][i]}: {round([top_temp, mid_temp, bot_temp][i], 1)}°C", fill="white", font=("Arial", 10), anchor="w"
+                )
 
             self.root.after(1000, update_puffer_animation)  # Aktualisierung alle 1 Sekunde
 
-        self.canvas_puffer = tk.Canvas(f_puffer, width=100, height=160, bg="black")
+        self.canvas_puffer = tk.Canvas(f_puffer, width=120, height=160, bg="black")
         self.canvas_puffer.pack(anchor="center", pady=10)
 
         update_puffer_animation()
