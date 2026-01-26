@@ -108,6 +108,41 @@ class LivePlotApp:
         """Beendet Vollbildmodus und schließt Programm"""
         self.root.destroy()
 
+    def _update_battery_color(self, soc):
+        """Ändert Batterie-Farbe basierend auf Ladestand"""
+        if soc < 20:
+            color = "#ef4444"  # Rot
+        elif soc < 50:
+            color = "#f59e0b"  # Orange
+        elif soc < 80:
+            color = "#10b981"  # Grün
+        else:
+            color = "#059669"  # Dunkelgrün
+        
+        try:
+            self.battery_card.configure(bg=color)
+            self.battery_value_label.configure(bg=color)
+            # Finde Header-Frame und aktualisiere
+            for widget in self.battery_card.winfo_children():
+                if isinstance(widget, tk.Frame):
+                    widget.configure(bg=color)
+                    for child in widget.winfo_children():
+                        if isinstance(child, tk.Label):
+                            child.configure(bg=color)
+        except:
+            pass
+
+    def _highlight_card(self, card, highlight_color):
+        """Hebt eine Karte kurz hervor (visuelles Feedback)"""
+        try:
+            original_color = card.cget("bg")
+            # Kurzer Farbwechsel für Aufmerksamkeit
+            card.configure(bg=highlight_color)
+            # Nach 500ms zurück zur Originalfarbe
+            self.root.after(500, lambda: card.configure(bg=original_color))
+        except:
+            pass
+
     # --- UI SETUP ---
     def setup_dashboard_tab(self):
         # Hauptcontainer (optimiert für 1024x600 Touchscreen)
@@ -127,7 +162,7 @@ class LivePlotApp:
             row=0, col=0,
             title="PV Erzeugung",
             bg_color="#0ea5e9",
-            icon="☀"
+            icon="●"  # Sonne-Symbol als Kreis
         )
         self.pv_value_label = tk.Label(
             self.pv_card, textvariable=self.dash_pv_now,
@@ -141,7 +176,7 @@ class LivePlotApp:
             row=0, col=1,
             title="Verbrauch",
             bg_color="#ec4899",
-            icon="⚡"
+            icon="⚡"  # Blitz funktioniert
         )
         self.verbrauch_value_label = tk.Label(
             self.verbrauch_card, textvariable=self.dash_haus_now,
@@ -149,13 +184,13 @@ class LivePlotApp:
         )
         self.verbrauch_value_label.pack(pady=4)
 
-        # Batterie SoC
+        # Batterie SoC - mit Animation
         self.battery_card = self._create_modern_card(
             parent=self.dashboard_frame,
             row=0, col=2,
             title="Batterie",
             bg_color="#10b981",
-            icon="🔋"
+            icon="▮"  # Batterie als Balken
         )
         self.battery_soc_var = tk.StringVar(value="0 %")
         self.battery_value_label = tk.Label(
@@ -170,7 +205,7 @@ class LivePlotApp:
             row=0, col=3,
             title="Tagesertrag",
             bg_color="#f59e0b",
-            icon="📊"
+            icon="▲"  # Trend-Pfeil
         )
         self.ertrag_value_label = tk.Label(
             self.ertrag_card, textvariable=self.dash_ertrag_heute,
@@ -201,8 +236,8 @@ class LivePlotApp:
         aussen_inner.pack(expand=True, fill=tk.BOTH)
         
         tk.Label(
-            aussen_inner, text="🌡", 
-            font=("Segoe UI", 28), fg="#6366f1", bg="#16213e"
+            aussen_inner, text="◐",  # Besseres Thermometer-Symbol
+            font=("Segoe UI", 32), fg="#6366f1", bg="#16213e"
         ).pack(pady=(8, 2))
         
         self.aussen_value_label = tk.Label(
@@ -357,6 +392,17 @@ class LivePlotApp:
                 self.dash_haus_now.set(f"{haus:.2f} kW")
                 self.battery_soc_var.set(f"{int(soc)} %")
                 
+                # Dynamische Farbanpassung für Batterie
+                self._update_battery_color(soc)
+                
+                # PV-Karten Hervorhebung wenn Produktion
+                if pv > 0.5:
+                    self._highlight_card(self.pv_card, "#0ea5e9")
+                
+                # Verbrauchs-Warnung bei hoher Last
+                if haus > 5.0:
+                    self._highlight_card(self.verbrauch_card, "#dc2626")
+                
                 if haus > 0:
                     autarkie = min(pv, haus) / haus * 100
                     self.dash_autarkie.set(f"{int(autarkie)} %")
@@ -427,36 +473,53 @@ class LivePlotApp:
         df_sub = df.loc[mask]
 
         if not df_sub.empty:
-            # PV mit Gradient Fill
+            # PV mit schönem Gradient Fill
             ax.fill_between(
                 df_sub["Zeitstempel"], df_sub["PV-Leistung (kW)"],
-                color="#22d3ee", alpha=0.4, label="PV"
+                color="#22d3ee", alpha=0.5, label="PV Erzeugung"
             )
             ax.plot(
                 df_sub["Zeitstempel"], df_sub["PV-Leistung (kW)"],
-                color="#0ea5e9", linewidth=2.5
+                color="#0ea5e9", linewidth=3, label="_nolegend_"
             )
             
-            # Hausverbrauch
+            # Hausverbrauch in Pink
             ax.plot(
                 df_sub["Zeitstempel"], df_sub["Hausverbrauch (kW)"],
-                label="Verbrauch", color="#ec4899", linewidth=2.5
+                label="Hausverbrauch", color="#ec4899", linewidth=2.5, linestyle="--"
             )
             
-            # Batterieladestand auf zweiter Y-Achse
+            # Netz-Leistung wenn vorhanden
+            if "Netz-Leistung (kW)" in df_sub.columns:
+                netz = df_sub["Netz-Leistung (kW)"]
+                # Positive Werte = Bezug, negative = Einspeisung
+                bezug_mask = netz > 0.1
+                if bezug_mask.any():
+                    ax.plot(
+                        df_sub.loc[bezug_mask, "Zeitstempel"], 
+                        df_sub.loc[bezug_mask, "Netz-Leistung (kW)"],
+                        color="#ef4444", linewidth=2, label="Netzbezug", marker=".", markersize=3
+                    )
+            
+            # Batterieladestand auf zweiter Y-Achse (transparenter)
             ax2.plot(
                 df_sub["Zeitstempel"], df_sub["Batterieladestand (%)"],
-                color="#10b981", linestyle=":", alpha=0.7, linewidth=2, label="SoC"
+                color="#10b981", linestyle=":", alpha=0.6, linewidth=2, label="Batterie %"
             )
             ax2.set_ylim(0, 100)
-            ax2.tick_params(colors="#8892b0")
-            ax2.spines['right'].set_color('#2d3a5f')
+            ax2.tick_params(colors="#10b981", labelsize=9)
+            ax2.spines['right'].set_color('#10b981')
             ax2.yaxis.label.set_color('#10b981')
-            ax2.set_ylabel("Batterie (%)", color="#10b981", fontsize=10)
+            ax2.set_ylabel("Batterie (%)", color="#10b981", fontsize=10, fontweight='bold')
             
-            ax.legend(loc="upper left", facecolor='#16213e', edgecolor='#2d3a5f',
-                     labelcolor='white', fontsize=10, framealpha=0.9)
-            ax.set_title("PV Leistung & Verbrauch (48h)", color="white", fontsize=12, fontweight='bold')
+            # Legende mit allen Infos
+            lines1, labels1 = ax.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax.legend(lines1 + lines2, labels1 + labels2,
+                     loc="upper left", facecolor='#16213e', edgecolor='#2d3a5f',
+                     labelcolor='white', fontsize=9, framealpha=0.95)
+            
+            ax.set_title("Energie-Fluss (48h)", color="white", fontsize=12, fontweight='bold')
             ax.set_ylabel("Leistung (kW)", color="#8892b0", fontsize=10)
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
             self.fronius_fig.patch.set_facecolor("#16213e")
@@ -504,16 +567,37 @@ class LivePlotApp:
             df_daily = df_daily[df_daily.index >= start_date]
 
             if not df_daily.empty:
+                # Bars mit Farbverlauf basierend auf Ertrag
+                colors = []
+                for val in df_daily.values:
+                    if val < 5:
+                        colors.append("#ef4444")  # Rot für wenig
+                    elif val < 15:
+                        colors.append("#f59e0b")  # Orange für mittel
+                    elif val < 25:
+                        colors.append("#10b981")  # Grün für gut
+                    else:
+                        colors.append("#059669")  # Dunkelgrün für sehr gut
+                
                 bars = ax.bar(
                     df_daily.index, df_daily.values,
-                    color="#f59e0b", width=0.7, edgecolor="#d97706", linewidth=1.5
+                    color=colors, width=0.8, edgecolor="#2d3a5f", linewidth=1
                 )
                 
-                # Gradient-Effekt auf Bars
-                for bar in bars:
-                    bar.set_alpha(0.8)
+                # Durchschnittslinie
+                avg = df_daily.mean()
+                ax.axhline(y=avg, color='#06b6d4', linestyle='--', 
+                          linewidth=2, alpha=0.7, label=f'Ø {avg:.1f} kWh')
                 
-                ax.set_title("Tagesertrag (letzte 30 Tage)", color="white", 
+                # Beste und schlechteste Tage markieren
+                max_day = df_daily.idxmax()
+                max_val = df_daily.max()
+                ax.plot(max_day, max_val, 'g*', markersize=15, 
+                       label=f'Max: {max_val:.1f} kWh')
+                
+                ax.legend(loc='upper left', facecolor='#16213e', edgecolor='#2d3a5f',
+                         labelcolor='white', fontsize=9, framealpha=0.95)
+                ax.set_title("Tagesertrag (30 Tage)", color="white", 
                            fontsize=12, fontweight='bold')
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.'))
                 ax.set_xlabel("Datum", color="#8892b0", fontsize=10)
@@ -521,7 +605,7 @@ class LivePlotApp:
                 self.ertrag_fig.patch.set_facecolor("#16213e")
             else:
                 ax.text(0.5, 0.5, "Keine Daten verfügbar", 
-                       color="white", ha="center", transform=ax.transAxes)
+                       color="white", ha="center", transform=ax.transAxes, fontsize=12)
         except Exception as e:
             print(f"Ertrag Plot Fehler: {e}")
 
@@ -536,27 +620,42 @@ class LivePlotApp:
         df_sub = df.loc[mask]
         
         if not df_sub.empty:
+            # Temperaturen mit schönen Gradienten
             ax.plot(
                 df_sub["Zeitstempel"], df_sub["Pufferspeicher Oben"],
-                color="#ef4444", label="Oben", linewidth=2.5
+                color="#ef4444", label="Puffer Oben", linewidth=2.5, marker='o', markersize=2
             )
+            ax.fill_between(
+                df_sub["Zeitstempel"], df_sub["Pufferspeicher Oben"],
+                alpha=0.2, color="#ef4444"
+            )
+            
             ax.plot(
                 df_sub["Zeitstempel"], df_sub["Pufferspeicher Mitte"],
-                color="#f59e0b", label="Mitte", linewidth=2.5
+                color="#f59e0b", label="Puffer Mitte", linewidth=2.5
             )
             ax.plot(
                 df_sub["Zeitstempel"], df_sub["Pufferspeicher Unten"],
-                color="#3b82f6", label="Unten", linewidth=2.5
-            )
-            ax.plot(
-                df_sub["Zeitstempel"], df_sub["Außentemperatur"],
-                color="#06b6d4", label="Außen", linestyle="--", 
-                alpha=0.7, linewidth=2
+                color="#3b82f6", label="Puffer Unten", linewidth=2.5
             )
             
+            # Außentemperatur gestrichelt
+            ax.plot(
+                df_sub["Zeitstempel"], df_sub["Außentemperatur"],
+                color="#06b6d4", label="Außentemperatur", linestyle="--", 
+                alpha=0.8, linewidth=2
+            )
+            
+            # Kesseltemperatur wenn vorhanden
+            if "Kesseltemperatur" in df_sub.columns:
+                ax.plot(
+                    df_sub["Zeitstempel"], df_sub["Kesseltemperatur"],
+                    color="#a855f7", label="Kessel", linewidth=2, alpha=0.7
+                )
+            
             ax.legend(facecolor='#16213e', edgecolor='#2d3a5f',
-                     labelcolor='white', fontsize=10, framealpha=0.9)
-            ax.set_title("Temperaturen (7 Tage)", color="white", 
+                     labelcolor='white', fontsize=9, framealpha=0.95, loc='best')
+            ax.set_title("Heizungs-Temperaturen (7 Tage)", color="white", 
                         fontsize=12, fontweight='bold')
             ax.set_ylabel("Temperatur (°C)", color="#8892b0", fontsize=10)
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.'))

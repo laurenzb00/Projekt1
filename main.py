@@ -9,7 +9,6 @@ from spotify_tab import SpotifyTab
 from tado_tab import TadoTab   
 from hue_tab import HueTab     
 from system_tab import SystemTab
-from analyse_tab import AnalyseTab
 from calendar_tab import CalendarTab # <--- NEU IMPORTIEREN
 import time 
 
@@ -59,8 +58,7 @@ def main():
     app = visualisierung_live.LivePlotApp(root) 
 
     # 2. Zusatz Tabs hinzufügen
-    calendar = CalendarTab(root, app.notebook) # <--- NEUER KALENDER TAB (am besten vorne oder mitte)
-    analyse = AnalyseTab(root, app.notebook) 
+    calendar = CalendarTab(root, app.notebook) # <--- KALENDER TAB
     tado = TadoTab(root, app.notebook)
     hue = HueTab(root, app.notebook)
     spotify = SpotifyTab(root, app.notebook) 
