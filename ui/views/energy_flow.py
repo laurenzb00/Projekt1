@@ -2,7 +2,6 @@ import tkinter as tk
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 from ui.styles import (
     COLOR_CARD,
-    COLOR_BG,
     COLOR_BORDER,
     COLOR_TEXT,
     COLOR_PRIMARY,
@@ -40,11 +39,15 @@ class EnergyFlowView(tk.Frame):
 
     def _define_nodes(self):
         w, h = self.width, self.height
+        margin_x = int(w * 0.08)
+        margin_top = 28
+        margin_bottom = 88  # Reserve Platz für Batterie-Beschriftungen
+        usable_h = h - margin_top - margin_bottom
         return {
-            "pv": (int(w * 0.2), int(h * 0.2)),
-            "grid": (int(w * 0.8), int(h * 0.2)),
-            "home": (int(w * 0.5), int(h * 0.52)),
-            "battery": (int(w * 0.5), int(h * 0.82)),
+            "pv": (margin_x + int((w - 2 * margin_x) * 0.2), margin_top + int(usable_h * 0.05)),
+            "grid": (w - margin_x - int((w - 2 * margin_x) * 0.2), margin_top + int(usable_h * 0.05)),
+            "home": (w // 2, margin_top + int(usable_h * 0.50)),
+            "battery": (w // 2, margin_top + int(usable_h * 0.88)),
         }
 
     def _render_background(self) -> Image.Image:
@@ -57,7 +60,7 @@ class EnergyFlowView(tk.Frame):
         return img
 
     def _draw_node(self, draw: ImageDraw.ImageDraw, x: int, y: int, name: str):
-        r = 54
+        r = 52
         fill = COLOR_BORDER
         if name == "home":
             fill = COLOR_PRIMARY
@@ -67,7 +70,7 @@ class EnergyFlowView(tk.Frame):
             fill = COLOR_INFO
         elif name == "battery":
             fill = COLOR_WARNING
-        draw.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=COLOR_BG, width=3)
+        draw.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=COLOR_CARD, width=3)
         label = {
             "pv": "PV",
             "grid": "GRID",
@@ -80,7 +83,9 @@ class EnergyFlowView(tk.Frame):
         font = self._font_big if size > 20 and self._font_big else ImageFont.load_default()
         if size <= 20:
             font = self._font_small if self._font_small else ImageFont.load_default()
-        tw, th = draw.textsize(text, font=font)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
         draw.text((x - tw / 2, y - th / 2), text, font=font, fill=color)
 
     def _draw_arrow(self, draw: ImageDraw.ImageDraw, src, dst, color: str, width: float):
@@ -96,6 +101,11 @@ class EnergyFlowView(tk.Frame):
         right = (x1 - ux * size - uy * size * 0.6, y1 - uy * size + ux * size * 0.6)
         draw.polygon([left, right, (x1, y1)], fill=color)
 
+    def _format_power(self, watts: float) -> str:
+        if abs(watts) < 1000:
+            return f"{watts:.0f} W"
+        return f"{watts/1000:.2f} kW"
+
     def render_frame(self, pv_w: float, load_w: float, grid_w: float, batt_w: float, soc: float) -> Image.Image:
         img = self._base_img.copy()
         draw = ImageDraw.Draw(img)
@@ -109,30 +119,29 @@ class EnergyFlowView(tk.Frame):
             return max(lo, min(hi, val))
 
         def thickness(watts):
-            return clamp(2 + watts / 1500, 2, 8)
+            return clamp(2 + abs(watts) / 1500, 2, 8)
 
         # PV -> Haus
         if pv_w > 0:
             self._draw_arrow(draw, pv, home, COLOR_SUCCESS, thickness(pv_w))
-        # Grid -> Haus oder Haus -> Grid
-        if abs(grid_w) > 0:
-            color = COLOR_INFO if grid_w >= 0 else COLOR_WARNING
-            self._draw_arrow(draw, grid, home if grid_w >= 0 else grid, color, thickness(abs(grid_w)))
-            if grid_w < 0:
-                self._draw_arrow(draw, home, grid, color, thickness(abs(grid_w)))
-        # Batterie Laden/Entladen
-        if abs(batt_w) > 0:
-            color = COLOR_WARNING if batt_w > 0 else COLOR_SUCCESS
-            if batt_w > 0:
-                self._draw_arrow(draw, pv, bat, color, thickness(batt_w))
-            else:
-                self._draw_arrow(draw, bat, home, color, thickness(abs(batt_w)))
 
-        # Werte anzeigen
-        self._text_center(draw, f"PV {pv_w:.0f} W", pv[0], pv[1] + 70, size=16)
-        self._text_center(draw, f"Netz {grid_w:.0f} W", grid[0], grid[1] + 70, size=16)
-        self._text_center(draw, f"Haus {load_w:.0f} W", home[0], home[1] + 70, size=16)
-        self._text_center(draw, f"Batt {batt_w:.0f} W", bat[0], bat[1] + 70, size=16)
+        # Grid Import/Export
+        if grid_w > 0:
+            self._draw_arrow(draw, grid, home, COLOR_INFO, thickness(grid_w))
+        elif grid_w < 0:
+            self._draw_arrow(draw, home, grid, COLOR_INFO, thickness(grid_w))
+
+        # Batterie Laden/Entladen (batt_w > 0 = laden)
+        if batt_w > 0:
+            self._draw_arrow(draw, home, bat, COLOR_WARNING, thickness(batt_w))
+        elif batt_w < 0:
+            self._draw_arrow(draw, bat, home, COLOR_SUCCESS, thickness(batt_w))
+
+        # Werte anzeigen mit Einheiten
+        self._text_center(draw, f"PV {self._format_power(pv_w)}", pv[0], pv[1] + 70, size=16)
+        self._text_center(draw, f"Netz {self._format_power(grid_w)}", grid[0], grid[1] + 70, size=16)
+        self._text_center(draw, f"Haus {self._format_power(load_w)}", home[0], home[1] + 70, size=16)
+        self._text_center(draw, f"Batt {self._format_power(batt_w)}", bat[0], bat[1] + 70, size=16)
         self._text_center(draw, f"SoC {soc:.0f}%", bat[0], bat[1] + 100, size=16)
         return img
 

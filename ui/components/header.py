@@ -1,13 +1,21 @@
 import tkinter as tk
-from ttkbootstrap import ttk
-from ui.styles import COLOR_CARD, COLOR_BG, COLOR_TEXT, COLOR_SUBTEXT, COLOR_PRIMARY, COLOR_BORDER
+from tkinter import ttk
+from ui.styles import (
+    COLOR_CARD,
+    COLOR_HEADER,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+    COLOR_PRIMARY,
+    COLOR_BORDER,
+    COLOR_WARNING,
+)
 
 
 class HeaderBar(tk.Frame):
     """80px Header mit Datum, Uhrzeit und Toggles."""
 
     def __init__(self, parent: tk.Widget, on_toggle_a=None, on_toggle_b=None):
-        super().__init__(parent, height=80, bg=COLOR_BG)
+        super().__init__(parent, height=80, bg=COLOR_HEADER)
         self.pack_propagate(False)
 
         # Border + inner card
@@ -53,4 +61,14 @@ class HeaderBar(tk.Frame):
         self.date_label.config(text=date_text)
         self.weekday_label.config(text=weekday)
         self.clock_label.config(text=time_text)
+        self.out_temp_label.config(text=out_temp)
+
+    def update_time(self, time_text: str):
+        self.clock_label.config(text=time_text)
+
+    def update_date(self, date_text: str, weekday: str):
+        self.date_label.config(text=date_text)
+        self.weekday_label.config(text=weekday)
+
+    def update_outside_temp(self, out_temp: str):
         self.out_temp_label.config(text=out_temp)

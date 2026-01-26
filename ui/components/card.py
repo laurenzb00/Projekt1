@@ -1,12 +1,12 @@
 import tkinter as tk
-from ui.styles import COLOR_BG, COLOR_BORDER, COLOR_CARD, COLOR_TEXT
+from ui.styles import COLOR_ROOT, COLOR_BORDER, COLOR_CARD, COLOR_TEXT
 
 
 class Card(tk.Frame):
     """Glasmorph-ähnlicher Card-Container mit Border und Innenbereich."""
 
     def __init__(self, parent: tk.Widget, padding: int = 16, *args, **kwargs):
-        super().__init__(parent, bg=COLOR_BG, *args, **kwargs)
+        super().__init__(parent, bg=COLOR_ROOT, *args, **kwargs)
 
         border = tk.Frame(self, bg=COLOR_BORDER)
         border.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)

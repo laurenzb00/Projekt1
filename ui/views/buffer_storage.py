@@ -2,8 +2,16 @@ import tkinter as tk
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch
-from ui.styles import COLOR_CARD, COLOR_BORDER, COLOR_TEXT, COLOR_SUBTEXT, COLOR_SUCCESS, COLOR_WARNING
+from matplotlib.patches import FancyBboxPatch, Rectangle
+from ui.styles import (
+    COLOR_CARD,
+    COLOR_BORDER,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+    COLOR_INFO,
+)
 
 
 class BufferStorageView(tk.Frame):
@@ -13,6 +21,8 @@ class BufferStorageView(tk.Frame):
         super().__init__(parent, bg=COLOR_CARD)
         self.height = height
         self.data = np.array([[60.0], [50.0], [40.0]])
+        self._chip_boxes: list[FancyBboxPatch] = []
+        self._chip_stripes: list[Rectangle] = []
 
         self.fig, self.ax = plt.subplots(figsize=(3.4, 3.6), dpi=100)
         self.fig.patch.set_facecolor(COLOR_CARD)
@@ -50,28 +60,50 @@ class BufferStorageView(tk.Frame):
             return COLOR_WARNING
         return COLOR_BORDER
 
+    def _clear_chips(self):
+        for patch in self._chip_boxes + self._chip_stripes:
+            patch.remove()
+        self._chip_boxes.clear()
+        self._chip_stripes.clear()
+
     def _draw_chips(self, temps):
-        # Chips rechts neben den Balken
+        self._clear_chips()
+        # Chips rechts neben den Balken, dezente Flächen mit schmalem Farbstreifen
         for i, t in enumerate(temps):
-            # Hintergrund-FancyBox
+            face = COLOR_CARD
+            stripe = self._chip_color(t)
             bbox = FancyBboxPatch(
-                (1.1, i - 0.35),
-                0.8,
+                (1.05, i - 0.35),
+                1.0,
                 0.7,
-                boxstyle="round,pad=0.15,rounding_size=0.12",
+                boxstyle="round,pad=0.18,rounding_size=0.14",
                 linewidth=1,
                 edgecolor=COLOR_BORDER,
-                facecolor=self._chip_color(t),
+                facecolor=face,
+                transform=self.ax.transData,
+                clip_on=False,
+                zorder=2,
+            )
+            self.ax.add_patch(bbox)
+            stripe_patch = Rectangle(
+                (1.05, i - 0.35),
+                0.08,
+                0.7,
+                linewidth=0,
+                facecolor=stripe,
                 transform=self.ax.transData,
                 clip_on=False,
                 zorder=3,
             )
-            self.ax.add_patch(bbox)
+            self.ax.add_patch(stripe_patch)
+            self._chip_boxes.append(bbox)
+            self._chip_stripes.append(stripe_patch)
+
             self.chip_texts[i].set_text(f"{t:.0f} °C")
             self.chip_texts[i].set_color(COLOR_TEXT)
-            self.chip_texts[i].set_position((1.5, i))
+            self.chip_texts[i].set_position((1.6, i))
 
-    def update_temperatures(self, top: float, mid: float, bottom: float):
+    def update_temperatures(self, top: float, mid: float, bottom: float, kessel_c: float | None = None):
         temps = [top, mid, bottom]
         self.data = np.array([[top], [mid], [bottom]])
         self.im.set_data(self.data)

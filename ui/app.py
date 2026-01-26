@@ -3,9 +3,8 @@ from datetime import datetime
 import math
 from ui.styles import (
     init_style,
-    COLOR_BG,
+    COLOR_ROOT,
     COLOR_CARD,
-    COLOR_TEXT,
 )
 from ui.components.card import Card
 from ui.components.header import HeaderBar
@@ -25,7 +24,9 @@ class MainApp:
         init_style(self.root)
 
         # Grid Setup: rows 0/1/2, cols 0 (full width)
+        self.root.grid_rowconfigure(0, minsize=72)
         self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_rowconfigure(2, minsize=32)
         self.root.grid_columnconfigure(0, weight=1)
 
         # Header
@@ -33,7 +34,7 @@ class MainApp:
         self.header.grid(row=0, column=0, sticky="nsew", padx=12, pady=(12, 6))
 
         # Body
-        self.body = tk.Frame(self.root, bg=COLOR_BG)
+        self.body = tk.Frame(self.root, bg=COLOR_ROOT)
         self.body.grid(row=1, column=0, sticky="nsew", padx=12, pady=6)
         self.body.grid_columnconfigure(0, weight=7)
         self.body.grid_columnconfigure(1, weight=3)
@@ -59,7 +60,7 @@ class MainApp:
 
         # State for demo updates
         self._tick = 0
-        self._start_update_loops()
+        self._loop()
 
     # --- Callbacks ---
     def on_toggle_a(self):
@@ -69,38 +70,35 @@ class MainApp:
         pass
 
     # --- Update Loop ---
-    def _start_update_loops(self):
-        self._update_header()
-        self._update_energy()
-        self._update_buffer()
-
-    def _update_header(self):
-        now = datetime.now()
-        date_text = now.strftime("%d.%m.%Y")
-        weekday = now.strftime("%A")
-        time_text = now.strftime("%H:%M:%S")
-        self.header.update_header(date_text, weekday, time_text, "5 °C")
-        self.status.update_status(f"Updated {time_text}")
-        self.root.after(1000, self._update_header)
-
-    def _update_energy(self):
-        # Demo-Werte: kleine Sinusbewegung
+    def _loop(self):
         self._tick += 1
-        pv = 2000 + 500 * math.sin(self._tick / 10)
-        load = 1800 + 200 * math.sin(self._tick / 15)
-        grid = max(load - pv, 0)
-        batt = 300 * math.sin(self._tick / 8)
-        soc = 50 + 20 * math.sin(self._tick / 30)
-        self.energy_view.update_flows(pv, load, grid, batt, soc)
-        self.root.after(500, self._update_energy)
 
-    def _update_buffer(self):
-        # Demo-Temperaturen
-        top = 65 + 2 * math.sin(self._tick / 25)
-        mid = 55 + 1 * math.sin(self._tick / 30)
-        bot = 45 + 1 * math.sin(self._tick / 35)
-        self.buffer_view.update_temperatures(top, mid, bot)
-        self.root.after(2000, self._update_buffer)
+        # Header every 1s
+        now = datetime.now()
+        if self._tick % 2 == 0:
+            date_text = now.strftime("%d.%m.%Y")
+            weekday = now.strftime("%A")
+            time_text = now.strftime("%H:%M:%S")
+            self.header.update_header(date_text, weekday, time_text, "5 °C")
+            self.status.update_status(f"Updated {time_text}")
+            self.status.update_center("SOC 62%   Grid Import")
+
+        # Energy every 500ms
+        pv = 2200 + 600 * math.sin(self._tick / 10)
+        load = 1900 + 260 * math.sin(self._tick / 14)
+        batt = 300 * math.sin(self._tick / 8)
+        grid = load - pv - batt  # erlaubt Import/Export
+        soc = 55 + 18 * math.sin(self._tick / 28)
+        self.energy_view.update_flows(pv, load, grid, batt, soc)
+
+        # Buffer every 2s
+        if self._tick % 4 == 0:
+            top = 65 + 2 * math.sin(self._tick / 25)
+            mid = 55 + 1 * math.sin(self._tick / 30)
+            bot = 45 + 1 * math.sin(self._tick / 35)
+            self.buffer_view.update_temperatures(top, mid, bot)
+
+        self.root.after(500, self._loop)
 
 
 def run():

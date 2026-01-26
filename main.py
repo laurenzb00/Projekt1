@@ -1,16 +1,11 @@
 import threading
 import logging
-import visualisierung_live_v2 as visualisierung_live  # <--- NEUE MODERNE VERSION
-import Wechselrichter
+import time
+import tkinter as tk
+
 import BMKDATEN
-import tkinter as tk 
-from ttkbootstrap import Window 
-from spotify_tab_modern import SpotifyTab  # <--- MODERNE VERSION
-from tado_tab import TadoTab   
-from hue_tab_modern import HueTab          # <--- MODERNE VERSION
-from system_tab import SystemTab
-from calendar_tab import CalendarTab
-import time 
+import Wechselrichter
+from ui.app import MainApp
 
 # --- Logging ---
 logging.basicConfig(
@@ -48,35 +43,13 @@ def main():
     for t in threads:
         t.start()
 
-    # --- GUI START ---
-    root = Window(themename="superhero") 
-    root.geometry("1024x600")  # Optimiert für 10,1" Touchscreen
-    root.resizable(False, False)
+    root = tk.Tk()
     root.title("Smart Energy Dashboard Pro")
-    
-    # 1. Haupt-App (Energie Tabs)
-    app = visualisierung_live.LivePlotApp(root) 
-
-    # 2. Zusatz Tabs hinzufügen
-    calendar = CalendarTab(root, app.notebook) # <--- KALENDER TAB
-    tado = TadoTab(root, app.notebook)
-    hue = HueTab(root, app.notebook)
-    spotify = SpotifyTab(root, app.notebook) 
-    system = SystemTab(root, app.notebook)   
-    
-    app.spotify_instance = spotify 
+    app = MainApp(root)
 
     def on_close():
         logging.info("Programm wird beendet…")
         shutdown_event.set()
-        try:
-            spotify.stop()
-            tado.stop()
-            hue.stop()
-            system.stop()
-            calendar.stop() # <--- STOPPEN NICHT VERGESSEN
-        except Exception:
-            pass
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)
