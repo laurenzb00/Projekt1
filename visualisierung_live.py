@@ -105,6 +105,12 @@ class LivePlotApp:
         
         self.dash_status = StringVar(value="System startet...")
         self.status_time_var = StringVar(value="-")
+        self.dash_clock = StringVar(value="--:--")
+        
+        # Stromfluss-Animationsvariablen
+        self.pv_flow_value = 0
+        self.load_flow_value = 0
+        self.grid_flow_value = 0
 
     def exit_fullscreen(self, event=None):
         """Beendet Vollbildmodus und schließt Programm"""
@@ -249,10 +255,22 @@ class LivePlotApp:
         )
         self.aussen_value_label.pack(pady=2)
 
-        # Trend Chart (größer, 2 Spalten breit)
+        # Stromfluss + Uhr
+        self.flow_clock_card = self._create_chart_card(
+            parent=self.dashboard_frame,
+            row=1, col=2, colspan=1,
+            title="Status"
+        )
+        self.canvas_flow = tk.Canvas(
+            self.flow_clock_card, width=140, height=210,
+            bg="#0f172a", highlightthickness=0
+        )
+        self.canvas_flow.pack(pady=2, expand=True)
+        
+        # Trend Chart
         self.pv_trend_card = self._create_chart_card(
             parent=self.dashboard_frame,
-            row=1, col=2, colspan=2,
+            row=1, col=3, colspan=1,
             title="24h Trend"
         )
         self.pv_trend_fig, self.pv_trend_ax = self._create_mini_chart()
@@ -261,6 +279,7 @@ class LivePlotApp:
 
         # Start Animation
         self.update_puffer_animation()
+        self.update_flow_clock_animation()
 
     def _create_metric_card(self, parent, row, col, title, bg_start, bg_end, icon):
         """Erstellt eine moderne Metrik-Karte mit Gradient"""
@@ -411,6 +430,14 @@ class LivePlotApp:
                 
                 # Dynamische Farbanpassung für Batterie
                 self._update_battery_color(soc)
+                
+                # Stromfluss-Werte speichern für Animation
+                self.pv_flow_value = max(0, pv)
+                if "Netz-Leistung (kW)" in last.index:
+                    netz = last.get("Netz-Leistung (kW)", 0)
+                    self.grid_flow_value = max(0, netz)  # Nur Bezug (positiv)
+                else:
+                    self.grid_flow_value = 0
                 
                 # PV-Karten Hervorhebung wenn Produktion
                 if pv > 0.5:
@@ -638,42 +665,52 @@ class LivePlotApp:
             df.set_index("Zeitstempel", inplace=True)
             df_daily = df.resample('D').sum()
 
-            start_date = (pd.Timestamp.now() - pd.Timedelta(days=30)).normalize()
+            start_date = (pd.Timestamp.now() - pd.Timedelta(days=90)).normalize()
             df_daily = df_daily[df_daily.index >= start_date]
 
             if not df_daily.empty:
                 values = df_daily["Ertrag_kWh"].values
-                colors = []
-                for val in values:
-                    if val < 5:
-                        colors.append("#ef4444")
-                    elif val < 15:
-                        colors.append("#f59e0b")
-                    elif val < 25:
-                        colors.append("#10b981")
-                    else:
-                        colors.append("#059669")
-
-                ax.bar(
-                    df_daily.index, values,
-                    color=colors, width=0.8, edgecolor="#243354", linewidth=0.8
+                dates = df_daily.index
+                
+                # Liniendiagramm statt Balken
+                ax.fill_between(
+                    dates, values,
+                    color="#06b6d4", alpha=0.25, label="Ertrag"
+                )
+                ax.plot(
+                    dates, values,
+                    color="#06b6d4", linewidth=1.8, marker="o", markersize=2.5, label="Tagesertrag"
                 )
 
                 avg = df_daily["Ertrag_kWh"].mean()
-                ax.axhline(y=avg, color='#06b6d4', linestyle='--', linewidth=1.2, alpha=0.7,
+                ax.axhline(y=avg, color='#f59e0b', linestyle='--', linewidth=1.2, alpha=0.6,
                            label=f'Ø {avg:.1f} kWh')
 
                 max_day = df_daily["Ertrag_kWh"].idxmax()
                 max_val = df_daily["Ertrag_kWh"].max()
-                ax.plot(max_day, max_val, 'g*', markersize=10, label=f'Max: {max_val:.1f} kWh')
+                min_day = df_daily["Ertrag_kWh"].idxmin()
+                min_val = df_daily["Ertrag_kWh"].min()
+                
+                ax.plot(max_day, max_val, '*', color="#10b981", markersize=12, label=f'Max: {max_val:.1f} kWh')
+                ax.plot(min_day, min_val, 'v', color="#ef4444", markersize=6, label=f'Min: {min_val:.1f} kWh')
+
+                # Gesamtertrag in Box
+                total = df_daily["Ertrag_kWh"].sum()
+                ax.text(
+                    0.98, 0.98, f"Summe: {total:.0f} kWh",
+                    transform=ax.transAxes, ha="right", va="top",
+                    color="white", fontsize=10, fontweight="bold",
+                    bbox=dict(boxstyle="round", facecolor="#0f172a", alpha=0.8, edgecolor="#243354")
+                )
 
                 ax.legend(loc='upper left', facecolor='#0f172a', edgecolor='#243354',
                          labelcolor='white', fontsize=8, framealpha=0.9)
-                ax.set_title("Tagesertrag (30 Tage)", color="white", fontsize=11, fontweight='bold')
+                ax.set_title("Tagesertrag (90+ Tage)", color="white", fontsize=11, fontweight='bold')
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.'))
                 ax.set_xlabel("Datum", color="#8ba2c7", fontsize=9)
                 ax.set_ylabel("Ertrag (kWh)", color="#8ba2c7", fontsize=9)
                 self.ertrag_fig.patch.set_facecolor("#0f172a")
+                self.ertrag_fig.autofmt_xdate()
             else:
                 ax.text(0.5, 0.5, "Keine Daten verfügbar", color="white", ha="center",
                         transform=ax.transAxes, fontsize=12)
@@ -753,48 +790,111 @@ class LivePlotApp:
 
         self.canvas_puffer.delete("all")
 
-        # Kompakter Pufferspeicher für 1024x600
-        x_start, y_start = 60, 15
-        width, height_per_section = 80, 60
+        # Pufferspeicher mit Farbverlauf
+        x_start, y_start = 20, 20
+        width, height = 160, 170
 
         # Schatten
         self.canvas_puffer.create_rectangle(
-            x_start + 3, y_start + 3, x_start + width + 3, y_start + height_per_section * 3 + 3,
+            x_start + 2, y_start + 2, x_start + width + 2, y_start + height + 2,
             fill="#000000", outline="", stipple="gray50"
         )
 
-        # Hauptbehälter
-        sections = [
-            (top_temp, "Oben", y_start),
-            (mid_temp, "Mitte", y_start + height_per_section),
-            (bot_temp, "Unten", y_start + height_per_section * 2)
-        ]
+        # Behälter-Rahmen (oben gerundet simuliert)
+        self.canvas_puffer.create_rectangle(
+            x_start, y_start, x_start + width, y_start + height,
+            fill="#0a0f1a", outline="#243354", width=2
+        )
 
-        for temp, label, y_pos in sections:
-            color = self._get_temp_gradient_color(temp)
+        # Temperaturgradient-Füllung (3 Abschnitte mit Übergängen)
+        section_height = height / 3
+        temps = [top_temp, mid_temp, bot_temp]
+        colors_gradient = []
+        
+        for i, temp in enumerate(temps):
+            y_pos = y_start + i * section_height
+            # Farbverlauf: Blau (kalt) -> Grün -> Orange -> Rot (heiß)
+            if temp < 20:
+                color = "#3b82f6"  # Blau
+            elif temp < 35:
+                color = "#10b981"  # Grün
+            elif temp < 50:
+                color = "#f59e0b"  # Orange
+            elif temp < 65:
+                color = "#ef4444"  # Rot
+            else:
+                color = "#dc2626"  # Dunkelrot
             
-            # Sektion
+            # Abschnitt mit Gradient-Effekt (helle Linie oben, Farbe)
             self.canvas_puffer.create_rectangle(
-                x_start, y_pos, x_start + width, y_pos + height_per_section,
-                fill=color, outline="#2d3a5f", width=2
+                x_start + 2, y_pos, x_start + width - 2, y_pos + section_height,
+                fill=color, outline="#1f2a44", width=1
             )
             
-            # Temperaturanzeige (kompakt)
+            # Temperaturanzeige in Abschnitt
             self.canvas_puffer.create_text(
-                x_start + width // 2, y_pos + height_per_section // 2 - 5,
-                text=f"{temp:.1f}°C",
-                fill="white", font=("Segoe UI", 14, "bold")
-            )
-            
-            # Label
-            self.canvas_puffer.create_text(
-                x_start + width // 2, y_pos + height_per_section // 2 + 15,
-                text=label,
-                fill="#8892b0", font=("Segoe UI", 8)
+                x_start + width // 2, y_pos + section_height // 2,
+                text=f"{temp:.0f}°",
+                fill="white", font=("Segoe UI", 16, "bold")
             )
 
         if self.root.winfo_exists():
             self.root.after(2000, self.update_puffer_animation)
+
+    def update_flow_clock_animation(self):
+        """Zeigt digitale Uhr und Stromfluss-Richtung"""
+        import datetime
+        
+        self.canvas_flow.delete("all")
+        
+        # Uhr
+        now = datetime.datetime.now()
+        time_str = now.strftime("%H:%M")
+        
+        self.canvas_flow.create_text(
+            70, 30,
+            text=time_str,
+            fill="white", font=("Segoe UI", 32, "bold")
+        )
+        
+        # Sekunden anzeigen
+        sec_str = now.strftime("%S")
+        self.canvas_flow.create_text(
+            70, 50,
+            text=f"Sek: {sec_str}",
+            fill="#8ba2c7", font=("Segoe UI", 8)
+        )
+        
+        # Stromfluss-Pfeile
+        y_arrow = 100
+        arrow_spacing = 35
+        
+        # PV nach Hause (wenn PV > 0)
+        if self.pv_flow_value > 0:
+            self.canvas_flow.create_text(10, y_arrow, text="☀", fill="#f59e0b", font=("Segoe UI", 14))
+            self.canvas_flow.create_text(70, y_arrow, text="→", fill="#0ea5e9", font=("Segoe UI", 16))
+            self.canvas_flow.create_text(120, y_arrow, text="🏠", fill="#ec4899", font=("Segoe UI", 14))
+        
+        # Netz nach Hause (wenn Bezug > 0)
+        if self.grid_flow_value > 0:
+            self.canvas_flow.create_text(10, y_arrow + arrow_spacing, text="⚡", fill="#ef4444", font=("Segoe UI", 14))
+            self.canvas_flow.create_text(70, y_arrow + arrow_spacing, text="→", fill="#ef4444", font=("Segoe UI", 16))
+            self.canvas_flow.create_text(120, y_arrow + arrow_spacing, text="🏠", fill="#ec4899", font=("Segoe UI", 14))
+        
+        # Status-Info
+        self.canvas_flow.create_text(
+            70, y_arrow + arrow_spacing * 2,
+            text=f"PV: {self.pv_flow_value:.1f}kW",
+            fill="#0ea5e9", font=("Segoe UI", 8)
+        )
+        self.canvas_flow.create_text(
+            70, y_arrow + arrow_spacing * 2 + 15,
+            text=f"Netz: {self.grid_flow_value:.1f}kW",
+            fill="#ef4444", font=("Segoe UI", 8)
+        )
+        
+        if self.root.winfo_exists():
+            self.root.after(1000, self.update_flow_clock_animation)
 
     def _get_temp_gradient_color(self, temp):
         """Gibt Farbe basierend auf Temperatur zurück (Gradient)"""

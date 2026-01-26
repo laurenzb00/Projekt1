@@ -1,15 +1,15 @@
 import threading
 import logging
-import visualisierung_live
+import visualisierung_live_v2 as visualisierung_live  # <--- NEUE MODERNE VERSION
 import Wechselrichter
 import BMKDATEN
 import tkinter as tk 
 from ttkbootstrap import Window 
-from spotify_tab import SpotifyTab
+from spotify_tab_modern import SpotifyTab  # <--- MODERNE VERSION
 from tado_tab import TadoTab   
-from hue_tab import HueTab     
+from hue_tab_modern import HueTab          # <--- MODERNE VERSION
 from system_tab import SystemTab
-from calendar_tab import CalendarTab # <--- NEU IMPORTIEREN
+from calendar_tab import CalendarTab
 import time 
 
 # --- Logging ---

@@ -7,6 +7,7 @@ import psutil
 import platform
 import os
 from datetime import datetime, timedelta
+from modern_widgets import CircularProgressWidget
 
 class SystemTab:
     def __init__(self, root, notebook):
@@ -43,40 +44,33 @@ class SystemTab:
         content = ttk.Frame(self.tab_frame)
         content.pack(fill=BOTH, expand=YES, padx=15, pady=5)
         
-        # Oben: 3 Kacheln (CPU, RAM, Temp)
+        # Oben: 3 Kacheln (CPU, RAM, Disk) mit modernen Circular Progress
         row1 = ttk.Frame(content)
         row1.pack(fill=X, expand=YES)
         
         # CPU
         card_cpu = ttk.Labelframe(row1, text="CPU Last", bootstyle="primary", padding=10)
         card_cpu.pack(side=LEFT, fill=BOTH, expand=YES, padx=(0,5))
-        self.meter_cpu = ttk.Meter(
-            card_cpu, metersize=140, amountused=0, metertype="semi", 
-            subtext="Auslastung", bootstyle="primary", interactive=False, textright="%"
-        )
-        self.meter_cpu.pack()
+        self.cpu_widget = CircularProgressWidget(card_cpu, size=140, title="CPU")
+        self.cpu_widget.pack()
 
         # RAM
         card_ram = ttk.Labelframe(row1, text="RAM Nutzung", bootstyle="warning", padding=10)
         card_ram.pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
-        self.meter_ram = ttk.Meter(
-            card_ram, metersize=140, amountused=0, metertype="semi", 
-            subtext="Belegt", bootstyle="warning", interactive=False, textright="%"
-        )
-        self.meter_ram.pack()
+        self.ram_widget = CircularProgressWidget(card_ram, size=140, title="RAM")
+        self.ram_widget.pack()
 
-        # Temperatur & Disk
-        card_misc = ttk.Labelframe(row1, text="Hardware & Speicher", bootstyle="danger", padding=10)
-        card_misc.pack(side=LEFT, fill=BOTH, expand=YES, padx=(5,0))
+        # Disk mit Circular Progress
+        card_disk = ttk.Labelframe(row1, text="SD-Karte", bootstyle="success", padding=10)
+        card_disk.pack(side=LEFT, fill=BOTH, expand=YES, padx=(5,0))
+        self.disk_widget = CircularProgressWidget(card_disk, size=140, title="Disk")
+        self.disk_widget.pack()
         
-        # Temp Groß
-        ttk.Label(card_misc, text="CPU Temperatur:", font=("Arial", 10)).pack(pady=(10,0))
-        ttk.Label(card_misc, textvariable=self.var_temp, font=("Arial", 32, "bold"), bootstyle="danger").pack(pady=5)
-        
-        # Disk Bar
-        ttk.Label(card_misc, text="SD-Karte Speicherplatz:", font=("Arial", 10)).pack(anchor="w", pady=(15,0))
-        self.progress_disk = ttk.Progressbar(card_misc, variable=self.var_disk, maximum=100, bootstyle="success-striped")
-        self.progress_disk.pack(fill=X, pady=5)
+        # Temperatur-Anzeige darunter
+        temp_frame = ttk.Frame(content)
+        temp_frame.pack(fill=X, pady=10)
+        ttk.Label(temp_frame, text="CPU Temperatur:", font=("Arial", 12, "bold")).pack()
+        ttk.Label(temp_frame, textvariable=self.var_temp, font=("Arial", 28, "bold"), bootstyle="danger").pack(pady=5)
 
         # Unten: App Info / Logs
         row2 = ttk.Labelframe(content, text="Programm Information", bootstyle="secondary", padding=10)
@@ -123,14 +117,16 @@ class SystemTab:
                 delta = datetime.now() - self.start_time
                 uptime_str = str(delta).split('.')[0] # Mikrosekunden abschneiden
 
-                # 3. GUI Update
+                # 3. GUI Update mit modernen Widgets
                 self.var_cpu.set(int(cpu))
-                self.meter_cpu.configure(amountused=int(cpu))
+                self.cpu_widget.update_value(int(cpu), "CPU")
                 
                 self.var_ram.set(int(ram))
-                self.meter_ram.configure(amountused=int(ram))
+                self.ram_widget.update_value(int(ram), "RAM")
                 
                 self.var_disk.set(int(disk))
+                self.disk_widget.update_value(int(disk), "Disk")
+                
                 self.var_temp.set(f"{temp:.1f} °C")
                 self.var_uptime.set(f"Laufzeit: {uptime_str}")
                 

@@ -27,6 +27,7 @@ class CalendarTab:
         self.root = root
         self.notebook = notebook
         self.alive = True
+        self.displayed_month = datetime.datetime.now().date().replace(day=1)  # Aktueller Monat
         
         # Variablen
         self.status_var = tk.StringVar(value="Lade Kalender...")
@@ -40,16 +41,16 @@ class CalendarTab:
         
         # Scrollbarer Bereich
         self.canvas = tk.Canvas(self.tab_frame, highlightthickness=0)
-        self.canvas.configure(bg="#2b3e50") # Hintergrund anpassen
+        self.canvas.configure(bg="#0f172a")
         
         self.scrollbar = ttk.Scrollbar(self.tab_frame, orient="vertical", command=self.canvas.yview)
-        self.scroll_frame = ttk.Frame(self.canvas)
+        self.scroll_frame = tk.Frame(self.canvas, bg="#0f172a")
         
         self.scroll_frame.bind(
             "<Configure>",
             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         )
-        self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw", width=1000)
+        self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         
         self.canvas.pack(side="left", fill="both", expand=True, padx=15, pady=10)
@@ -64,11 +65,43 @@ class CalendarTab:
     def _build_header(self):
         header = ttk.Frame(self.tab_frame)
         header.pack(fill=X, padx=15, pady=(15, 5))
-        ttk.Label(header, text="Nächste Termine", font=("Arial", 22, "bold"), bootstyle="inverse-dark").pack(side=LEFT)
-        ttk.Label(header, textvariable=self.status_var, bootstyle="info").pack(side=RIGHT)
+        
+        # Linker Button (Monat zurück)
+        ttk.Button(
+            header, text="◀ Vorheriger", bootstyle="secondary-outline",
+            command=self._prev_month, width=12
+        ).pack(side=LEFT, padx=5)
+        
+        # Titel
+        ttk.Label(header, text="Kalender", font=("Arial", 18, "bold"), bootstyle="inverse-dark").pack(side=LEFT, padx=20)
+        
+        # Rechter Button (Monat vor)
+        ttk.Button(
+            header, text="Nächster ▶", bootstyle="secondary-outline",
+            command=self._next_month, width=12
+        ).pack(side=LEFT, padx=5)
         
         # Refresh Button
-        ttk.Button(header, text="↻", bootstyle="secondary-outline", command=lambda: threading.Thread(target=self._fetch_calendar, daemon=True).start()).pack(side=RIGHT, padx=10)
+        ttk.Button(
+            header, text="↻", bootstyle="secondary-outline",
+            command=lambda: threading.Thread(target=self._fetch_calendar, daemon=True).start()
+        ).pack(side=RIGHT, padx=10)
+        
+        # Status
+        ttk.Label(header, textvariable=self.status_var, bootstyle="info").pack(side=RIGHT)
+
+    def _prev_month(self):
+        """Monat zurück"""
+        first = self.displayed_month
+        self.displayed_month = (first - datetime.timedelta(days=1)).replace(day=1)
+        self._build_calendar()
+
+    def _next_month(self):
+        """Monat vor"""
+        first = self.displayed_month
+        last = first.replace(day=28) + datetime.timedelta(days=4)
+        self.displayed_month = (last + datetime.timedelta(days=1)).replace(day=1)
+        self._build_calendar()
 
     # --- Thread-Safe Kalender-Funktion ---
     def _fetch_calendar_safe(self):
@@ -94,33 +127,38 @@ class CalendarTab:
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
-        # Monatsübersicht
+        # Nutze self.displayed_month statt aktuellem Datum
         now_local = datetime.datetime.now().astimezone()
-        first_day = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        first_day = datetime.datetime.combine(self.displayed_month, datetime.time.min).astimezone()
         weekday_offset, days_in_month = calendar.monthrange(first_day.year, first_day.month)
-        # calendar.monthrange: Monday=0, Sunday=6
-        weekday_offset = (weekday_offset + 6) % 7  # Start bei Montag als erste Spalte
+        weekday_offset = (weekday_offset + 6) % 7  # Start bei Montag
 
         today_date = now_local.date()
         month_title = first_day.strftime("%B %Y")
 
-        ttk.Label(
-            self.scroll_frame,
+        # Dunkles Hintergrund für Label
+        label_frame = tk.Frame(self.scroll_frame, bg="#0f172a")
+        label_frame.grid(row=0, column=0, columnspan=7, sticky="nsew", pady=(5, 12))
+        
+        tk.Label(
+            label_frame,
             text=month_title,
-            font=("Arial", 18, "bold"),
-            bootstyle="inverse-dark"
-        ).grid(row=0, column=0, columnspan=7, pady=(5, 12))
+            font=("Segoe UI", 16, "bold"),
+            fg="white",
+            bg="#0f172a"
+        ).pack(pady=5)
 
         day_names = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
         for idx, name in enumerate(day_names):
-            ttk.Label(
+            tk.Label(
                 self.scroll_frame,
                 text=name,
-                font=("Arial", 10, "bold"),
-                bootstyle="secondary"
+                font=("Segoe UI", 9, "bold"),
+                fg="#8ba2c7",
+                bg="#0f172a"
             ).grid(row=1, column=idx, padx=4, pady=(0, 6))
 
-        # Events nach Datum gruppieren
+        # Events nach Datum gruppieren (mit Uhrzeiten)
         events_by_date = {}
         for event in self.events_data:
             try:
@@ -128,7 +166,11 @@ class CalendarTab:
             except Exception:
                 local_dt = event["start"]
             date_key = local_dt.date()
-            events_by_date.setdefault(date_key, []).append(event["summary"])
+            time_str = local_dt.strftime("%H:%M") if hasattr(local_dt, 'hour') else ""
+            events_by_date.setdefault(date_key, []).append({
+                "summary": event["summary"],
+                "time": time_str
+            })
 
         # Tage rendern
         row_base = 2
@@ -137,10 +179,11 @@ class CalendarTab:
             row = row_base + (weekday_offset + day - 1) // 7
             cell_date = first_day.date().replace(day=day)
 
-            cell_bg = "#0f172a"
+            cell_bg = "#0a0f1a"
             border_color = "#1f2a44"
             if cell_date == today_date:
                 border_color = "#38bdf8"
+                cell_bg = "#0f172a"
 
             cell = tk.Frame(
                 self.scroll_frame,
@@ -157,30 +200,31 @@ class CalendarTab:
             tk.Label(
                 cell,
                 text=str(day),
-                font=("Segoe UI", 11, "bold"),
+                font=("Segoe UI", 10, "bold"),
                 fg="#e5e7eb",
                 bg=cell_bg
             ).pack(anchor="nw")
 
-            # Events auflisten (max 3)
+            # Events auflisten mit Uhrzeiten (max 3)
             items = events_by_date.get(cell_date, [])
             if not items:
                 tk.Label(
                     cell,
                     text="frei",
-                    font=("Segoe UI", 9),
+                    font=("Segoe UI", 8),
                     fg="#6b7280",
                     bg=cell_bg
                 ).pack(anchor="nw", pady=(2, 0))
             else:
                 for ev in items[:3]:
+                    time_str = f"[{ev['time']}] " if ev['time'] else ""
                     tk.Label(
                         cell,
-                        text=f"• {ev}",
-                        font=("Segoe UI", 9),
+                        text=f"• {time_str}{ev['summary']}",
+                        font=("Segoe UI", 7),
                         fg="#c7d2fe",
                         bg=cell_bg,
-                        wraplength=120,
+                        wraplength=110,
                         justify="left"
                     ).pack(anchor="nw", pady=(1, 0))
 
@@ -189,7 +233,7 @@ class CalendarTab:
                     tk.Label(
                         cell,
                         text=f"+{len(items) - 3} mehr",
-                        font=("Segoe UI", 8),
+                        font=("Segoe UI", 7),
                         fg="#9ca3af",
                         bg=cell_bg
                     ).pack(anchor="nw", pady=(2, 0))
