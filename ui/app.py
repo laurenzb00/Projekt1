@@ -106,9 +106,9 @@ class MainApp:
         self._base_header_h = 56
         self._base_tabs_h = 26
         self._base_status_h = 24
-        self._base_energy_w = 520
-        self._base_energy_h = 270
-        self._base_buffer_h = 210
+        self._base_energy_w = 460
+        self._base_energy_h = 230
+        self._base_buffer_h = 180
         self.root.grid_rowconfigure(0, minsize=self._base_header_h)
         self.root.grid_rowconfigure(1, minsize=self._base_tabs_h)
         self.root.grid_rowconfigure(2, weight=1)
