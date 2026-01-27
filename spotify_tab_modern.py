@@ -74,6 +74,7 @@ class SpotifyTab:
 
         self.result_cache = {}
         self.current_album_cover = None
+        self._last_cover_url = None
 
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_DARK_BG)
         self.notebook.add(self.tab_frame, text=emoji(" 🎵 Spotify ", "Spotify"))
@@ -534,9 +535,7 @@ class SpotifyTab:
             pil_img = pil_img.convert('RGBA')
             pil_img.putalpha(mask)
             output.paste(pil_img, (10, 10), pil_img)
-            
-            tk_img = ImageTk.PhotoImage(output)
-            self.image_queue.put(tk_img)
+            self.image_queue.put(output)
         except Exception as e:
             print(f"Cover Fehler: {e}")
             self.image_queue.put(None)
@@ -565,7 +564,10 @@ class SpotifyTab:
                 # Cover
                 imgs = item.get("album", {}).get("images", [])
                 if imgs:
-                    threading.Thread(target=self.fetch_cover, args=(imgs[0]["url"],), daemon=True).start()
+                    cover_url = imgs[0].get("url")
+                    if cover_url and cover_url != self._last_cover_url:
+                        self._last_cover_url = cover_url
+                        threading.Thread(target=self.fetch_cover, args=(cover_url,), daemon=True).start()
                 
                 # Progress
                 dur = item.get("duration_ms", 1)
@@ -609,8 +611,9 @@ class SpotifyTab:
         
         # Album Art update
         if not self.image_queue.empty():
-            tk_img = self.image_queue.get()
-            if tk_img:
+            pil_img = self.image_queue.get()
+            if pil_img:
+                tk_img = ImageTk.PhotoImage(pil_img)
                 self.album_img_label.configure(image=tk_img, text="", bg=COLOR_CARD_BG)
                 self.album_img_label.image = tk_img
                 self.current_album_cover = tk_img

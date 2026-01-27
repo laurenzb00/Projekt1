@@ -60,13 +60,15 @@ class BufferStorageView(tk.Frame):
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
         self._draw_chips([60, 50, 40])
-        cbar = self.fig.colorbar(self.im, ax=self.ax, fraction=0.05, pad=0.04)
-        cbar.set_label("°C", color=COLOR_SUBTEXT, fontsize=9)
-        cbar.ax.yaxis.set_tick_params(color=COLOR_SUBTEXT, labelcolor=COLOR_SUBTEXT, labelsize=9)
-        cbar.outline.set_edgecolor(COLOR_BORDER)
-        cbar.set_ticks([45, 55, 65, 75])
-        cbar.ax.set_facecolor(COLOR_CARD)
-        self.fig.subplots_adjust(left=0.25, right=0.88, top=0.96, bottom=0.08)
+        # Dedicated colorbar axis (prevents duplicate/clipped scale)
+        self.cbar_ax = self.fig.add_axes([0.86, 0.12, 0.04, 0.76])
+        self.cbar = self.fig.colorbar(self.im, cax=self.cbar_ax)
+        self.cbar.set_label("°C", color=COLOR_SUBTEXT, fontsize=9)
+        self.cbar.ax.yaxis.set_tick_params(color=COLOR_SUBTEXT, labelcolor=COLOR_SUBTEXT, labelsize=9)
+        self.cbar.outline.set_edgecolor(COLOR_BORDER)
+        self.cbar.set_ticks([45, 55, 65, 75])
+        self.cbar.ax.set_facecolor(COLOR_CARD)
+        self.fig.subplots_adjust(left=0.25, right=0.82, top=0.96, bottom=0.08)
 
     def resize(self, height: int):
         self.height = max(160, int(height))
@@ -75,6 +77,8 @@ class BufferStorageView(tk.Frame):
         fig_height = max(1.6, self.height / 100)
         self.fig.set_size_inches(fig_width, fig_height, forward=True)
         self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
+        if hasattr(self, "cbar_ax"):
+            self.cbar_ax.set_position([0.86, 0.12, 0.04, 0.76])
         self.canvas.draw_idle()
 
     def _build_cmap(self):

@@ -397,10 +397,22 @@ class MainApp:
                     reader = csv.reader([last_line])
                     row = next(reader)
                     if len(row) >= 6:
-                        self._last_data["pv"] = float(row[1]) * 1000  # kW -> W
-                        self._last_data["grid"] = float(row[2]) * 1000
-                        self._last_data["batt"] = float(row[3]) * 1000
-                        self._last_data["load"] = float(row[4]) * 1000
+                        pv_kw = float(row[1])
+                        grid_kw = float(row[2])
+                        batt_kw = float(row[3])
+                        load_kw = float(row[4])
+
+                        # Derive grid sign from power balance
+                        netz_calc_kw = pv_kw + batt_kw - load_kw
+                        if abs(grid_kw) > 1e-4:
+                            grid_kw = abs(grid_kw) * (1 if netz_calc_kw <= 0 else -1)
+                        else:
+                            grid_kw = netz_calc_kw
+
+                        self._last_data["pv"] = pv_kw * 1000  # kW -> W
+                        self._last_data["grid"] = grid_kw * 1000
+                        self._last_data["batt"] = batt_kw * 1000
+                        self._last_data["load"] = load_kw * 1000
                         self._last_data["soc"] = float(row[5])
             except Exception as e:
                 logging.debug(f"Fronius CSV Fehler: {e}")
