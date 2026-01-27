@@ -26,11 +26,11 @@ class StatusBar(tk.Frame):
         self.center_label = tk.Label(inner, text="", fg=COLOR_SUBTEXT, bg=COLOR_CARD, font=("Segoe UI", 10))
         self.center_label.grid(row=0, column=1, sticky="nsew")
 
-        self.window_btn = ttk.Button(inner, text="Fenster", style="Card.TButton", command=on_toggle_fullscreen, width=9)
-        self.window_btn.grid(row=0, column=2, sticky="e", padx=(6, 6), pady=4)
+        self.window_btn = ttk.Button(inner, text="Fenster", style="Card.TButton", command=on_toggle_fullscreen, width=7)
+        self.window_btn.grid(row=0, column=2, sticky="e", padx=(4, 4), pady=2)
 
-        self.exit_btn = ttk.Button(inner, text="Exit", style="Card.TButton", command=on_exit, width=8)
-        self.exit_btn.grid(row=0, column=3, sticky="e", padx=(6, 12), pady=4)
+        self.exit_btn = ttk.Button(inner, text="Exit", style="Card.TButton", command=on_exit, width=7)
+        self.exit_btn.grid(row=0, column=3, sticky="e", padx=(4, 8), pady=2)
 
     def update_status(self, text: str):
         self.status_label.config(text=text)

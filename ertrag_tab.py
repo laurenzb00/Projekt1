@@ -75,8 +75,14 @@ class ErtragTab:
                         continue
         except Exception:
             return []
-        rows.sort(key=lambda r: r[0])
-        return rows
+        # Daily aggregation: one datapoint per day
+        daily = {}
+        for ts, val in rows:
+            day = ts.date()
+            daily[day] = daily.get(day, 0.0) + val
+        out = [(datetime.combine(day, datetime.min.time()), total) for day, total in daily.items()]
+        out.sort(key=lambda r: r[0])
+        return out
 
     def _style_axes(self):
         self.ax.set_facecolor(COLOR_CARD)

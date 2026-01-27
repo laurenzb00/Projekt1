@@ -101,10 +101,10 @@ class MainApp:
         self._ensure_emoji_font()
 
         # Grid Setup: rows 0/1/2/3, cols 0 (full width)
-        self.root.grid_rowconfigure(0, minsize=68)
+        self.root.grid_rowconfigure(0, minsize=60)
         self.root.grid_rowconfigure(1, minsize=28)
         self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_rowconfigure(3, minsize=28)
+        self.root.grid_rowconfigure(3, minsize=26)
         self.root.grid_columnconfigure(0, weight=1)
 
         # Header
@@ -114,11 +114,11 @@ class MainApp:
             on_toggle_b=self.on_toggle_b,
             on_exit=self.on_exit,
         )
-        self.header.grid(row=0, column=0, sticky="nsew", padx=12, pady=(12, 6))
+        self.header.grid(row=0, column=0, sticky="nsew", padx=12, pady=(8, 4))
 
         # Notebook (Tabs)
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 4))
+        self.notebook.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 2))
 
         # Energy Dashboard Tab
         self.dashboard_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
@@ -149,7 +149,7 @@ class MainApp:
 
         # Statusbar
         self.status = StatusBar(self.root, on_exit=self.root.quit, on_toggle_fullscreen=self.toggle_fullscreen)
-        self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(4, 8))
+        self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(2, 6))
 
         # Add other tabs
         self._add_other_tabs()
@@ -311,16 +311,16 @@ class MainApp:
         if os.path.exists(fronius_csv):
             try:
                 lines = _read_lines_safe(fronius_csv)
-                    if len(lines) > 1:
-                        last_line = lines[-1].strip()
-                        reader = csv.reader([last_line])
-                        row = next(reader)
-                        if len(row) >= 6:
-                            self._last_data["pv"] = float(row[1]) * 1000  # kW -> W
-                            self._last_data["grid"] = float(row[2]) * 1000
-                            self._last_data["batt"] = float(row[3]) * 1000
-                            self._last_data["load"] = float(row[4]) * 1000
-                            self._last_data["soc"] = float(row[5])
+                if len(lines) > 1:
+                    last_line = lines[-1].strip()
+                    reader = csv.reader([last_line])
+                    row = next(reader)
+                    if len(row) >= 6:
+                        self._last_data["pv"] = float(row[1]) * 1000  # kW -> W
+                        self._last_data["grid"] = float(row[2]) * 1000
+                        self._last_data["batt"] = float(row[3]) * 1000
+                        self._last_data["load"] = float(row[4]) * 1000
+                        self._last_data["soc"] = float(row[5])
             except Exception as e:
                 logging.debug(f"Fronius CSV Fehler: {e}")
 
@@ -328,15 +328,15 @@ class MainApp:
         if os.path.exists(bmk_csv):
             try:
                 lines = _read_lines_safe(bmk_csv)
-                    if len(lines) > 1:
-                        last_line = lines[-1].strip()
-                        reader = csv.reader([last_line])
-                        row = next(reader)
-                        if len(row) >= 7:
-                            self._last_data["out_temp"] = float(row[2])
-                            self._last_data["puffer_top"] = float(row[3])
-                            self._last_data["puffer_mid"] = float(row[4])
-                            self._last_data["puffer_bot"] = float(row[5])
+                if len(lines) > 1:
+                    last_line = lines[-1].strip()
+                    reader = csv.reader([last_line])
+                    row = next(reader)
+                    if len(row) >= 7:
+                        self._last_data["out_temp"] = float(row[2])
+                        self._last_data["puffer_top"] = float(row[3])
+                        self._last_data["puffer_mid"] = float(row[4])
+                        self._last_data["puffer_bot"] = float(row[5])
             except Exception as e:
                 logging.debug(f"BMK CSV Fehler: {e}")
 
