@@ -135,6 +135,7 @@ class MainApp:
         # Body (Energy + Buffer)
         self.body = tk.Frame(self.dashboard_tab, bg=COLOR_ROOT)
         self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        self.body.pack_propagate(False)
         self.body.grid_columnconfigure(0, weight=7)
         self.body.grid_columnconfigure(1, weight=3)
         self.body.grid_rowconfigure(0, weight=1)
@@ -255,28 +256,31 @@ class MainApp:
             w = max(1, self.root.winfo_width())
             h = max(1, self.root.winfo_height())
             scale = min(w / 1024.0, h / 600.0)
-            scale = max(0.85, min(1.0, scale))
+            scale = max(0.82, min(1.0, scale))
 
             try:
                 self.root.tk.call("tk", "scaling", scale)
             except Exception:
                 pass
 
-            header_h = int(self._base_header_h * scale)
-            tabs_h = int(self._base_tabs_h * scale)
-            status_h = int(self._base_status_h * scale)
-            energy_w = int(self._base_energy_w * scale)
-            energy_h = int(self._base_energy_h * scale)
-            buffer_h = int(self._base_buffer_h * scale)
+            # Measure real header/tab/status heights after scaling
+            self.root.update_idletasks()
+            header_h = max(1, self.header.winfo_height())
+            tabs_h = max(1, self.notebook.winfo_height())
+            status_h = max(1, self.status.winfo_height())
 
-            self.root.grid_rowconfigure(0, minsize=header_h)
-            self.root.grid_rowconfigure(1, minsize=tabs_h)
-            self.root.grid_rowconfigure(3, minsize=status_h)
+            # Compute available body height and enforce it
+            available_body = max(200, h - header_h - tabs_h - status_h - 8)
+            self.body.configure(height=available_body)
+
+            # Resize views to fit inside cards (leave space for card title/padding)
+            energy_w = int(self._base_energy_w * scale)
+            view_h = max(160, available_body - 28)
 
             if hasattr(self, "energy_view"):
-                self.energy_view.resize(energy_w, energy_h)
+                self.energy_view.resize(energy_w, view_h)
             if hasattr(self, "buffer_view"):
-                self.buffer_view.resize(buffer_h)
+                self.buffer_view.resize(view_h)
         except Exception:
             pass
 
