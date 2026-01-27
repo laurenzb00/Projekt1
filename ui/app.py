@@ -135,7 +135,6 @@ class MainApp:
         # Body (Energy + Buffer)
         self.body = tk.Frame(self.dashboard_tab, bg=COLOR_ROOT)
         self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
-        self.body.pack_propagate(False)
         self.body.grid_columnconfigure(0, weight=7)
         self.body.grid_columnconfigure(1, weight=3)
         self.body.grid_rowconfigure(0, weight=1)
@@ -263,19 +262,13 @@ class MainApp:
             except Exception:
                 pass
 
-            # Measure real header/tab/status heights after scaling
+            # Measure actual body height after layout
             self.root.update_idletasks()
-            header_h = max(1, self.header.winfo_height())
-            tabs_h = max(1, self.notebook.winfo_height())
-            status_h = max(1, self.status.winfo_height())
-
-            # Compute available body height and enforce it
-            available_body = max(200, h - header_h - tabs_h - status_h - 8)
-            self.body.configure(height=available_body)
+            body_h = max(1, self.body.winfo_height())
 
             # Resize views to fit inside cards (leave space for card title/padding)
             energy_w = int(self._base_energy_w * scale)
-            view_h = max(160, available_body - 28)
+            view_h = max(160, body_h - 28)
 
             if hasattr(self, "energy_view"):
                 self.energy_view.resize(energy_w, view_h)
