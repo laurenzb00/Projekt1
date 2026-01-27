@@ -11,6 +11,7 @@ from ui.styles import (
     COLOR_WARNING,
     COLOR_TEXT,
     COLOR_SUBTEXT,
+    emoji,
 )
 from ui.components.card import Card
 
@@ -35,7 +36,7 @@ class TadoTab:
 
         # Frame erstellen
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.tab_frame, text="🌡️ Klima")
+        self.notebook.add(self.tab_frame, text=emoji("🌡️ Klima", "Klima"))
 
         self._build_ui()
         

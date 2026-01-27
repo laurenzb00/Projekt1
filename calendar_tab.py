@@ -17,6 +17,7 @@ from ui.styles import (
     COLOR_WARNING,
     COLOR_TEXT,
     COLOR_SUBTEXT,
+    emoji,
 )
 from ui.components.card import Card
 
@@ -45,7 +46,7 @@ class CalendarTab:
         
         # Tab erstellen
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.tab_frame, text="📅 Kalender")
+        self.notebook.add(self.tab_frame, text=emoji("📅 Kalender", "Kalender"))
         
         self._build_header()
         
@@ -102,7 +103,7 @@ class CalendarTab:
         
         # Refresh Button
         ttk.Button(
-            header, text="↻",
+            header, text=emoji("↻", "Aktualisieren"),
             command=lambda: threading.Thread(target=self._fetch_calendar, daemon=True).start()
         ).pack(side=tk.RIGHT, padx=10)
         

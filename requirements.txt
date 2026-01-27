@@ -27,3 +27,6 @@ pytz>=2024.1
 
 # Utilities
 numpy>=1.24.0
+
+# System font dependency (install via OS package manager, not pip)
+# Raspberry Pi OS: sudo apt-get install -y fonts-noto-color-emoji

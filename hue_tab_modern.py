@@ -26,6 +26,7 @@ from ui.styles import (
     COLOR_WARNING,
     COLOR_TEXT,
     COLOR_SUBTEXT,
+    emoji,
 )
 from ui.components.card import Card
 
@@ -49,7 +50,7 @@ class HueTab:
         self.status_var = tk.StringVar(value="Initialisiere...")
         
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_DARK_BG)
-        self.notebook.add(self.tab_frame, text=" 💡 Licht ")
+        self.notebook.add(self.tab_frame, text=emoji(" 💡 Licht ", "Licht"))
         
         self._build_header()
         self._build_global_controls()
@@ -89,7 +90,7 @@ class HueTab:
         header.pack_propagate(False)
         
         tk.Label(
-            header, text="💡 Philips Hue",
+            header, text=emoji("💡 Philips Hue", "Philips Hue"),
             font=("Segoe UI", 24, "bold"),
             fg="white", bg=COLOR_WARNING
         ).pack(side=tk.LEFT, padx=20, pady=15)
@@ -124,8 +125,8 @@ class HueTab:
                 command=cmd
             )
         
-        create_btn(bar, "☀ ALLE AN", lambda: self._threaded_group_cmd(True), COLOR_SUCCESS).pack(side=tk.LEFT, padx=5)
-        create_btn(bar, "🌑 ALLE AUS", lambda: self._threaded_group_cmd(False), COLOR_ACCENT).pack(side=tk.LEFT, padx=5)
+        create_btn(bar, emoji("☀ ALLE AN", "ALLE AN"), lambda: self._threaded_group_cmd(True), COLOR_SUCCESS).pack(side=tk.LEFT, padx=5)
+        create_btn(bar, emoji("🌑 ALLE AUS", "ALLE AUS"), lambda: self._threaded_group_cmd(False), COLOR_ACCENT).pack(side=tk.LEFT, padx=5)
 
     def _connect_loop(self):
         from phue import Bridge, PhueRegistrationException
@@ -227,7 +228,7 @@ class HueTab:
         # Icon + Name
         icon_color = "#fbbf24" if is_on else COLOR_SUBTEXT
         tk.Label(
-            header, text="💡",
+            header, text=emoji("💡", "L"),
             font=("Segoe UI", 20),
             fg=icon_color, bg="#142038"
         ).pack(side=tk.LEFT, padx=(12, 8))
@@ -315,7 +316,7 @@ class HueTab:
                 self._show_color_picker(light, hue, sat)
             
             color_btn = tk.Button(
-                content, text="🎨 Farbe wählen",
+                content, text=emoji("🎨 Farbe wählen", "Farbe wählen"),
                 font=("Segoe UI", 10, "bold"),
                 bg=COLOR_PRIMARY, fg="white",
                 activebackground="#0284c7",
@@ -348,7 +349,7 @@ class HueTab:
         header.pack_propagate(False)
         
         tk.Label(
-            header, text=f"🎨 {light.name}",
+            header, text=emoji(f"🎨 {light.name}", f"Farbe: {light.name}"),
             font=("Segoe UI", 16, "bold"),
             fg="white", bg=COLOR_PRIMARY
         ).pack(pady=15)

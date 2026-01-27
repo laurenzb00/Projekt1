@@ -1,5 +1,5 @@
 import tkinter as tk
-from ui.styles import COLOR_ROOT, COLOR_BORDER, COLOR_CARD, COLOR_TEXT
+from ui.styles import COLOR_ROOT, COLOR_BORDER, COLOR_CARD, COLOR_TEXT, emoji
 
 
 class Card(tk.Frame):
@@ -27,7 +27,9 @@ class Card(tk.Frame):
         header.pack(fill=tk.X, pady=(0, 8))
 
         if icon:
-            tk.Label(header, text=icon, font=("Segoe UI", 16), bg=COLOR_CARD, fg=COLOR_TEXT).pack(side=tk.LEFT, padx=(0, 10))
+            icon_text = emoji(icon, "")
+            if icon_text:
+                tk.Label(header, text=icon_text, font=("Segoe UI", 16), bg=COLOR_CARD, fg=COLOR_TEXT).pack(side=tk.LEFT, padx=(0, 10))
 
         tk.Label(
             header,

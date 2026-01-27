@@ -15,6 +15,7 @@ from ui.styles import (
     COLOR_WARNING,
     COLOR_TEXT,
     COLOR_SUBTEXT,
+    emoji,
 )
 from ui.components.card import Card
 from modern_widgets import CircularProgressWidget
@@ -35,7 +36,7 @@ class SystemTab:
         self.var_status = tk.StringVar(value="Läuft stabil")
         
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.tab_frame, text="⚙️ System")
+        self.notebook.add(self.tab_frame, text=emoji("⚙️ System", "System"))
         
         self._build_ui()
         threading.Thread(target=self._loop, daemon=True).start()

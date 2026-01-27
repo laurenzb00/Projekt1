@@ -14,6 +14,7 @@ from ui.styles import (
     COLOR_SUBTEXT,
     COLOR_PRIMARY,
     COLOR_INFO,
+    emoji,
 )
 from ui.components.card import Card
 
@@ -27,7 +28,7 @@ class HistoricalTab:
         self.alive = True
 
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.tab_frame, text="📈 Historie")
+        self.notebook.add(self.tab_frame, text=emoji("📈 Historie", "Historie"))
 
         self.tab_frame.grid_columnconfigure(0, weight=1)
         self.tab_frame.grid_columnconfigure(1, weight=1)
@@ -35,7 +36,7 @@ class HistoricalTab:
         # Temperaturen Card
         self.temp_card = Card(self.tab_frame)
         self.temp_card.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
-        self.temp_card.add_title("Temperaturen (7 Tage)", icon="🌡️")
+        self.temp_card.add_title("Temperaturen (letzte 30 Tage)", icon="🌡️")
         self.temp_fig, self.temp_ax = plt.subplots(figsize=(4.8, 3.2), dpi=100)
         self.temp_fig.patch.set_facecolor(COLOR_CARD)
         self.temp_ax.set_facecolor(COLOR_CARD)
@@ -62,6 +63,7 @@ class HistoricalTab:
         if not os.path.exists(path):
             return []
         rows = []
+        all_rows = []
         cutoff = datetime.now() - timedelta(days=90)
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -69,22 +71,27 @@ class HistoricalTab:
                 for row in reader:
                     try:
                         ts = datetime.fromisoformat(row.get("Zeitstempel", ""))
-                        if ts < cutoff:
-                            continue
                         val = float(row.get("Ertrag_kWh", 0))
-                        rows.append((ts, val))
+                        all_rows.append((ts, val))
+                        if ts >= cutoff:
+                            rows.append((ts, val))
                     except Exception:
                         continue
         except Exception:
             return []
         rows.sort(key=lambda r: r[0])
-        return rows
+        if rows:
+            return rows
+        # Fallback: wenn keine Daten im Zeitraum, zeige letzte 90 Einträge
+        all_rows.sort(key=lambda r: r[0])
+        return all_rows[-90:]
 
     def _load_temps(self):
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Heizungstemperaturen.csv")
         if not os.path.exists(path):
             return []
         rows = []
+        all_rows = []
         cutoff = datetime.now() - timedelta(days=30)
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -92,18 +99,22 @@ class HistoricalTab:
                 for row in reader:
                     try:
                         ts = datetime.fromisoformat(row.get("Zeit", row.get("Zeitstempel", "")))
-                        if ts < cutoff:
-                            continue
                         top = float(row.get("Puffer_Top", row.get("PufferTop", row.get("puffer_top", row.get("Pufferspeicher Oben", 0)))))
                         mid = float(row.get("Puffer_Mitte", row.get("PufferMid", row.get("puffer_mid", row.get("Pufferspeicher Mitte", 0)))))
                         bot = float(row.get("Puffer_Bottom", row.get("PufferBot", row.get("puffer_bot", row.get("Pufferspeicher Unten", 0)))))
-                        rows.append((ts, top, mid, bot))
+                        all_rows.append((ts, top, mid, bot))
+                        if ts >= cutoff:
+                            rows.append((ts, top, mid, bot))
                     except Exception:
                         continue
         except Exception:
             return []
         rows.sort(key=lambda r: r[0])
-        return rows
+        if rows:
+            return rows
+        # Fallback: wenn keine Daten im Zeitraum, zeige letzte 500 Einträge
+        all_rows.sort(key=lambda r: r[0])
+        return all_rows[-500:]
 
     def _style_axes(self, ax):
         ax.set_facecolor(COLOR_CARD)

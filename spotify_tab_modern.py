@@ -29,6 +29,7 @@ from ui.styles import (
     COLOR_SUCCESS,
     COLOR_TEXT,
     COLOR_SUBTEXT,
+    emoji,
 )
 from ui.components.card import Card
 
@@ -69,13 +70,13 @@ class SpotifyTab:
         self.search_entry_var = tk.StringVar()
         self.search_var = tk.StringVar()
         self.status_text_var = tk.StringVar(value="Initialisiere...")
-        self.is_playing_var = tk.StringVar(value="⏸")
+        self.is_playing_var = tk.StringVar(value=emoji("⏸", "Pause"))
 
         self.result_cache = {}
         self.current_album_cover = None
 
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_DARK_BG)
-        self.notebook.add(self.tab_frame, text=" 🎵 Spotify ")
+        self.notebook.add(self.tab_frame, text=emoji(" 🎵 Spotify ", "Spotify"))
 
         self._build_prelogin_ui()
         threading.Thread(target=self._oauth_init_thread, daemon=True).start()
@@ -123,7 +124,7 @@ class SpotifyTab:
         header.pack(fill="x", pady=(20, 10))
         
         tk.Label(
-            header, text="🎵 Spotify",
+            header, text=emoji("🎵 Spotify", "Spotify"),
             font=("Segoe UI", 26, "bold"),
             fg="white", bg=COLOR_DARK_BG
         ).pack(side=tk.LEFT, padx=20)
@@ -155,7 +156,7 @@ class SpotifyTab:
         # Login Button (modern)
         btn = tk.Button(
             info,
-            text="🔐 Login im Browser",
+            text=emoji("🔐 Login im Browser", "Login im Browser"),
             font=("Segoe UI", 12, "bold"),
             bg=COLOR_SUCCESS, fg="white",
             activebackground="#059669",
@@ -204,7 +205,7 @@ class SpotifyTab:
         
         # Titel
         tk.Label(
-            header, text="🎵 Spotify Player",
+            header, text=emoji("🎵 Spotify Player", "Spotify Player"),
             font=("Segoe UI", 24, "bold"),
             fg="white", bg=COLOR_PRIMARY
         ).pack(side=tk.LEFT, padx=20, pady=15)
@@ -233,7 +234,7 @@ class SpotifyTab:
         # Album Cover (groß)
         self.album_img_label = tk.Label(
             card,
-            text="🎵",
+            text=emoji("🎵", "ALBUM"),
             font=("Segoe UI", 80),
             bg=COLOR_CARD_BG,
             fg=COLOR_SUBTEXT,
@@ -332,16 +333,16 @@ class SpotifyTab:
         btn_row = tk.Frame(ctrl, bg=COLOR_CARD_BG)
         btn_row.pack(pady=10)
         
-        create_control_btn(btn_row, "⏮", self.prev_track, 5).pack(side=tk.LEFT, padx=8)
-        create_control_btn(btn_row, "▶ / ⏸", self.play_pause, 12, True).pack(side=tk.LEFT, padx=8)
-        create_control_btn(btn_row, "⏭", self.next_track, 5).pack(side=tk.LEFT, padx=8)
+        create_control_btn(btn_row, emoji("⏮", "Prev"), self.prev_track, 5).pack(side=tk.LEFT, padx=8)
+        create_control_btn(btn_row, emoji("▶ / ⏸", "Play/Pause"), self.play_pause, 12, True).pack(side=tk.LEFT, padx=8)
+        create_control_btn(btn_row, emoji("⏭", "Next"), self.next_track, 5).pack(side=tk.LEFT, padx=8)
         
         # Secondary Controls
         btn_row2 = tk.Frame(ctrl, bg=COLOR_CARD_BG)
         btn_row2.pack(pady=10)
         
-        create_control_btn(btn_row2, "🔀 Shuffle", self.set_shuffle, 10).pack(side=tk.LEFT, padx=5)
-        create_control_btn(btn_row2, "🔁 Repeat", self.set_repeat, 10).pack(side=tk.LEFT, padx=5)
+        create_control_btn(btn_row2, emoji("🔀 Shuffle", "Shuffle"), self.set_shuffle, 10).pack(side=tk.LEFT, padx=5)
+        create_control_btn(btn_row2, emoji("🔁 Repeat", "Repeat"), self.set_repeat, 10).pack(side=tk.LEFT, padx=5)
         
         # === 2. LAUTSTÄRKE ===
         outer2, card2 = self._create_card(right_container, "Lautstärke")
@@ -351,7 +352,7 @@ class SpotifyTab:
         vol_inner.pack(fill="x", padx=20, pady=15)
         
         # Mute Button
-        mute_btn = create_control_btn(vol_inner, "🔇", self.toggle_mute, 5)
+        mute_btn = create_control_btn(vol_inner, emoji("🔇", "Mute"), self.toggle_mute, 5)
         mute_btn.pack(side=tk.LEFT, padx=(0, 15))
         
         # Slider
@@ -409,7 +410,7 @@ class SpotifyTab:
         search_entry.pack(side=tk.LEFT, fill="x", expand=True, padx=(0, 10))
         search_entry.bind("<Return>", lambda e: self.do_search())
         
-        create_control_btn(search_row, "🔍 Suchen", self.do_search, 10, True).pack(side=tk.RIGHT)
+        create_control_btn(search_row, emoji("🔍 Suchen", "Suchen"), self.do_search, 10, True).pack(side=tk.RIGHT)
         
         # Results
         result_row = tk.Frame(search_inner, bg=COLOR_CARD_BG)
@@ -424,7 +425,7 @@ class SpotifyTab:
         self.result_box.pack(side=tk.LEFT, fill="x", expand=True, padx=(0, 10))
         self.result_box.bind("<<ComboboxSelected>>", self.play_selected)
         
-        create_control_btn(result_row, "▶ Starten", self.play_selected, 9, True).pack(side=tk.RIGHT)
+        create_control_btn(result_row, emoji("▶ Starten", "Starten"), self.play_selected, 9, True).pack(side=tk.RIGHT)
 
     # ========== OAUTH FLOW ==========
     def _oauth_init_thread(self):
@@ -538,6 +539,7 @@ class SpotifyTab:
             self.image_queue.put(tk_img)
         except Exception as e:
             print(f"Cover Fehler: {e}")
+            self.image_queue.put(None)
 
     # ========== UPDATE LOOP ==========
     def update_spotify(self):
@@ -558,7 +560,7 @@ class SpotifyTab:
                 
                 # Playing Status
                 is_playing = pb.get("is_playing", False)
-                self.is_playing_var.set("▶" if is_playing else "⏸")
+                self.is_playing_var.set(emoji("▶", "Play") if is_playing else emoji("⏸", "Pause"))
                 
                 # Cover
                 imgs = item.get("album", {}).get("images", [])
@@ -601,16 +603,21 @@ class SpotifyTab:
                 self.song_var.set("Nichts wird abgespielt")
                 self.artist_var.set("")
                 self.album_var.set("")
-                self.is_playing_var.set("⏸")
+                self.is_playing_var.set(emoji("⏸", "Pause"))
         except Exception as e:
             print(f"Spotify Update Fehler: {e}")
         
         # Album Art update
         if not self.image_queue.empty():
             tk_img = self.image_queue.get()
-            self.album_img_label.configure(image=tk_img, text="", bg=COLOR_CARD_BG)
-            self.album_img_label.image = tk_img
-            self.current_album_cover = tk_img
+            if tk_img:
+                self.album_img_label.configure(image=tk_img, text="", bg=COLOR_CARD_BG)
+                self.album_img_label.image = tk_img
+                self.current_album_cover = tk_img
+            else:
+                self.album_img_label.configure(image="", text=emoji("🎵", "ALBUM"), bg=COLOR_CARD_BG)
+                self.album_img_label.image = None
+                self.current_album_cover = None
             
         self._update_devices()
         if self.alive: self.root.after(3000, self.update_spotify)
@@ -671,17 +678,17 @@ class SpotifyTab:
             self.result_cache = {}
             
             for t in (res.get("tracks",{}).get("items") or []):
-                disp = f"🎵 {t['name']} - {t['artists'][0]['name']}"
+                disp = emoji(f"🎵 {t['name']} - {t['artists'][0]['name']}", f"Track: {t['name']} - {t['artists'][0]['name']}")
                 items.append(disp)
                 self.result_cache[disp] = {"uri": t["uri"], "type": "track"}
                 
             for a in (res.get("albums",{}).get("items") or []):
-                disp = f"💿 {a['name']} - {a['artists'][0]['name']}"
+                disp = emoji(f"💿 {a['name']} - {a['artists'][0]['name']}", f"Album: {a['name']} - {a['artists'][0]['name']}")
                 items.append(disp)
                 self.result_cache[disp] = {"uri": a["uri"], "type": "album"}
                 
             for p in (res.get("playlists",{}).get("items") or []):
-                disp = f"📃 {p['name']}"
+                disp = emoji(f"📃 {p['name']}", f"Playlist: {p['name']}")
                 items.append(disp)
                 self.result_cache[disp] = {"uri": p["uri"], "type": "playlist"}
                 

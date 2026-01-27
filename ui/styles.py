@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.font as tkfont
 from ttkbootstrap import Style
 
 # Farbpalette gemäß Vorgabe
@@ -14,6 +15,30 @@ COLOR_INFO = "#38BDF8"
 COLOR_DANGER = "#EF4444"
 COLOR_TEXT = "#E5E7EB"
 COLOR_SUBTEXT = "#94A3B8"
+
+# Emoji support flag (set in init_style)
+EMOJI_OK = True
+
+
+def detect_emoji_support(root: tk.Misc) -> bool:
+    """Checks if a known emoji font is available in Tk."""
+    try:
+        families = set(tkfont.families(root))
+        emoji_fonts = [
+            "Segoe UI Emoji",
+            "Noto Color Emoji",
+            "Apple Color Emoji",
+            "Noto Emoji",
+            "Symbola",
+        ]
+        return any(name in families for name in emoji_fonts)
+    except Exception:
+        return False
+
+
+def emoji(text: str, fallback: str = "") -> str:
+    """Always return emoji text; keep fallback for optional use elsewhere."""
+    return text
 
 
 def configure_styles(style: Style) -> None:
@@ -53,5 +78,7 @@ def init_style(root: tk.Tk) -> Style:
     """Initialisiert ttkbootstrap Styles, setzt Palette und ruft configure_styles."""
     style = Style(theme="darkly")
     root.configure(bg=COLOR_ROOT)
+    global EMOJI_OK
+    EMOJI_OK = detect_emoji_support(root)
     configure_styles(style)
     return style

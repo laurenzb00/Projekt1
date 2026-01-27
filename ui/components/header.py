@@ -12,10 +12,10 @@ from ui.styles import (
 
 
 class HeaderBar(tk.Frame):
-    """80px Header mit Datum, Uhrzeit, Toggles und Exit."""
+    """Schlanker Header mit Datum, Uhrzeit, Toggles und Exit."""
 
     def __init__(self, parent: tk.Widget, on_toggle_a=None, on_toggle_b=None, on_exit=None):
-        super().__init__(parent, height=80, bg=COLOR_HEADER)
+        super().__init__(parent, height=68, bg=COLOR_HEADER)
         self.pack_propagate(False)
 
         # Border + inner card
@@ -30,7 +30,7 @@ class HeaderBar(tk.Frame):
 
         # Links: Datum
         left = tk.Frame(inner, bg=COLOR_CARD)
-        left.grid(row=0, column=0, sticky="nsew", padx=16, pady=12)
+        left.grid(row=0, column=0, sticky="nsew", padx=12, pady=8)
         self.date_label = tk.Label(left, text="--", font=("Segoe UI", 11, "bold"), fg=COLOR_TEXT, bg=COLOR_CARD)
         self.date_label.pack(anchor="w")
         self.weekday_label = tk.Label(left, text="", font=("Segoe UI", 10), fg=COLOR_SUBTEXT, bg=COLOR_CARD)
@@ -44,7 +44,7 @@ class HeaderBar(tk.Frame):
 
         # Rechts: Außentemp + Toggles
         right = tk.Frame(inner, bg=COLOR_CARD)
-        right.grid(row=0, column=2, sticky="ne", padx=8, pady=6)
+        right.grid(row=0, column=2, sticky="ne", padx=6, pady=4)
 
         self.out_temp_label = tk.Label(right, text="-- °C", font=("Segoe UI", 16, "bold"), fg=COLOR_WARNING, bg=COLOR_CARD)
         self.out_temp_label.pack(anchor="ne")

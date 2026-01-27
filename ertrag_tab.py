@@ -13,6 +13,7 @@ from ui.styles import (
     COLOR_TEXT,
     COLOR_SUBTEXT,
     COLOR_PRIMARY,
+    emoji,
 )
 from ui.components.card import Card
 
@@ -26,7 +27,7 @@ class ErtragTab:
         self.alive = True
 
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.tab_frame, text="🔆 Ertrag")
+        self.notebook.add(self.tab_frame, text=emoji("🔆 Ertrag", "Ertrag"))
 
         self.card = Card(self.tab_frame)
         self.card.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)

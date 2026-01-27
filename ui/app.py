@@ -1,4 +1,8 @@
 import tkinter as tk
+import os
+import platform
+import shutil
+import subprocess
 from datetime import datetime
 import json
 import logging
@@ -7,6 +11,8 @@ from ui.styles import (
     init_style,
     COLOR_ROOT,
     COLOR_CARD,
+    emoji,
+    EMOJI_OK,
 )
 from ui.components.card import Card
 from ui.components.header import HeaderBar
@@ -65,8 +71,8 @@ class MainApp:
         sh = max(1, self.root.winfo_screenheight())
         target_w = min(sw, 1024)
         target_h = min(sh, 600)
-        # Kleine Top-Offset, damit Header/Tabbar nicht unter einer System-Taskleiste liegen
-        offset_y = 12
+        # Minimaler Offset, aber maximale nutzbare Höhe
+        offset_y = 0
         usable_h = max(200, target_h - offset_y)
         self.root.overrideredirect(True)  # remove window chrome
         self.root.geometry(f"{target_w}x{usable_h}+0+{offset_y}")
@@ -77,12 +83,13 @@ class MainApp:
         except Exception:
             pass
         init_style(self.root)
+        self._ensure_emoji_font()
 
         # Grid Setup: rows 0/1/2/3, cols 0 (full width)
-        self.root.grid_rowconfigure(0, minsize=72)
-        self.root.grid_rowconfigure(1, minsize=32)
+        self.root.grid_rowconfigure(0, minsize=68)
+        self.root.grid_rowconfigure(1, minsize=28)
         self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_rowconfigure(3, minsize=32)
+        self.root.grid_rowconfigure(3, minsize=28)
         self.root.grid_columnconfigure(0, weight=1)
 
         # Header
@@ -96,38 +103,38 @@ class MainApp:
 
         # Notebook (Tabs)
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.grid(row=1, column=0, sticky="nsew", padx=12, pady=6)
+        self.notebook.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 4))
 
         # Energy Dashboard Tab
         self.dashboard_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.dashboard_tab, text="⚡ Energie")
+        self.notebook.add(self.dashboard_tab, text=emoji("⚡ Energie", "Energie"))
 
         # Body (Energy + Buffer)
         self.body = tk.Frame(self.dashboard_tab, bg=COLOR_ROOT)
         # minimal padding to win vertical space on 600px height
-        self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=(0,2))
+        self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         self.body.grid_columnconfigure(0, weight=7)
         self.body.grid_columnconfigure(1, weight=3)
         self.body.grid_rowconfigure(0, weight=1)
 
         # Energy Card (70%)
-        self.energy_card = Card(self.body)
+        self.energy_card = Card(self.body, padding=12)
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
-        self.energy_view = EnergyFlowView(self.energy_card.content(), width=620, height=360)
+        self.energy_view = EnergyFlowView(self.energy_card.content(), width=580, height=320)
         # Fill to nutzen: sorgt dafür, dass Energie- und Puffer-Card die gleiche Höhe bekommen
-        self.energy_view.pack(fill=tk.BOTH, expand=True, pady=6)
+        self.energy_view.pack(fill=tk.BOTH, expand=True, pady=4)
 
         # Buffer Card (30%)
-        self.buffer_card = Card(self.body)
+        self.buffer_card = Card(self.body, padding=12)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=0)
         self.buffer_card.add_title("Pufferspeicher", icon="🔥")
-        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=280)
+        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=260)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar
         self.status = StatusBar(self.root, on_exit=self.root.quit)
-        self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(6, 12))
+        self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(4, 8))
 
         # Add other tabs
         self._add_other_tabs()
@@ -185,6 +192,27 @@ class MainApp:
     def on_exit(self):
         self.status.update_status("Beende...")
         self.root.after(100, self.root.quit)
+
+    def _ensure_emoji_font(self):
+        """Prüft Emoji-Font und versucht Installation auf Linux (apt-get)."""
+        if EMOJI_OK:
+            return
+        # Nur Linux: optional Auto-Install, wenn apt-get verfügbar und root
+        if platform.system().lower() != "linux":
+            self.status.update_status("Emoji-Font fehlt (Pi: fonts-noto-color-emoji)")
+            return
+        if not shutil.which("apt-get"):
+            self.status.update_status("Emoji-Font fehlt (apt-get nicht gefunden)")
+            return
+        if hasattr(os, "geteuid") and os.geteuid() != 0:
+            self.status.update_status("Emoji-Font fehlt (sudo nötig): fonts-noto-color-emoji")
+            return
+        try:
+            subprocess.run(["apt-get", "update"], check=True)
+            subprocess.run(["apt-get", "install", "-y", "fonts-noto-color-emoji"], check=True)
+            self.status.update_status("Emoji-Font installiert, bitte neu starten")
+        except Exception:
+            self.status.update_status("Emoji-Font Installation fehlgeschlagen")
 
     # --- Update Loop mit echten Daten ---
     def _loop(self):
