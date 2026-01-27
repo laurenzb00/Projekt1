@@ -151,7 +151,7 @@ class CalendarTab:
         now_local = datetime.datetime.now().astimezone()
         first_day = datetime.datetime.combine(self.displayed_month, datetime.time.min).astimezone()
         weekday_offset, days_in_month = calendar.monthrange(first_day.year, first_day.month)
-        weekday_offset = (weekday_offset + 6) % 7  # Start bei Montag
+        # monthrange liefert Montag=0..Sonntag=6, passt zu "Mo..So"
 
         today_date = now_local.date()
         month_title = first_day.strftime("%B %Y")
@@ -178,6 +178,10 @@ class CalendarTab:
                 bg="#0f172a"
             ).grid(row=1, column=idx, padx=4, pady=(0, 6))
 
+        # Grid-Spalten gleichmäßig verteilen
+        for c in range(7):
+            self.scroll_frame.grid_columnconfigure(c, weight=1, uniform="cal")
+
         # Events nach Datum gruppieren (mit Uhrzeiten)
         events_by_date = {}
         for event in self.events_data:
@@ -194,6 +198,9 @@ class CalendarTab:
 
         # Tage rendern
         row_base = 2
+        last_row = row_base + (weekday_offset + days_in_month - 1) // 7
+        for r in range(row_base, last_row + 1):
+            self.scroll_frame.grid_rowconfigure(r, weight=1, uniform="calrow")
         for day in range(1, days_in_month + 1):
             col = (weekday_offset + day - 1) % 7
             row = row_base + (weekday_offset + day - 1) // 7
