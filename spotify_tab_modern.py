@@ -236,10 +236,10 @@ class SpotifyTab:
         self.album_img_label = tk.Label(
             card,
             text=emoji("🎵", "ALBUM"),
-            font=("Segoe UI", 70),
+            font=("Segoe UI", 64),
             bg=COLOR_CARD_BG,
             fg=COLOR_SUBTEXT,
-            width=16, height=7,
+            width=14, height=6,
             relief=tk.FLAT
         )
         self.album_img_label.pack(pady=(20, 15), padx=20)
@@ -518,26 +518,27 @@ class SpotifyTab:
             pil_img.load()
             
             # Resize to square
-            pil_img = pil_img.resize((260, 260), Image.Resampling.LANCZOS)
+            pil_img = pil_img.resize((220, 220), Image.Resampling.LANCZOS)
             
             # Rounded corners
-            mask = Image.new('L', (260, 260), 0)
+            mask = Image.new('L', (220, 220), 0)
             draw = ImageDraw.Draw(mask)
-            draw.rounded_rectangle([(0, 0), (260, 260)], radius=12, fill=255)
+            draw.rounded_rectangle([(0, 0), (220, 220)], radius=10, fill=255)
             
             # Schatten-Effekt simulieren (Blur + Offset)
-            shadow = Image.new('RGBA', (280, 280), (0, 0, 0, 0))
+            shadow = Image.new('RGBA', (240, 240), (0, 0, 0, 0))
             shadow_draw = ImageDraw.Draw(shadow)
-            shadow_draw.rounded_rectangle([(10, 10), (270, 270)], radius=12, fill=(0, 0, 0, 80))
+            shadow_draw.rounded_rectangle([(10, 10), (230, 230)], radius=10, fill=(0, 0, 0, 80))
             shadow = shadow.filter(ImageFilter.GaussianBlur(8))
             
             # Composite
-            output = Image.new('RGBA', (280, 280), (15, 23, 42, 255))
+            output = Image.new('RGBA', (240, 240), (15, 23, 42, 255))
             output.paste(shadow, (0, 0), shadow)
             
             pil_img = pil_img.convert('RGBA')
             pil_img.putalpha(mask)
             output.paste(pil_img, (10, 10), pil_img)
+            output = output.convert("RGB")
             self.image_queue.put(output)
         except Exception as e:
             print(f"Cover Fehler: {e}")
