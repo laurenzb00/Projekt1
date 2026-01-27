@@ -155,7 +155,7 @@ class MainApp:
         self.status.grid(row=3, column=0, sticky="nsew", padx=8, pady=(2, 4))
         
         # After UI is built, log actual heights for debugging
-        self.root.after(500, self._log_component_heights)
+        self.root.after(1500, self._log_component_heights)
 
         # Add other tabs
         self._add_other_tabs()
@@ -247,6 +247,9 @@ class MainApp:
     def _log_component_heights(self):
         """Log actual component heights to diagnose Pi vs PC differences."""
         try:
+            # Force geometry calculation
+            self.root.update_idletasks()
+            
             root_h = self.root.winfo_height()
             header_h = self.header.winfo_height()
             notebook_h = self.notebook.winfo_height()
