@@ -511,8 +511,11 @@ class SpotifyTab:
         try:
             import requests, io
             
-            img_data = requests.get(img_url, timeout=5).content
-            pil_img = Image.open(io.BytesIO(img_data))
+            headers = {"User-Agent": "Mozilla/5.0"}
+            resp = requests.get(img_url, timeout=8, headers=headers)
+            resp.raise_for_status()
+            pil_img = Image.open(io.BytesIO(resp.content))
+            pil_img.load()
             
             # Resize to square
             pil_img = pil_img.resize((260, 260), Image.Resampling.LANCZOS)
@@ -564,7 +567,9 @@ class SpotifyTab:
                 # Cover
                 imgs = item.get("album", {}).get("images", [])
                 if imgs:
-                    cover_url = imgs[0].get("url")
+                    # Prefer the smallest image to avoid oversized covers on Pi
+                    imgs_sorted = sorted(imgs, key=lambda i: i.get("width") or 9999)
+                    cover_url = imgs_sorted[0].get("url")
                     if cover_url and cover_url != self._last_cover_url:
                         self._last_cover_url = cover_url
                         threading.Thread(target=self.fetch_cover, args=(cover_url,), daemon=True).start()

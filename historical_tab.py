@@ -31,6 +31,7 @@ class HistoricalTab:
         self.notebook.add(self.tab_frame, text=emoji("📈 Historie", "Historie"))
 
         self.tab_frame.grid_columnconfigure(0, weight=1)
+        self.tab_frame.grid_rowconfigure(0, weight=1)
 
         # Temperaturen Card
         self.temp_card = Card(self.tab_frame)
