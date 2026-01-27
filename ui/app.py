@@ -22,7 +22,6 @@ from ui.views.buffer_storage import BufferStorageView
 
 _UI_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_ROOT = os.path.dirname(_UI_DIR)
-_SAFE_MARGIN_Y = 12
 
 
 def _data_path(filename: str) -> str:
@@ -86,7 +85,7 @@ class MainApp:
         sw = max(1, self.root.winfo_screenwidth())
         sh = max(1, self.root.winfo_screenheight())
         target_w = min(sw, 1024)
-        target_h = min(sh, 600) - _SAFE_MARGIN_Y
+        target_h = min(sh, 600)
         # Minimaler Offset, aber maximale nutzbare Höhe
         offset_y = 0
         usable_h = max(200, target_h - offset_y)
@@ -102,10 +101,10 @@ class MainApp:
         self._ensure_emoji_font()
 
         # Grid Setup: rows 0/1/2/3, cols 0 (full width)
-        self.root.grid_rowconfigure(0, minsize=58)
+        self.root.grid_rowconfigure(0, minsize=60)
         self.root.grid_rowconfigure(1, minsize=28)
         self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_rowconfigure(3, minsize=24)
+        self.root.grid_rowconfigure(3, minsize=26)
         self.root.grid_columnconfigure(0, weight=1)
 
         # Header
@@ -115,11 +114,11 @@ class MainApp:
             on_toggle_b=self.on_toggle_b,
             on_exit=self.on_exit,
         )
-        self.header.grid(row=0, column=0, sticky="nsew", padx=12, pady=(6, 3))
+        self.header.grid(row=0, column=0, sticky="nsew", padx=12, pady=(8, 4))
 
         # Notebook (Tabs)
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 1))
+        self.notebook.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 2))
 
         # Energy Dashboard Tab
         self.dashboard_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
@@ -134,23 +133,23 @@ class MainApp:
         self.body.grid_rowconfigure(0, weight=1)
 
         # Energy Card (70%)
-        self.energy_card = Card(self.body, padding=12)
+        self.energy_card = Card(self.body, padding=10)
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
-        self.energy_view = EnergyFlowView(self.energy_card.content(), width=580, height=320)
+        self.energy_view = EnergyFlowView(self.energy_card.content(), width=560, height=300)
         # Fill to nutzen: sorgt dafür, dass Energie- und Puffer-Card die gleiche Höhe bekommen
         self.energy_view.pack(fill=tk.BOTH, expand=True, pady=4)
 
         # Buffer Card (30%)
-        self.buffer_card = Card(self.body, padding=12)
+        self.buffer_card = Card(self.body, padding=10)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=0)
         self.buffer_card.add_title("Pufferspeicher", icon="🔥")
-        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=260)
+        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=240)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar
         self.status = StatusBar(self.root, on_exit=self.root.quit, on_toggle_fullscreen=self.toggle_fullscreen)
-        self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(1, 4))
+        self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(2, 6))
 
         # Add other tabs
         self._add_other_tabs()
