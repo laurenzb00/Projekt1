@@ -135,21 +135,21 @@ class MainApp:
         # Body (Energy + Buffer)
         self.body = tk.Frame(self.dashboard_tab, bg=COLOR_ROOT)
         self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
-        self.body.grid_columnconfigure(0, weight=7)
-        self.body.grid_columnconfigure(1, weight=3)
-        self.body.grid_rowconfigure(0, weight=1)
+        self.body.grid_columnconfigure(0, weight=0)
+        self.body.grid_columnconfigure(1, weight=0)
+        self.body.grid_rowconfigure(0, weight=0)
 
         # Energy Card (70%) - reduced size and padding
         self.energy_card = Card(self.body, padding=6)
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 4), pady=0)
-        self.energy_card.add_title("Energiefluss", icon="⚡")
+        self.energy_header = self.energy_card.add_title("Energiefluss", icon="⚡")
         self.energy_view = EnergyFlowView(self.energy_card.content(), width=self._base_energy_w, height=self._base_energy_h)
         self.energy_view.pack(fill=tk.BOTH, expand=True, pady=2)
 
         # Buffer Card (30%) - reduced size and padding
         self.buffer_card = Card(self.body, padding=6)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(4, 0), pady=0)
-        self.buffer_card.add_title("Pufferspeicher", icon="🔥")
+        self.buffer_header = self.buffer_card.add_title("Pufferspeicher", icon="🔥")
         self.buffer_view = BufferStorageView(self.buffer_card.content(), height=self._base_buffer_h)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
@@ -159,7 +159,8 @@ class MainApp:
         
         # After UI is built, apply scaling + log actual heights for debugging
         self.root.after(1200, self._apply_runtime_scaling)
-        self.root.after(1600, self._log_component_heights)
+        self.root.after(1500, self._apply_fixed_body_sizes)
+        self.root.after(1800, self._log_component_heights)
 
         # Add other tabs
         self._add_other_tabs()
@@ -262,18 +263,35 @@ class MainApp:
             except Exception:
                 pass
 
-            # Measure actual body height after layout
-            self.root.update_idletasks()
-            body_h = max(1, self.body.winfo_height())
+            # Apply fixed sizes after scaling
+            self._apply_fixed_body_sizes(scale)
+        except Exception:
+            pass
 
-            # Resize views to fit inside cards (leave space for card title/padding)
-            energy_w = int(self._base_energy_w * scale)
-            view_h = max(160, body_h - 28)
+    def _apply_fixed_body_sizes(self, scale: float = 1.0):
+        """Force fixed card sizes so views cannot stretch beyond the target layout."""
+        try:
+            self.root.update_idletasks()
+            pad = getattr(self.energy_card, "_pad", 6)
+            energy_header_h = max(1, getattr(self, "energy_header", None).winfo_height() if getattr(self, "energy_header", None) else 28)
+            buffer_header_h = max(1, getattr(self, "buffer_header", None).winfo_height() if getattr(self, "buffer_header", None) else 28)
+            header_h = max(energy_header_h, buffer_header_h)
+            extra_h = header_h + pad * 2 + 8
+
+            energy_w = max(360, int(self._base_energy_w * scale))
+            energy_h = max(190, int(self._base_energy_h * scale))
+            buffer_h = max(160, int(self._base_buffer_h * scale))
+            buffer_w = max(200, int(energy_w * 0.45))
+
+            row_h = max(energy_h, buffer_h) + extra_h
+            self.body.grid_rowconfigure(0, minsize=row_h, weight=0)
+            self.body.grid_columnconfigure(0, minsize=energy_w + pad * 2 + 6, weight=0)
+            self.body.grid_columnconfigure(1, minsize=buffer_w + pad * 2 + 6, weight=0)
 
             if hasattr(self, "energy_view"):
-                self.energy_view.resize(energy_w, view_h)
+                self.energy_view.resize(energy_w, energy_h)
             if hasattr(self, "buffer_view"):
-                self.buffer_view.resize(view_h)
+                self.buffer_view.resize(buffer_h)
         except Exception:
             pass
 
