@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from ui.styles import COLOR_CARD, COLOR_BORDER, COLOR_HEADER, COLOR_TEXT, COLOR_SUBTEXT
+from ui.components.rounded import RoundedFrame
 
 
 class StatusBar(tk.Frame):
@@ -10,10 +11,9 @@ class StatusBar(tk.Frame):
         super().__init__(parent, height=32, bg=COLOR_HEADER)
         self.pack_propagate(False)
 
-        border = tk.Frame(self, bg=COLOR_BORDER)
-        border.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
-        inner = tk.Frame(border, bg=COLOR_CARD)
-        inner.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        rounded = RoundedFrame(self, bg=COLOR_CARD, border=COLOR_BORDER, radius=10, padding=0)
+        rounded.pack(fill=tk.BOTH, expand=True, padx=6, pady=2)
+        inner = rounded.content()
 
         inner.grid_columnconfigure(0, weight=1)
         inner.grid_columnconfigure(1, weight=1)

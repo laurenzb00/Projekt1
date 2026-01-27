@@ -2,7 +2,7 @@ import tkinter as tk
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, Rectangle
+from matplotlib.patches import Rectangle
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from ui.styles import (
     COLOR_CARD,
@@ -25,7 +25,7 @@ class BufferStorageView(tk.Frame):
         self.configure(height=self.height)
         self.pack_propagate(False)
         self.data = np.array([[60.0], [50.0], [40.0]])
-        self._chip_boxes: list[FancyBboxPatch] = []
+        self._chip_boxes: list = []
         self._chip_stripes: list[Rectangle] = []
         self._last_temps: tuple[float, float, float] | None = None
 
@@ -54,10 +54,14 @@ class BufferStorageView(tk.Frame):
 
     def _setup_plot(self):
         # Clear axes to avoid stacked heatmaps
-        self.fig.clf()
-        self.ax = self.fig.add_subplot(111)
+        self.fig.clear()
         self.fig.patch.set_facecolor(COLOR_CARD)
+
+        gs = self.fig.add_gridspec(1, 2, width_ratios=[12, 1], wspace=0.15)
+        self.ax = self.fig.add_subplot(gs[0, 0])
+        self.cbar_ax = self.fig.add_subplot(gs[0, 1])
         self.ax.set_facecolor(COLOR_CARD)
+        self.cbar_ax.set_facecolor(COLOR_CARD)
 
         for spine in ["right", "top", "bottom"]:
             self.ax.spines[spine].set_visible(False)
@@ -77,11 +81,8 @@ class BufferStorageView(tk.Frame):
         self.ax.set_yticklabels(["Top", "Mid", "Bottom"], color=COLOR_SUBTEXT, fontsize=10)
 
         self.overlay_texts = [self.ax.text(0, i, "", va="center", ha="center", color=COLOR_TEXT, fontsize=12) for i in range(3)]
-        self._draw_chips(self.data.flatten().tolist())
 
-        # Layout: main plot + dedicated colorbar axis
-        self.ax.set_position([0.12, 0.12, 0.66, 0.76])
-        self.cbar_ax = self.fig.add_axes([0.82, 0.12, 0.04, 0.76])
+        # Single colorbar axis
         self.cbar = self.fig.colorbar(self.im, cax=self.cbar_ax)
         self.cbar.set_label("°C", color=COLOR_SUBTEXT, fontsize=9)
         self.cbar.ax.yaxis.set_tick_params(color=COLOR_SUBTEXT, labelcolor=COLOR_SUBTEXT, labelsize=9)
@@ -93,55 +94,11 @@ class BufferStorageView(tk.Frame):
         colors = [COLOR_INFO, COLOR_WARNING, COLOR_DANGER]
         return LinearSegmentedColormap.from_list("buffer", colors, N=256)
 
-    def _chip_color(self, temp: float) -> str:
-        if temp >= 70:
-            return COLOR_DANGER
-        if temp >= 55:
-            return COLOR_WARNING
-        return COLOR_INFO
-
     def _clear_chips(self):
         for patch in self._chip_boxes + self._chip_stripes:
             patch.remove()
         self._chip_boxes.clear()
         self._chip_stripes.clear()
-
-    def _draw_chips(self, temps):
-        self._clear_chips()
-        # Chips rechts neben den Balken, dezente Flächen mit schmalem Farbstreifen
-        for i, t in enumerate(temps):
-            face = COLOR_CARD
-            stripe = self._chip_color(t)
-            bbox = FancyBboxPatch(
-                (1.05, i - 0.35),
-                1.0,
-                0.7,
-                boxstyle="round,pad=0.18,rounding_size=0.14",
-                linewidth=1,
-                edgecolor=COLOR_BORDER,
-                facecolor=face,
-                transform=self.ax.transData,
-                clip_on=False,
-                zorder=2,
-            )
-            self.ax.add_patch(bbox)
-            stripe_patch = Rectangle(
-                (1.05, i - 0.35),
-                0.08,
-                0.7,
-                linewidth=0,
-                facecolor=stripe,
-                transform=self.ax.transData,
-                clip_on=False,
-                zorder=3,
-            )
-            self.ax.add_patch(stripe_patch)
-            self._chip_boxes.append(bbox)
-            self._chip_stripes.append(stripe_patch)
-
-            self.overlay_texts[i].set_text(f"{t:.1f}°C")
-            self.overlay_texts[i].set_color(COLOR_TEXT)
-            self.overlay_texts[i].set_position((0, i))
 
     def update_temperatures(self, top: float, mid: float, bottom: float, kessel_c: float | None = None):
         temps = (top, mid, bottom)
@@ -151,5 +108,8 @@ class BufferStorageView(tk.Frame):
         self.data = np.array([[top], [mid], [bottom]])
         self.im.set_data(self.data)
         self.im.set_norm(self.norm)
-        self._draw_chips(temps)
+        for i, t in enumerate(temps):
+            self.overlay_texts[i].set_text(f"{t:.1f}°C")
+            self.overlay_texts[i].set_color(COLOR_TEXT)
+            self.overlay_texts[i].set_position((0, i))
         self.canvas.draw_idle()

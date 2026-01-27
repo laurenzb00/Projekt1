@@ -9,6 +9,7 @@ from ui.styles import (
     COLOR_BORDER,
     COLOR_WARNING,
 )
+from ui.components.rounded import RoundedFrame
 
 
 class HeaderBar(tk.Frame):
@@ -18,11 +19,10 @@ class HeaderBar(tk.Frame):
         super().__init__(parent, height=60, bg=COLOR_HEADER)
         self.pack_propagate(False)
 
-        # Border + inner card
-        border = tk.Frame(self, bg=COLOR_BORDER)
-        border.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
-        inner = tk.Frame(border, bg=COLOR_CARD)
-        inner.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        # Rounded container
+        rounded = RoundedFrame(self, bg=COLOR_CARD, border=COLOR_BORDER, radius=12, padding=0)
+        rounded.pack(fill=tk.BOTH, expand=True, padx=4, pady=2)
+        inner = rounded.content()
 
         inner.grid_columnconfigure(0, weight=1, minsize=140, uniform="hdr")
         inner.grid_columnconfigure(1, weight=2, uniform="hdr")

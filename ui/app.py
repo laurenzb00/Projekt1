@@ -10,13 +10,16 @@ from tkinter import ttk
 from ui.styles import (
     init_style,
     COLOR_ROOT,
+    COLOR_HEADER,
     COLOR_CARD,
+    COLOR_BORDER,
     emoji,
     EMOJI_OK,
 )
 from ui.components.card import Card
 from ui.components.header import HeaderBar
 from ui.components.statusbar import StatusBar
+from ui.components.rounded import RoundedFrame
 from ui.views.energy_flow import EnergyFlowView
 from ui.views.buffer_storage import BufferStorageView
 
@@ -123,9 +126,11 @@ class MainApp:
         )
         self.header.grid(row=0, column=0, sticky="nsew", padx=8, pady=(4, 2))
 
-        # Notebook (Tabs)
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.grid(row=1, column=0, sticky="nsew", padx=8, pady=0)
+        # Notebook (Tabs) inside rounded container
+        self.notebook_container = RoundedFrame(self.root, bg=COLOR_HEADER, border=COLOR_BORDER, radius=10, padding=0)
+        self.notebook_container.grid(row=1, column=0, sticky="nsew", padx=8, pady=0)
+        self.notebook = ttk.Notebook(self.notebook_container.content())
+        self.notebook.pack(fill=tk.BOTH, expand=True)
         self.notebook.grid_propagate(False)
 
         # Energy Dashboard Tab
