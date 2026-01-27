@@ -110,9 +110,8 @@ class MainApp:
         self._base_energy_h = 230
         self._base_buffer_h = 180
         self.root.grid_rowconfigure(0, minsize=self._base_header_h)
-        self.root.grid_rowconfigure(1, minsize=self._base_tabs_h)
-        self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_rowconfigure(3, minsize=self._base_status_h)
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_rowconfigure(2, minsize=self._base_status_h)
         self.root.grid_columnconfigure(0, weight=1)
 
         # Header
@@ -127,10 +126,12 @@ class MainApp:
         # Notebook (Tabs)
         self.notebook = ttk.Notebook(self.root)
         self.notebook.grid(row=1, column=0, sticky="nsew", padx=8, pady=0)
+        self.notebook.grid_propagate(False)
 
         # Energy Dashboard Tab
         self.dashboard_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
         self.notebook.add(self.dashboard_tab, text=emoji("⚡ Energie", "Energie"))
+        self.dashboard_tab.pack_propagate(False)
 
         # Body (Energy + Buffer)
         self.body = tk.Frame(self.dashboard_tab, bg=COLOR_ROOT)
@@ -155,7 +156,7 @@ class MainApp:
 
         # Statusbar
         self.status = StatusBar(self.root, on_exit=self.root.quit, on_toggle_fullscreen=self.toggle_fullscreen)
-        self.status.grid(row=3, column=0, sticky="nsew", padx=8, pady=(2, 4))
+        self.status.grid(row=2, column=0, sticky="nsew", padx=8, pady=(2, 4))
         
         # After UI is built, apply scaling + log actual heights for debugging
         self.root.after(1200, self._apply_runtime_scaling)
@@ -263,6 +264,18 @@ class MainApp:
                 pass
 
             # Measure actual body height after layout
+            self.root.update_idletasks()
+            header_h = max(1, self.header.winfo_height())
+            status_h = max(1, self.status.winfo_height())
+            available = max(200, h - header_h - status_h - 6)
+            try:
+                self.notebook.configure(height=available)
+            except Exception:
+                pass
+            try:
+                self.dashboard_tab.configure(height=available)
+            except Exception:
+                pass
             self.root.update_idletasks()
             body_h = max(1, self.body.winfo_height())
 
