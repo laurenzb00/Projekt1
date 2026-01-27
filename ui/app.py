@@ -89,8 +89,8 @@ class MainApp:
         # Minimaler Offset, aber maximale nutzbare Höhe
         offset_y = 0
         usable_h = max(200, target_h - offset_y)
-        self.root.overrideredirect(True)  # remove window chrome
-        self.root.geometry(f"{target_w}x{usable_h}+0+{offset_y}")
+        self.is_fullscreen = True
+        self._apply_fullscreen(target_w, usable_h, offset_y)
         self.root.resizable(False, False)
         try:
             self.root.attributes("-fullscreen", True)
@@ -148,7 +148,7 @@ class MainApp:
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar
-        self.status = StatusBar(self.root, on_exit=self.root.quit)
+        self.status = StatusBar(self.root, on_exit=self.root.quit, on_toggle_fullscreen=self.toggle_fullscreen)
         self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(4, 8))
 
         # Add other tabs
@@ -207,6 +207,36 @@ class MainApp:
     def on_exit(self):
         self.status.update_status("Beende...")
         self.root.after(100, self.root.quit)
+
+    def _apply_fullscreen(self, target_w: int, target_h: int, offset_y: int):
+        self.root.overrideredirect(True)
+        self.root.geometry(f"{target_w}x{target_h}+0+{offset_y}")
+        try:
+            self.root.attributes("-fullscreen", True)
+        except Exception:
+            pass
+
+    def _apply_windowed(self, w: int = 1024, h: int = 600, x: int = 50, y: int = 50):
+        try:
+            self.root.attributes("-fullscreen", False)
+        except Exception:
+            pass
+        self.root.overrideredirect(False)
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
+
+    def toggle_fullscreen(self):
+        sw = max(1, self.root.winfo_screenwidth())
+        sh = max(1, self.root.winfo_screenheight())
+        target_w = min(sw, 1024)
+        target_h = min(sh, 600)
+        if self.is_fullscreen:
+            self.is_fullscreen = False
+            self._apply_windowed()
+            self.status.update_status("Fenster-Modus")
+        else:
+            self.is_fullscreen = True
+            self._apply_fullscreen(target_w, target_h, 0)
+            self.status.update_status("Fullscreen")
 
     def _ensure_emoji_font(self):
         """Prüft Emoji-Font und versucht Installation auf Linux (apt-get)."""
