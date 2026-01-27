@@ -99,12 +99,17 @@ class MainApp:
             pass
         init_style(self.root)
         self._ensure_emoji_font()
+        
+        print(f"[DEBUG] Screen: {sw}x{sh}, Target: {target_w}x{target_h}")
 
-        # Grid Setup: rows 0/1/2/3, cols 0 (full width)
-        self.root.grid_rowconfigure(0, minsize=60)
-        self.root.grid_rowconfigure(1, minsize=28)
+        # Grid Setup: Minimize fixed row sizes to maximize content area
+        HEADER_H = 56
+        TABS_H = 26
+        STATUS_H = 24
+        self.root.grid_rowconfigure(0, minsize=HEADER_H)
+        self.root.grid_rowconfigure(1, minsize=TABS_H)
         self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_rowconfigure(3, minsize=26)
+        self.root.grid_rowconfigure(3, minsize=STATUS_H)
         self.root.grid_columnconfigure(0, weight=1)
 
         # Header
@@ -114,11 +119,11 @@ class MainApp:
             on_toggle_b=self.on_toggle_b,
             on_exit=self.on_exit,
         )
-        self.header.grid(row=0, column=0, sticky="nsew", padx=12, pady=(8, 4))
+        self.header.grid(row=0, column=0, sticky="nsew", padx=8, pady=(4, 2))
 
         # Notebook (Tabs)
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 2))
+        self.notebook.grid(row=1, column=0, sticky="nsew", padx=8, pady=0)
 
         # Energy Dashboard Tab
         self.dashboard_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
@@ -126,30 +131,31 @@ class MainApp:
 
         # Body (Energy + Buffer)
         self.body = tk.Frame(self.dashboard_tab, bg=COLOR_ROOT)
-        # minimal padding to win vertical space on 600px height
         self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         self.body.grid_columnconfigure(0, weight=7)
         self.body.grid_columnconfigure(1, weight=3)
         self.body.grid_rowconfigure(0, weight=1)
 
-        # Energy Card (70%)
-        self.energy_card = Card(self.body, padding=10)
-        self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=0)
+        # Energy Card (70%) - reduced size and padding
+        self.energy_card = Card(self.body, padding=6)
+        self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 4), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
-        self.energy_view = EnergyFlowView(self.energy_card.content(), width=560, height=300)
-        # Fill to nutzen: sorgt dafür, dass Energie- und Puffer-Card die gleiche Höhe bekommen
-        self.energy_view.pack(fill=tk.BOTH, expand=True, pady=4)
+        self.energy_view = EnergyFlowView(self.energy_card.content(), width=520, height=270)
+        self.energy_view.pack(fill=tk.BOTH, expand=True, pady=2)
 
-        # Buffer Card (30%)
-        self.buffer_card = Card(self.body, padding=10)
-        self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=0)
+        # Buffer Card (30%) - reduced size and padding
+        self.buffer_card = Card(self.body, padding=6)
+        self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(4, 0), pady=0)
         self.buffer_card.add_title("Pufferspeicher", icon="🔥")
-        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=240)
+        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=210)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar
         self.status = StatusBar(self.root, on_exit=self.root.quit, on_toggle_fullscreen=self.toggle_fullscreen)
-        self.status.grid(row=3, column=0, sticky="nsew", padx=12, pady=(2, 6))
+        self.status.grid(row=3, column=0, sticky="nsew", padx=8, pady=(2, 4))
+        
+        # After UI is built, log actual heights for debugging
+        self.root.after(500, self._log_component_heights)
 
         # Add other tabs
         self._add_other_tabs()
@@ -237,6 +243,30 @@ class MainApp:
             self.is_fullscreen = True
             self._apply_fullscreen(target_w, target_h, 0)
             self.status.update_status("Fullscreen")
+
+    def _log_component_heights(self):
+        """Log actual component heights to diagnose Pi vs PC differences."""
+        try:
+            root_h = self.root.winfo_height()
+            header_h = self.header.winfo_height()
+            notebook_h = self.notebook.winfo_height()
+            status_h = self.status.winfo_height()
+            body_h = self.body.winfo_height()
+            energy_h = self.energy_view.winfo_height()
+            buffer_h = self.buffer_view.winfo_height()
+            
+            print(f"[DEBUG] Actual Heights:")
+            print(f"  Root window: {root_h}px")
+            print(f"  Header: {header_h}px")
+            print(f"  Notebook/Tabs: {notebook_h}px")
+            print(f"  Body content: {body_h}px")
+            print(f"  Energy view: {energy_h}px")
+            print(f"  Buffer view: {buffer_h}px")
+            print(f"  Statusbar: {status_h}px")
+            print(f"  Fixed overhead: {header_h + notebook_h + status_h}px")
+            print(f"  Available for body: {root_h - header_h - notebook_h - status_h}px")
+        except Exception as e:
+            print(f"[DEBUG] Height logging failed: {e}")
 
     def _ensure_emoji_font(self):
         """Prüft Emoji-Font und versucht Installation auf Linux (apt-get)."""
