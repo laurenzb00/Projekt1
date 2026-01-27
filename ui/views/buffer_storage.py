@@ -22,12 +22,16 @@ class BufferStorageView(tk.Frame):
     def __init__(self, parent: tk.Widget, height: int = 280):
         super().__init__(parent, bg=COLOR_CARD)
         self.height = height
+        self.configure(height=self.height)
+        self.pack_propagate(False)
         self.data = np.array([[60.0], [50.0], [40.0]])
         self._chip_boxes: list[FancyBboxPatch] = []
         self._chip_stripes: list[Rectangle] = []
         self._last_temps: tuple[float, float, float] | None = None
 
-        self.fig, self.ax = plt.subplots(figsize=(2.6, 2.8), dpi=100)
+        fig_width = 2.6
+        fig_height = max(1.6, self.height / 100)
+        self.fig, self.ax = plt.subplots(figsize=(fig_width, fig_height), dpi=100)
         self.fig.patch.set_facecolor(COLOR_CARD)
         self.ax.set_facecolor(COLOR_CARD)
 
@@ -52,6 +56,7 @@ class BufferStorageView(tk.Frame):
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas_widget = self.canvas.get_tk_widget()
+        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
         self._draw_chips([60, 50, 40])
@@ -61,7 +66,16 @@ class BufferStorageView(tk.Frame):
         cbar.outline.set_edgecolor(COLOR_BORDER)
         cbar.set_ticks([45, 55, 65, 75])
         cbar.ax.set_facecolor(COLOR_CARD)
-        self.fig.tight_layout(pad=0.6)
+        self.fig.subplots_adjust(left=0.25, right=0.88, top=0.96, bottom=0.08)
+
+    def resize(self, height: int):
+        self.height = max(160, int(height))
+        self.configure(height=self.height)
+        fig_width = 2.6
+        fig_height = max(1.6, self.height / 100)
+        self.fig.set_size_inches(fig_width, fig_height, forward=True)
+        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
+        self.canvas.draw_idle()
 
     def _build_cmap(self):
         colors = [COLOR_INFO, COLOR_WARNING, COLOR_DANGER]

@@ -31,6 +31,15 @@ class EnergyFlowView(tk.Frame):
         self._base_img = self._render_background()
         self._canvas_img = self.canvas.create_image(0, 0, anchor="nw")
 
+    def resize(self, width: int, height: int):
+        width = max(240, int(width))
+        height = max(200, int(height))
+        self.canvas.config(width=width, height=height)
+        self.width = width
+        self.height = height
+        self.nodes = self._define_nodes()
+        self._base_img = self._render_background()
+
     def _has_font(self, name: str) -> bool:
         try:
             ImageFont.truetype(name, 12)

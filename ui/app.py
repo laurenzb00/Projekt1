@@ -103,13 +103,16 @@ class MainApp:
         print(f"[DEBUG] Screen: {sw}x{sh}, Target: {target_w}x{target_h}")
 
         # Grid Setup: Minimize fixed row sizes to maximize content area
-        HEADER_H = 56
-        TABS_H = 26
-        STATUS_H = 24
-        self.root.grid_rowconfigure(0, minsize=HEADER_H)
-        self.root.grid_rowconfigure(1, minsize=TABS_H)
+        self._base_header_h = 56
+        self._base_tabs_h = 26
+        self._base_status_h = 24
+        self._base_energy_w = 520
+        self._base_energy_h = 270
+        self._base_buffer_h = 210
+        self.root.grid_rowconfigure(0, minsize=self._base_header_h)
+        self.root.grid_rowconfigure(1, minsize=self._base_tabs_h)
         self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_rowconfigure(3, minsize=STATUS_H)
+        self.root.grid_rowconfigure(3, minsize=self._base_status_h)
         self.root.grid_columnconfigure(0, weight=1)
 
         # Header
@@ -140,22 +143,23 @@ class MainApp:
         self.energy_card = Card(self.body, padding=6)
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 4), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
-        self.energy_view = EnergyFlowView(self.energy_card.content(), width=520, height=270)
+        self.energy_view = EnergyFlowView(self.energy_card.content(), width=self._base_energy_w, height=self._base_energy_h)
         self.energy_view.pack(fill=tk.BOTH, expand=True, pady=2)
 
         # Buffer Card (30%) - reduced size and padding
         self.buffer_card = Card(self.body, padding=6)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(4, 0), pady=0)
         self.buffer_card.add_title("Pufferspeicher", icon="🔥")
-        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=210)
+        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=self._base_buffer_h)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar
         self.status = StatusBar(self.root, on_exit=self.root.quit, on_toggle_fullscreen=self.toggle_fullscreen)
         self.status.grid(row=3, column=0, sticky="nsew", padx=8, pady=(2, 4))
         
-        # After UI is built, log actual heights for debugging
-        self.root.after(1500, self._log_component_heights)
+        # After UI is built, apply scaling + log actual heights for debugging
+        self.root.after(1200, self._apply_runtime_scaling)
+        self.root.after(1600, self._log_component_heights)
 
         # Add other tabs
         self._add_other_tabs()
@@ -243,6 +247,38 @@ class MainApp:
             self.is_fullscreen = True
             self._apply_fullscreen(target_w, target_h, 0)
             self.status.update_status("Fullscreen")
+
+    def _apply_runtime_scaling(self):
+        """Scale UI based on actual window size (fix Pi taskbar/DPI differences)."""
+        try:
+            self.root.update_idletasks()
+            w = max(1, self.root.winfo_width())
+            h = max(1, self.root.winfo_height())
+            scale = min(w / 1024.0, h / 600.0)
+            scale = max(0.85, min(1.0, scale))
+
+            try:
+                self.root.tk.call("tk", "scaling", scale)
+            except Exception:
+                pass
+
+            header_h = int(self._base_header_h * scale)
+            tabs_h = int(self._base_tabs_h * scale)
+            status_h = int(self._base_status_h * scale)
+            energy_w = int(self._base_energy_w * scale)
+            energy_h = int(self._base_energy_h * scale)
+            buffer_h = int(self._base_buffer_h * scale)
+
+            self.root.grid_rowconfigure(0, minsize=header_h)
+            self.root.grid_rowconfigure(1, minsize=tabs_h)
+            self.root.grid_rowconfigure(3, minsize=status_h)
+
+            if hasattr(self, "energy_view"):
+                self.energy_view.resize(energy_w, energy_h)
+            if hasattr(self, "buffer_view"):
+                self.buffer_view.resize(buffer_h)
+        except Exception:
+            pass
 
     def _log_component_heights(self):
         """Log actual component heights to diagnose Pi vs PC differences."""
