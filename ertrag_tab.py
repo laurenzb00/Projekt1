@@ -40,6 +40,8 @@ class ErtragTab:
         self.canvas_widget = self.canvas.get_tk_widget()
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
+        self._last_key = None
+
         # Stats labels
         stats_frame = ttk.Frame(self.card.content())
         stats_frame.pack(fill=tk.X, pady=(8, 0))
@@ -54,13 +56,13 @@ class ErtragTab:
         self.alive = False
 
     def _load_pv(self):
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ErtragHistory.csv")
+        path = self._data_path("ErtragHistory.csv")
         if not os.path.exists(path):
             return []
         rows = []
         cutoff = datetime.now() - timedelta(days=90)
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     try:
@@ -89,6 +91,11 @@ class ErtragTab:
             return
 
         data = self._load_pv()
+        key = (len(data), data[-1]) if data else ("empty",)
+        if key == self._last_key:
+            self.root.after(5 * 60 * 1000, self._update_plot)
+            return
+        self._last_key = key
         self.ax.clear()
         self._style_axes()
 
@@ -118,3 +125,7 @@ class ErtragTab:
 
         # Refresh alle 5 Minuten
         self.root.after(5 * 60 * 1000, self._update_plot)
+
+    @staticmethod
+    def _data_path(filename: str) -> str:
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)

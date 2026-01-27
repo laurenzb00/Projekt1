@@ -25,6 +25,7 @@ class BufferStorageView(tk.Frame):
         self.data = np.array([[60.0], [50.0], [40.0]])
         self._chip_boxes: list[FancyBboxPatch] = []
         self._chip_stripes: list[Rectangle] = []
+        self._last_temps: tuple[float, float, float] | None = None
 
         self.fig, self.ax = plt.subplots(figsize=(2.6, 2.8), dpi=100)
         self.fig.patch.set_facecolor(COLOR_CARD)
@@ -117,7 +118,10 @@ class BufferStorageView(tk.Frame):
             self.overlay_texts[i].set_position((0, i))
 
     def update_temperatures(self, top: float, mid: float, bottom: float, kessel_c: float | None = None):
-        temps = [top, mid, bottom]
+        temps = (top, mid, bottom)
+        if self._last_temps == temps:
+            return
+        self._last_temps = temps
         self.data = np.array([[top], [mid], [bottom]])
         self.im.set_data(self.data)
         self.im.set_norm(self.norm)

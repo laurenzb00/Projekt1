@@ -19,6 +19,21 @@ from ui.components.header import HeaderBar
 from ui.components.statusbar import StatusBar
 from ui.views.energy_flow import EnergyFlowView
 from ui.views.buffer_storage import BufferStorageView
+
+_UI_DIR = os.path.dirname(os.path.abspath(__file__))
+_DATA_ROOT = os.path.dirname(_UI_DIR)
+
+
+def _data_path(filename: str) -> str:
+    return os.path.join(_DATA_ROOT, filename)
+
+
+def _read_lines_safe(path: str) -> list[str]:
+    try:
+        with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
+            return f.readlines()
+    except Exception:
+        return []
 try:
     from historical_tab import HistoricalTab
 except ImportError:
@@ -257,20 +272,15 @@ class MainApp:
 
     def _fetch_real_data(self):
         """Versucht, echte Daten aus CSV/APIs zu laden."""
-        import os
         import csv
-        from datetime import datetime
 
-        working_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(working_dir)
-        fronius_csv = os.path.join(root_dir, "FroniusDaten.csv")
-        bmk_csv = os.path.join(root_dir, "Heizungstemperaturen.csv")
+        fronius_csv = _data_path("FroniusDaten.csv")
+        bmk_csv = _data_path("Heizungstemperaturen.csv")
 
         # Fronius Daten (letzter Eintrag)
         if os.path.exists(fronius_csv):
             try:
-                with open(fronius_csv, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
+                lines = _read_lines_safe(fronius_csv)
                     if len(lines) > 1:
                         last_line = lines[-1].strip()
                         reader = csv.reader([last_line])
@@ -287,8 +297,7 @@ class MainApp:
         # BMK Daten (letzter Eintrag)
         if os.path.exists(bmk_csv):
             try:
-                with open(bmk_csv, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
+                lines = _read_lines_safe(bmk_csv)
                     if len(lines) > 1:
                         last_line = lines[-1].strip()
                         reader = csv.reader([last_line])
