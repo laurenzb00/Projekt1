@@ -158,7 +158,7 @@ class CalendarTab:
 
         # Dunkles Hintergrund für Label
         label_frame = tk.Frame(self.scroll_frame, bg="#0f172a")
-        label_frame.grid(row=0, column=0, columnspan=7, sticky="nsew", pady=(5, 12))
+        label_frame.grid(row=0, column=0, columnspan=7, sticky="nsew", pady=(4, 8))
         
         tk.Label(
             label_frame,
@@ -176,7 +176,7 @@ class CalendarTab:
                 font=("Segoe UI", 9, "bold"),
                 fg="#8ba2c7",
                 bg="#0f172a"
-            ).grid(row=1, column=idx, padx=4, pady=(0, 6))
+            ).grid(row=1, column=idx, padx=3, pady=(0, 4))
 
         # Grid-Spalten gleichmäßig verteilen
         for c in range(7):
@@ -218,10 +218,10 @@ class CalendarTab:
                 highlightbackground=border_color,
                 highlightthickness=1,
                 bd=0,
-                padx=6,
-                pady=4
+                padx=5,
+                pady=3
             )
-            cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
+            cell.grid(row=row, column=col, padx=3, pady=3, sticky="nsew")
 
             # Datum-Kopf
             tk.Label(
@@ -230,7 +230,7 @@ class CalendarTab:
                 font=("Segoe UI", 10, "bold"),
                 fg="#e5e7eb",
                 bg=cell_bg
-            ).pack(anchor="nw")
+            ).pack(anchor="nw", pady=(0, 1))
 
             # Events auflisten mit Uhrzeiten (max 3)
             items = events_by_date.get(cell_date, [])
@@ -241,7 +241,7 @@ class CalendarTab:
                     font=("Segoe UI", 8),
                     fg="#6b7280",
                     bg=cell_bg
-                ).pack(anchor="nw", pady=(2, 0))
+                ).pack(anchor="nw", pady=(1, 0))
             else:
                 for ev in items[:3]:
                     time_str = f"[{ev['time']}] " if ev['time'] else ""
@@ -263,7 +263,7 @@ class CalendarTab:
                         font=("Segoe UI", 7),
                         fg="#9ca3af",
                         bg=cell_bg
-                    ).pack(anchor="nw", pady=(2, 0))
+                    ).pack(anchor="nw", pady=(1, 0))
 
     def _fetch_calendar(self):
         self.status_var.set("Kalender wird geladen...")

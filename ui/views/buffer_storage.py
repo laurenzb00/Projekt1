@@ -35,6 +35,30 @@ class BufferStorageView(tk.Frame):
         self.fig.patch.set_facecolor(COLOR_CARD)
         self.ax.set_facecolor(COLOR_CARD)
 
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas_widget = self.canvas.get_tk_widget()
+        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
+        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
+
+        self._setup_plot()
+
+    def resize(self, height: int):
+        self.height = max(160, int(height))
+        self.configure(height=self.height)
+        fig_width = 2.6
+        fig_height = max(1.6, self.height / 100)
+        self.fig.set_size_inches(fig_width, fig_height, forward=True)
+        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
+        self._setup_plot()
+        self.canvas.draw_idle()
+
+    def _setup_plot(self):
+        # Clear axes to avoid stacked heatmaps
+        self.fig.clf()
+        self.ax = self.fig.add_subplot(111)
+        self.fig.patch.set_facecolor(COLOR_CARD)
+        self.ax.set_facecolor(COLOR_CARD)
+
         for spine in ["right", "top", "bottom"]:
             self.ax.spines[spine].set_visible(False)
         self.ax.spines["left"].set_color(COLOR_BORDER)
@@ -53,33 +77,17 @@ class BufferStorageView(tk.Frame):
         self.ax.set_yticklabels(["Top", "Mid", "Bottom"], color=COLOR_SUBTEXT, fontsize=10)
 
         self.overlay_texts = [self.ax.text(0, i, "", va="center", ha="center", color=COLOR_TEXT, fontsize=12) for i in range(3)]
+        self._draw_chips(self.data.flatten().tolist())
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.canvas_widget = self.canvas.get_tk_widget()
-        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
-        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
-
-        self._draw_chips([60, 50, 40])
-        # Dedicated colorbar axis (prevents duplicate/clipped scale)
-        self.cbar_ax = self.fig.add_axes([0.86, 0.12, 0.04, 0.76])
+        # Layout: main plot + dedicated colorbar axis
+        self.ax.set_position([0.12, 0.12, 0.66, 0.76])
+        self.cbar_ax = self.fig.add_axes([0.82, 0.12, 0.04, 0.76])
         self.cbar = self.fig.colorbar(self.im, cax=self.cbar_ax)
         self.cbar.set_label("°C", color=COLOR_SUBTEXT, fontsize=9)
         self.cbar.ax.yaxis.set_tick_params(color=COLOR_SUBTEXT, labelcolor=COLOR_SUBTEXT, labelsize=9)
         self.cbar.outline.set_edgecolor(COLOR_BORDER)
         self.cbar.set_ticks([45, 55, 65, 75])
         self.cbar.ax.set_facecolor(COLOR_CARD)
-        self.fig.subplots_adjust(left=0.25, right=0.82, top=0.96, bottom=0.08)
-
-    def resize(self, height: int):
-        self.height = max(160, int(height))
-        self.configure(height=self.height)
-        fig_width = 2.6
-        fig_height = max(1.6, self.height / 100)
-        self.fig.set_size_inches(fig_width, fig_height, forward=True)
-        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
-        if hasattr(self, "cbar_ax"):
-            self.cbar_ax.set_position([0.86, 0.12, 0.04, 0.76])
-        self.canvas.draw_idle()
 
     def _build_cmap(self):
         colors = [COLOR_INFO, COLOR_WARNING, COLOR_DANGER]
