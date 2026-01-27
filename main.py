@@ -30,7 +30,7 @@ def run_wechselrichter():
 def run_bmkdaten():
     try:
         while not shutdown_event.is_set():
-            BMKDATEN.abrufen_und_speichern() 
+            BMKDATEN.abrufen_und_speichern()
             time.sleep(60)
     except Exception as e:
         logging.error(f"BMKDATEN-Thread Fehler: {e}")

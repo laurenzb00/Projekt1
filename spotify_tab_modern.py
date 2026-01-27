@@ -236,10 +236,10 @@ class SpotifyTab:
         self.album_img_label = tk.Label(
             card,
             text=emoji("🎵", "ALBUM"),
-            font=("Segoe UI", 80),
+            font=("Segoe UI", 70),
             bg=COLOR_CARD_BG,
             fg=COLOR_SUBTEXT,
-            width=18, height=8,
+            width=16, height=7,
             relief=tk.FLAT
         )
         self.album_img_label.pack(pady=(20, 15), padx=20)
@@ -515,21 +515,21 @@ class SpotifyTab:
             pil_img = Image.open(io.BytesIO(img_data))
             
             # Resize to square
-            pil_img = pil_img.resize((320, 320), Image.Resampling.LANCZOS)
+            pil_img = pil_img.resize((260, 260), Image.Resampling.LANCZOS)
             
             # Rounded corners
-            mask = Image.new('L', (320, 320), 0)
+            mask = Image.new('L', (260, 260), 0)
             draw = ImageDraw.Draw(mask)
-            draw.rounded_rectangle([(0, 0), (320, 320)], radius=15, fill=255)
+            draw.rounded_rectangle([(0, 0), (260, 260)], radius=12, fill=255)
             
             # Schatten-Effekt simulieren (Blur + Offset)
-            shadow = Image.new('RGBA', (340, 340), (0, 0, 0, 0))
+            shadow = Image.new('RGBA', (280, 280), (0, 0, 0, 0))
             shadow_draw = ImageDraw.Draw(shadow)
-            shadow_draw.rounded_rectangle([(10, 10), (330, 330)], radius=15, fill=(0, 0, 0, 80))
+            shadow_draw.rounded_rectangle([(10, 10), (270, 270)], radius=12, fill=(0, 0, 0, 80))
             shadow = shadow.filter(ImageFilter.GaussianBlur(8))
             
             # Composite
-            output = Image.new('RGBA', (340, 340), (15, 23, 42, 255))
+            output = Image.new('RGBA', (280, 280), (15, 23, 42, 255))
             output.paste(shadow, (0, 0), shadow)
             
             pil_img = pil_img.convert('RGBA')
