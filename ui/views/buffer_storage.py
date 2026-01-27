@@ -2,6 +2,8 @@ import tkinter as tk
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Rectangle
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from ui.styles import (
@@ -31,15 +33,7 @@ class BufferStorageView(tk.Frame):
 
         fig_width = 2.6
         fig_height = max(1.6, self.height / 100)
-        self.fig, self.ax = plt.subplots(figsize=(fig_width, fig_height), dpi=100)
-        self.fig.patch.set_facecolor(COLOR_CARD)
-        self.ax.set_facecolor(COLOR_CARD)
-
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.canvas_widget = self.canvas.get_tk_widget()
-        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
-        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
-
+        self._create_figure(fig_width, fig_height)
         self._setup_plot()
 
     def resize(self, height: int):
@@ -47,21 +41,28 @@ class BufferStorageView(tk.Frame):
         self.configure(height=self.height)
         fig_width = 2.6
         fig_height = max(1.6, self.height / 100)
-        self.fig.set_size_inches(fig_width, fig_height, forward=True)
-        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
+        self._create_figure(fig_width, fig_height)
         self._setup_plot()
         self.canvas.draw_idle()
+
+    def _create_figure(self, fig_width: float, fig_height: float):
+        # Destroy existing canvas to prevent stacked renders
+        if hasattr(self, "canvas_widget") and self.canvas_widget.winfo_exists():
+            self.canvas_widget.destroy()
+        self.fig = Figure(figsize=(fig_width, fig_height), dpi=100)
+        self.fig.patch.set_facecolor(COLOR_CARD)
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set_facecolor(COLOR_CARD)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas_widget = self.canvas.get_tk_widget()
+        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
+        self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
     def _setup_plot(self):
         # Clear axes to avoid stacked heatmaps
         self.fig.clear()
-        self.fig.patch.set_facecolor(COLOR_CARD)
-
-        gs = self.fig.add_gridspec(1, 2, width_ratios=[12, 1], wspace=0.15)
-        self.ax = self.fig.add_subplot(gs[0, 0])
-        self.cbar_ax = self.fig.add_subplot(gs[0, 1])
+        self.ax = self.fig.add_subplot(111)
         self.ax.set_facecolor(COLOR_CARD)
-        self.cbar_ax.set_facecolor(COLOR_CARD)
 
         for spine in ["right", "top", "bottom"]:
             self.ax.spines[spine].set_visible(False)
@@ -82,13 +83,23 @@ class BufferStorageView(tk.Frame):
 
         self.overlay_texts = [self.ax.text(0, i, "", va="center", ha="center", color=COLOR_TEXT, fontsize=12) for i in range(3)]
 
-        # Single colorbar axis
+        # Single colorbar axis (only one)
+        divider = make_axes_locatable(self.ax)
+        self.cbar_ax = divider.append_axes("right", size="4%", pad=0.15)
         self.cbar = self.fig.colorbar(self.im, cax=self.cbar_ax)
         self.cbar.set_label("°C", color=COLOR_SUBTEXT, fontsize=9)
         self.cbar.ax.yaxis.set_tick_params(color=COLOR_SUBTEXT, labelcolor=COLOR_SUBTEXT, labelsize=9)
         self.cbar.outline.set_edgecolor(COLOR_BORDER)
         self.cbar.set_ticks([45, 55, 65, 75])
         self.cbar.ax.set_facecolor(COLOR_CARD)
+
+        # Ensure only one heatmap axis + one colorbar axis exist
+        for ax in list(self.fig.axes):
+            if ax not in (self.ax, self.cbar_ax):
+                try:
+                    self.fig.delaxes(ax)
+                except Exception:
+                    pass
 
     def _build_cmap(self):
         colors = [COLOR_INFO, COLOR_WARNING, COLOR_DANGER]
