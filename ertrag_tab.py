@@ -100,7 +100,7 @@ class ErtragTab:
         if not self.alive:
             return
 
-        data = self._load_pv_daily(365)
+        data = self._load_pv_monthly(12)
         key = (len(data), data[-1]) if data else ("empty",)
         if key == self._last_key:
             self.root.after(5 * 60 * 1000, self._update_plot)
