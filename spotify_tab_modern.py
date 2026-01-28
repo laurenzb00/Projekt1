@@ -548,8 +548,8 @@ class SpotifyTab:
                 # Cover
                 imgs = item.get("album", {}).get("images", [])
                 if imgs:
-                    # Prefer the smallest image to avoid oversized covers on Pi
-                    imgs_sorted = sorted(imgs, key=lambda i: i.get("width") or 9999)
+                    # Use the largest image for better quality
+                    imgs_sorted = sorted(imgs, key=lambda i: i.get("width") or 0, reverse=True)
                     cover_url = imgs_sorted[0].get("url")
                     if cover_url and cover_url != self._last_cover_url:
                         self._last_cover_url = cover_url

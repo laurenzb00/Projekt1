@@ -16,6 +16,7 @@ from ui.styles import (
     COLOR_PRIMARY,
     COLOR_INFO,
     COLOR_WARNING,
+    COLOR_DANGER,
     emoji,
 )
 from ui.components.card import Card
@@ -30,7 +31,7 @@ class HistoricalTab:
         self.alive = True
 
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.tab_frame, text=emoji("📈 Historie", "Historie"))
+        self.notebook.add(self.tab_frame, text=emoji("📈 Heizung-Historie", "Heizung-Historie"))
 
         self.tab_frame.grid_columnconfigure(0, weight=1)
         self.tab_frame.grid_rowconfigure(0, weight=0)
@@ -135,9 +136,9 @@ class HistoricalTab:
                 self.ax.plot(ts, mid, color=COLOR_INFO, label="Puffer mitte", linewidth=1.2)
                 self.ax.plot(ts, bot, color=COLOR_SUBTEXT, label="Puffer unten", linewidth=1.2)
                 self.ax.plot(ts, boiler, color=COLOR_WARNING, label="Boiler", linewidth=1.4)
-                self.ax.plot(ts, outside, color=COLOR_TEXT, label="Außen", linewidth=1.2)
+                self.ax.plot(ts, outside, color=COLOR_DANGER, label="Außen", linewidth=1.2)
                 self.ax.set_ylabel("°C", color=COLOR_TEXT, fontsize=10)
-                self.ax.set_ylim(bottom=0)  # Y-Achse startet bei 0
+                # Y-Achse kann ins Minus gehen für Außentemperatur
                 self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
                 self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
                 self.ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=False))

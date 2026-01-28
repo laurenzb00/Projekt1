@@ -35,10 +35,10 @@ class StatusBar(tk.Frame):
         self.spark_canvas = tk.Canvas(self.center_frame, width=110, height=16, bg=COLOR_CARD, highlightthickness=0)
         self.spark_canvas.pack(side=tk.LEFT, padx=(0, 6))
 
-        self.window_btn = ttk.Button(inner, text="Fenster", style="Card.TButton", command=on_toggle_fullscreen, width=7)
+        self.window_btn = ttk.Button(inner, text="⊡", style="Card.TButton", command=on_toggle_fullscreen, width=3)
         self.window_btn.grid(row=0, column=2, sticky="e", padx=(4, 4), pady=2)
 
-        self.exit_btn = ttk.Button(inner, text="Exit", style="Card.TButton", command=on_exit, width=7)
+        self.exit_btn = ttk.Button(inner, text="⏻", style="Card.TButton", command=on_exit, width=3)
         self.exit_btn.grid(row=0, column=3, sticky="e", padx=(4, 8), pady=2)
 
     def update_status(self, text: str):

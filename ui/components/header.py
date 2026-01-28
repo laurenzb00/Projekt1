@@ -31,9 +31,9 @@ class HeaderBar(tk.Frame):
         # Links: Datum
         left = tk.Frame(inner, bg=COLOR_CARD)
         left.grid(row=0, column=0, sticky="nsew", padx=10, pady=6)
-        self.date_label = tk.Label(left, text="--", font=("Segoe UI", 10, "bold"), fg=COLOR_TEXT, bg=COLOR_CARD)
+        self.date_label = tk.Label(left, text="--", font=("Segoe UI", 14, "bold"), fg=COLOR_TEXT, bg=COLOR_CARD)
         self.date_label.pack(anchor="w")
-        self.weekday_label = tk.Label(left, text="", font=("Segoe UI", 9), fg=COLOR_SUBTEXT, bg=COLOR_CARD)
+        self.weekday_label = tk.Label(left, text="", font=("Segoe UI", 11), fg=COLOR_SUBTEXT, bg=COLOR_CARD)
         self.weekday_label.pack(anchor="w", pady=(2, 0))
 
         # Mitte: Uhrzeit + Buttons (zwischen Uhrzeit und Außentemp)
@@ -42,7 +42,7 @@ class HeaderBar(tk.Frame):
         center.grid_columnconfigure(0, weight=1)
         center.grid_columnconfigure(1, weight=0)
 
-        self.clock_label = tk.Label(center, text="--:--", font=("Segoe UI", 28, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD)
+        self.clock_label = tk.Label(center, text="--:--", font=("Segoe UI", 36, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD)
         self.clock_label.grid(row=0, column=0, sticky="nsew")
 
         # Rechts: Außentemp

@@ -34,7 +34,7 @@ class ErtragTab:
         self.card.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
         self.card.add_title("PV-Ertrag (täglich)", icon="📈")
 
-        self.fig, self.ax = plt.subplots(figsize=(7.6, 3.8), dpi=100)
+        self.fig, self.ax = plt.subplots(figsize=(7.6, 3.0), dpi=100)
         self.fig.patch.set_facecolor(COLOR_CARD)
         self.ax.set_facecolor(COLOR_CARD)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.card.content())

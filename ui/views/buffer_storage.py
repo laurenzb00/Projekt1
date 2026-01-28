@@ -266,7 +266,7 @@ class BufferStorageView(tk.Frame):
         return vals.reshape(h, 1)
 
     def _create_sparkline(self):
-        self.spark_fig = Figure(figsize=(3.4, 1.1), dpi=100)
+        self.spark_fig = Figure(figsize=(3.4, 0.9), dpi=100)
         self.spark_fig.patch.set_alpha(0)
         self.spark_ax = self.spark_fig.add_subplot(111)
         self.spark_ax.set_facecolor("none")
