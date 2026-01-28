@@ -3,9 +3,11 @@ import os
 import platform
 import shutil
 import subprocess
-from datetime import datetime
+import csv
+from datetime import datetime, timedelta
 import json
 import logging
+import time
 from tkinter import ttk
 from ui.styles import (
     init_style,
@@ -78,8 +80,14 @@ class MainApp:
     """1024x600 Dashboard mit Grid-Layout, Cards, Header und Statusbar + Tabs."""
 
     def __init__(self, root: tk.Tk):
+        self._start_time = time.time()
+        self._configure_debounce_id = None
+        self._last_size = (0, 0)
         self.root = root
         self.root.title("Smart Home Dashboard")
+        
+        # Debug: Bind Configure events
+        self.root.bind("<Configure>", self._on_root_configure)
         # Fix DPI scaling and force a true 1024x600 borderless fullscreen
         try:
             self.root.tk.call("tk", "scaling", 1.0)
@@ -106,8 +114,8 @@ class MainApp:
         print(f"[DEBUG] Screen: {sw}x{sh}, Target: {target_w}x{target_h}")
 
         # Grid Setup: Minimize fixed row sizes to maximize content area
-        self._base_header_h = 56
-        self._base_tabs_h = 26
+        self._base_header_h = 52
+        self._base_tabs_h = 30
         self._base_status_h = 24
         self._base_energy_w = 460
         self._base_energy_h = 230
@@ -127,7 +135,7 @@ class MainApp:
         self.header.grid(row=0, column=0, sticky="nsew", padx=8, pady=(4, 2))
 
         # Notebook (Tabs) inside rounded container
-        self.notebook_container = RoundedFrame(self.root, bg=COLOR_HEADER, border=COLOR_BORDER, radius=10, padding=0)
+        self.notebook_container = RoundedFrame(self.root, bg=COLOR_HEADER, border=None, radius=18, padding=0)
         self.notebook_container.grid(row=1, column=0, sticky="nsew", padx=8, pady=0)
         self.notebook = ttk.Notebook(self.notebook_container.content())
         self.notebook.pack(fill=tk.BOTH, expand=True)
@@ -149,23 +157,58 @@ class MainApp:
         self.energy_card = Card(self.body, padding=6)
         self.energy_card.grid(row=0, column=0, sticky="nsew", padx=(0, 4), pady=0)
         self.energy_card.add_title("Energiefluss", icon="⚡")
-        self.energy_view = EnergyFlowView(self.energy_card.content(), width=self._base_energy_w, height=self._base_energy_h)
+        # LAYOUT FIX: Start with minimal size, will resize after layout settles
+        self.energy_view = EnergyFlowView(self.energy_card.content(), width=240, height=200)
         self.energy_view.pack(fill=tk.BOTH, expand=True, pady=2)
 
         # Buffer Card (30%) - reduced size and padding
         self.buffer_card = Card(self.body, padding=6)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(4, 0), pady=0)
         self.buffer_card.add_title("Pufferspeicher", icon="🔥")
-        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=self._base_buffer_h)
+        # LAYOUT FIX: Start with minimal height, will resize after layout settles
+        self.buffer_view = BufferStorageView(self.buffer_card.content(), height=180)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
 
         # Statusbar
         self.status = StatusBar(self.root, on_exit=self.root.quit, on_toggle_fullscreen=self.toggle_fullscreen)
         self.status.grid(row=2, column=0, sticky="nsew", padx=8, pady=(2, 4))
         
-        # After UI is built, apply scaling + log actual heights for debugging
-        self.root.after(1200, self._apply_runtime_scaling)
-        self.root.after(1600, self._log_component_heights)
+        # [DEBUG] Instrumentation: Log when UI is fully built
+        print(f"[LAYOUT] UI built at {time.time() - self._start_time:.3f}s")
+        
+        # LAYOUT FIX: Let Tkinter complete ALL geometry calculations before anything else
+        # This prevents the Configure cascade that causes layout jumping
+        # Do THREE idle updates to ensure all widgets have settled to final size
+        self.root.update_idletasks()
+        self.root.update_idletasks()
+        self.root.update_idletasks()
+        
+        w = self.root.winfo_width()
+        h = self.root.winfo_height()
+        print(f"[LAYOUT] Size after 3x update_idletasks: {w}x{h}")
+        
+        # NOW get the actual canvas sizes and initialize views with correct dimensions
+        try:
+            energy_w = max(200, self.energy_view.canvas.winfo_width())
+            energy_h = max(200, self.energy_view.canvas.winfo_height())
+            buffer_h = max(160, self.buffer_view.winfo_height())
+            print(f"[LAYOUT] Final widget sizes - Energy: {energy_w}x{energy_h}, Buffer: {buffer_h}")
+            
+            # Force views to initialize with these final sizes
+            self.energy_view.width = energy_w
+            self.energy_view.height = energy_h
+            self.energy_view.nodes = self.energy_view._define_nodes()
+            self.energy_view._base_img = self.energy_view._render_background()
+            self.energy_view.canvas.config(width=energy_w, height=energy_h)
+            
+            self.buffer_view.height = buffer_h
+            self.buffer_view.configure(height=buffer_h)
+        except Exception as e:
+            print(f"[LAYOUT] Error setting initial sizes: {e}")
+        
+        # Mark layout as stable immediately (no delay needed now)
+        self._layout_stable = True
+        print(f"[LAYOUT] Marked stable at {time.time() - self._start_time:.3f}s")
 
         # Add other tabs
         self._add_other_tabs()
@@ -183,7 +226,7 @@ class MainApp:
             "puffer_mid": 0,
             "puffer_bot": 0,
         }
-        
+        self._last_fresh_update = 0
         self._loop()
 
     def _add_other_tabs(self):
@@ -254,46 +297,90 @@ class MainApp:
             self._apply_fullscreen(target_w, target_h, 0)
             self.status.update_status("Fullscreen")
 
-    def _apply_runtime_scaling(self):
-        """Scale UI based on actual window size (fix Pi taskbar/DPI differences)."""
+    def _mark_layout_stable(self):
+        """Mark layout as stable after initial settling period."""
+        elapsed = time.time() - self._start_time
+        print(f"[LAYOUT] Marked stable at {elapsed:.3f}s")
+        self._layout_stable = True
+# Ignore Configure events during initial layout (first 200ms)
+        elapsed = time.time() - self._start_time
+        if not hasattr(self, '_layout_stable') or not self._layout_stable:
+            print(f"[CONFIGURE] Root at {elapsed:.3f}s: {event.width}x{event.height} (IGNORED - layout not stable)")
+            return
+        
+    def _on_root_configure(self, event):
+        """Debug: Log Configure events and debounce resize handling."""
+        if event.widget != self.root:
+            return
+        
+        elapsed = time.time() - self._start_time
+        new_size = (event.width, event.height)
+        
+        # Only log if size actually changed
+        if new_size != self._last_size:
+            print(f"[CONFIGURE] Root at {elapsed:.3f}s: {event.width}x{event.height}")
+            self._last_size = new_size
+            
+            # Debounce: Cancel pending rescale, schedule new one after 350ms
+            # (longer debounce = fewer spurious resizes during initial layout)
+            if self._configure_debounce_id:
+                self.root.after_cancel(self._configure_debounce_id)
+            self._configure_debounce_id = self.root.after(350, lambda: self._handle_resize(event.width, event.height))
+
+    def _apply_initial_sizing(self, w: int, h: int):
+        """Apply initial sizing once at startup - no rescaling."""
         try:
-            self.root.update_idletasks()
-            w = max(1, self.root.winfo_width())
-            h = max(1, self.root.winfo_height())
-            scale = min(w / 1024.0, h / 600.0)
-            scale = max(0.82, min(1.0, scale))
-
-            try:
-                self.root.tk.call("tk", "scaling", scale)
-            except Exception:
-                pass
-
-            # Measure actual body height after layout
-            self.root.update_idletasks()
             header_h = max(1, self.header.winfo_height())
             status_h = max(1, self.status.winfo_height())
             available = max(200, h - header_h - status_h - 6)
-            try:
-                self.notebook.configure(height=available)
-            except Exception:
-                pass
-            try:
-                self.dashboard_tab.configure(height=available)
-            except Exception:
-                pass
-            self.root.update_idletasks()
             body_h = max(1, self.body.winfo_height())
-
-            # Resize views to fit inside cards (leave space for card title/padding)
-            energy_w = int(self._base_energy_w * scale)
+            
+            # Set initial view heights without triggering complete redraw
             view_h = max(160, body_h - 28)
+            
+            print(f"[LAYOUT] Initial view height: {view_h}px (body: {body_h}, available: {available})")
+        except Exception as e:
+            print(f"[LAYOUT] Initial sizing failed: {e}")
 
+    def _handle_resize(self, w: int, h: int):
+        """Handle debounced resize events - only if size actually changed significantly."""
+        elapsed = time.time() - self._start_time
+        print(f"[RESIZE] Handling resize at {elapsed:.3f}s: {w}x{h}")
+        
+        try:
+            header_h = max(1, self.header.winfo_height())
+            status_h = max(1, self.status.winfo_height())
+            available = max(200, h - header_h - status_h - 6)
+            body_h = max(1, self.body.winfo_height())
+            view_h = max(160, body_h - 28)
+            
+            # Only resize if change is significant (>10px)
+            if hasattr(self, '_last_view_h') and abs(view_h - self._last_view_h) < 10:
+                print(f"[RESIZE] Skipping - change too small")
+                return
+            
+            self._last_view_h = view_h
+            
             if hasattr(self, "energy_view"):
-                self.energy_view.resize(energy_w, view_h)
+                print(f"[RESIZE] Resizing energy_view to height {view_h}")
+                # DON'T use full resize - just update canvas size
+                self.energy_view.canvas.config(height=view_h)
+                self.energy_view.height = view_h
+                
             if hasattr(self, "buffer_view"):
-                self.buffer_view.resize(view_h)
-        except Exception:
-            pass
+                print(f"[RESIZE] Resizing buffer_view to height {view_h}")
+                # DON'T recreate figure - just resize container
+                self.buffer_view.configure(height=view_h)
+                self.buffer_view.height = view_h
+                
+        except Exception as e:
+            print(f"[RESIZE] Exception: {e}")
+
+    def _apply_runtime_scaling(self):
+        """DEPRECATED: Old runtime scaling - now handled by _handle_resize."""
+        # This function is kept for compatibility but does nothing
+        print(f"[SCALING] _apply_runtime_scaling called (deprecated, doing nothing)")
+        pass
 
     def _log_component_heights(self):
         """Log actual component heights to diagnose Pi vs PC differences."""
@@ -384,7 +471,80 @@ class MainApp:
                 self._last_data["puffer_bot"],
             )
 
+        # Data freshness every 5s
+        if self._tick % 10 == 0:
+            self._update_freshness_and_sparkline()
+
         self.root.after(500, self._loop)
+
+    def _update_freshness_and_sparkline(self):
+        last_ts = self._get_last_timestamp()
+        if last_ts:
+            delta = datetime.now() - last_ts
+            seconds = int(delta.total_seconds())
+            if seconds < 60:
+                text = f"Daten: {seconds} s"
+            elif seconds < 3600:
+                text = f"Daten: {seconds//60} min"
+            else:
+                text = f"Daten: {seconds//3600} h"
+            self.status.update_data_freshness(text, alert=seconds > 60)
+        else:
+            self.status.update_data_freshness("Daten: --", alert=True)
+
+        # Sparkline moved into right card; keep footer minimal
+
+    def _get_last_timestamp(self) -> datetime | None:
+        def _last_csv_ts(path: str) -> datetime | None:
+            if not os.path.exists(path):
+                return None
+            lines = _read_lines_safe(path)
+            if len(lines) < 2:
+                return None
+            for line in reversed(lines):
+                line = line.strip()
+                if not line or line.lower().startswith("zeit"):
+                    continue
+                try:
+                    row = next(csv.reader([line]))
+                    ts = datetime.fromisoformat(row[0])
+                    return ts
+                except Exception:
+                    continue
+            return None
+
+        fronius = _last_csv_ts(_data_path("FroniusDaten.csv"))
+        heating = _last_csv_ts(_data_path("Heizungstemperaturen.csv"))
+        ts_candidates = [t for t in [fronius, heating] if t]
+        if not ts_candidates:
+            return None
+        return max(ts_candidates)
+
+    def _load_pv_sparkline(self, minutes: int = 60) -> list[float]:
+        path = _data_path("FroniusDaten.csv")
+        if not os.path.exists(path):
+            return []
+        cutoff = datetime.now() - timedelta(minutes=minutes)
+        lines = _read_lines_safe(path)
+        if len(lines) < 2:
+            return []
+        # Use recent lines only for speed
+        recent_lines = lines[-400:]
+        values = []
+        for line in recent_lines:
+            line = line.strip()
+            if not line or line.lower().startswith("zeit"):
+                continue
+            try:
+                row = next(csv.reader([line]))
+                ts = datetime.fromisoformat(row[0])
+                if ts < cutoff:
+                    continue
+                pv_kw = float(row[1])
+                values.append(pv_kw)
+            except Exception:
+                continue
+        return values
 
     def _fetch_real_data(self):
         """Versucht, echte Daten aus CSV/APIs zu laden."""

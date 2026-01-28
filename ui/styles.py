@@ -3,18 +3,19 @@ import tkinter.font as tkfont
 from ttkbootstrap import Style
 
 # Farbpalette gemäß Vorgabe
-COLOR_ROOT = "#070B12"       # Hintergrund/root
-COLOR_HEADER = "#0B1220"     # Header/Notebook
+COLOR_ROOT = "#0B1320"       # Hintergrund/root
+COLOR_HEADER = "#0B1320"     # Header/Notebook
 COLOR_BG = COLOR_HEADER       # alias für bestehende Verwendungen
-COLOR_CARD = "#111827"
+COLOR_CARD = "#121C2B"
 COLOR_BORDER = "#1F2A3A"
 COLOR_PRIMARY = "#3B82F6"
 COLOR_SUCCESS = "#10B981"
 COLOR_WARNING = "#F59E0B"
 COLOR_INFO = "#38BDF8"
 COLOR_DANGER = "#EF4444"
-COLOR_TEXT = "#E5E7EB"
-COLOR_SUBTEXT = "#94A3B8"
+COLOR_TEXT = "#E6ECF5"
+COLOR_SUBTEXT = "#9AA3B2"
+COLOR_TITLE = "#AAB3C5"
 
 # Emoji support flag (set in init_style)
 EMOJI_OK = True

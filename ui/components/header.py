@@ -20,8 +20,8 @@ class HeaderBar(tk.Frame):
         self.pack_propagate(False)
 
         # Rounded container
-        rounded = RoundedFrame(self, bg=COLOR_CARD, border=COLOR_BORDER, radius=12, padding=0)
-        rounded.pack(fill=tk.BOTH, expand=True, padx=4, pady=2)
+        rounded = RoundedFrame(self, bg=COLOR_CARD, border=None, radius=18, padding=0)
+        rounded.pack(fill=tk.BOTH, expand=True, padx=6, pady=3)
         inner = rounded.content()
 
         inner.grid_columnconfigure(0, weight=1, minsize=140, uniform="hdr")

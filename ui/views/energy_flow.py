@@ -1,9 +1,13 @@
 import tkinter as tk
+import math
+import time
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 from ui.styles import (
     COLOR_CARD,
     COLOR_BORDER,
     COLOR_TEXT,
+    COLOR_SUBTEXT,
+    COLOR_ROOT,
     COLOR_PRIMARY,
     COLOR_SUCCESS,
     COLOR_WARNING,
@@ -17,28 +21,44 @@ class EnergyFlowView(tk.Frame):
 
     def __init__(self, parent: tk.Widget, width: int = 620, height: int = 360):
         super().__init__(parent, bg=COLOR_CARD)
+        self._start_time = time.time()
         self.canvas = tk.Canvas(self, width=width, height=height, highlightthickness=0, bg=COLOR_CARD)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
         self.width = width
         self.height = height
         self.node_radius = 46
+        self.ring_gap = 10
         self._tk_img = None
         self._font_big = ImageFont.truetype("arial.ttf", 32) if self._has_font("arial.ttf") else None
         self._font_small = ImageFont.truetype("arial.ttf", 14) if self._has_font("arial.ttf") else None
+        self._font_tiny = ImageFont.truetype("arial.ttf", 11) if self._has_font("arial.ttf") else None
 
         self.nodes = self._define_nodes()
         self._base_img = self._render_background()
         self._canvas_img = self.canvas.create_image(0, 0, anchor="nw")
 
     def resize(self, width: int, height: int):
+        """FIXED: Only update canvas size and dimensions, don't recreate background."""
+        elapsed = time.time() - self._start_time
+        print(f"[ENERGY] resize() called at {elapsed:.3f}s with {width}x{height}")
+        
+        old_w, old_h = self.width, self.height
         width = max(240, int(width))
         height = max(200, int(height))
+        
+        # Only update canvas config and internal dimensions
         self.canvas.config(width=width, height=height)
         self.width = width
         self.height = height
         self.nodes = self._define_nodes()
-        self._base_img = self._render_background()
+        
+        # Only recreate background if size changed significantly (>20px)
+        if abs(width - old_w) > 20 or abs(height - old_h) > 20:
+            print(f"[ENERGY] Large size change, recreating background")
+            self._base_img = self._render_background()
+        else:
+            print(f"[ENERGY] Small change, skipping background recreate")
 
     def _has_font(self, name: str) -> bool:
         try:
@@ -62,16 +82,43 @@ class EnergyFlowView(tk.Frame):
         }
 
     def _render_background(self) -> Image.Image:
-        img = Image.new("RGBA", (self.width, self.height), COLOR_CARD)
+        img = self._draw_bg_gradient()
         draw = ImageDraw.Draw(img)
-        # Card border
-        draw.rounded_rectangle([4, 4, self.width - 4, self.height - 4], radius=18, outline=COLOR_BORDER, width=2, fill=COLOR_CARD)
+        # No border, no outline - seamless background
         for name, (x, y) in self.nodes.items():
             self._draw_node(draw, x, y, name)
         return img
 
+    def _draw_bg_gradient(self) -> Image.Image:
+        """Elliptical gradient: matches widget shape, very transparent at edges."""
+        img = Image.new("RGBA", (self.width, self.height), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        
+        center_x = self.width // 2
+        center_y = self.height // 2
+        
+        # Subtle blueish color
+        color = (14, 24, 40)
+        
+        for y in range(self.height):
+            for x in range(self.width):
+                # Elliptical distance - scales with widget dimensions
+                dx = (x - center_x) / (self.width / 2)
+                dy = (y - center_y) / (self.height / 2)
+                
+                # Normalized elliptical distance (0=center, 1=edge)
+                norm_dist = min(1.0, (dx ** 2 + dy ** 2) ** 0.5)
+                
+                # Alpha falloff: center ~220, edges ~5 (nearly invisible)
+                # Smoother power function for seamless blend
+                alpha_val = int(220 * (1.0 - norm_dist ** 0.7))
+                
+                d.point((x, y), fill=(color[0], color[1], color[2], alpha_val))
+        
+        return img
+
     def _draw_node(self, draw: ImageDraw.ImageDraw, x: int, y: int, name: str):
-        r = self.node_radius
+        r = self.node_radius + (6 if name == "home" else 0)
         fill = COLOR_BORDER
         if name == "home":
             fill = COLOR_PRIMARY
@@ -81,23 +128,46 @@ class EnergyFlowView(tk.Frame):
             fill = COLOR_INFO
         elif name == "battery":
             fill = COLOR_WARNING
-        draw.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=COLOR_CARD, width=3)
+        # Beautiful soft shadow + subtle glow
+        self._draw_soft_shadow(draw, x, y, r, fill)
+        self._draw_subtle_glow(draw, x, y, r, fill)
+        # Radial gradient (subtle)
+        self._draw_radial(draw, x, y, r, fill)
+        draw.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=None, width=0)
         label = {
-            "pv": "PV",
-            "grid": "GRID",
-            "home": "HAUS",
-            "battery": "BAT",
+            "pv": "☀️",
+            "grid": "⚡",
+            "home": "🏠",
+            "battery": "🔋",
         }[name]
-        self._text_center(draw, label, x, y, size=16)
+        if label:
+            self._text_center(draw, label, x, y, size=32, fontweight="normal", outline=False)
 
-    def _text_center(self, draw: ImageDraw.ImageDraw, text: str, x: int, y: int, size: int, color: str = COLOR_TEXT):
-        font = self._font_big if size > 20 and self._font_big else ImageFont.load_default()
-        if size <= 20:
-            font = self._font_small if self._font_small else ImageFont.load_default()
+    def _text_center(self, draw: ImageDraw.ImageDraw, text: str, x: int, y: int, size: int, color: str = COLOR_TEXT, fontweight: str = "normal", outline: bool = False):
+        # Use bold font weight for node labels
+        try:
+            font = ImageFont.truetype("arial.ttf", size, weight="bold" if fontweight == "bold" else "normal")
+        except Exception:
+            font = self._font_big if size > 20 and self._font_big else ImageFont.load_default()
+            if size <= 20:
+                font = self._font_small if self._font_small else ImageFont.load_default()
         bbox = draw.textbbox((0, 0), text, font=font)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
-        draw.text((x - tw / 2, y - th / 2), text, font=font, fill=color)
+        text_x = x - tw / 2
+        text_y = y - th / 2
+        
+        # Draw black outline for better readability
+        if outline:
+            outline_color = "#000000"
+            # Draw outline in 8 directions + thicker center
+            for dx in [-2, -1, 0, 1, 2]:
+                for dy in [-2, -1, 0, 1, 2]:
+                    if dx != 0 or dy != 0:  # Skip center
+                        draw.text((text_x + dx, text_y + dy), text, font=font, fill=outline_color)
+        
+        # Draw main text on top
+        draw.text((text_x, text_y), text, font=font, fill=color)
 
     def _edge_points(self, src, dst, offset: float):
         x0, y0 = src
@@ -124,7 +194,7 @@ class EnergyFlowView(tk.Frame):
         right = (x1 - ux * size - uy * size * 0.6, y1 - uy * size + ux * size * 0.6)
         draw.polygon([left, right, (x1, y1)], fill=color)
 
-    def _draw_flow_label(self, base_img: Image.Image, src, dst, text: str, offset: int = 10, along: int = 0, color: str = COLOR_TEXT):
+    def _draw_flow_label(self, base_img: Image.Image, src, dst, watts: float, offset: int = 8, along: int = 0, color: str = COLOR_TEXT, flip_text: bool = False):
         start, end = self._edge_points(src, dst, self.node_radius + 6)
         mx = (start[0] + end[0]) / 2
         my = (start[1] + end[1]) / 2
@@ -138,18 +208,28 @@ class EnergyFlowView(tk.Frame):
         py = my + ny * offset + uy * along
 
         # Render rotated text along arrow direction
-        angle = -1 * (180 / 3.14159265) * (0 if length == 0 else __import__("math").atan2(vy, vx))
-        font = self._font_small if self._font_small else ImageFont.load_default()
+        angle = -1 * (180 / math.pi) * (0 if length == 0 else math.atan2(vy, vx))
+        # Flip text 180° if needed (for grid import so text is readable)
+        if flip_text:
+            angle += 180
+        value_text, unit_text = self._format_power_parts(abs(watts))
+        font_val = self._font_small if self._font_small else ImageFont.load_default()
+        font_unit = self._font_tiny if self._font_tiny else ImageFont.load_default()
 
         dummy = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
         ddraw = ImageDraw.Draw(dummy)
-        bbox = ddraw.textbbox((0, 0), text, font=font)
-        tw = bbox[2] - bbox[0]
-        th = bbox[3] - bbox[1]
+        vbox = ddraw.textbbox((0, 0), value_text, font=font_val)
+        ubox = ddraw.textbbox((0, 0), unit_text, font=font_unit)
+        vw, vh = vbox[2] - vbox[0], vbox[3] - vbox[1]
+        uw, uh = ubox[2] - ubox[0], ubox[3] - ubox[1]
+        h = max(vh, uh)
+        w = vw + 4 + uw
 
-        txt_img = Image.new("RGBA", (tw + 6, th + 6), (0, 0, 0, 0))
+        txt_img = Image.new("RGBA", (w + 6, h + 6), (0, 0, 0, 0))
         tdraw = ImageDraw.Draw(txt_img)
-        tdraw.text((3, 3), text, font=font, fill=color)
+        unit_color = self._tint(color, 0.45)
+        tdraw.text((3, 3 + (h - vh) / 2), value_text, font=font_val, fill=color)
+        tdraw.text((3 + vw + 4, 3 + (h - uh) / 2), unit_text, font=font_unit, fill=unit_color)
         rotated = txt_img.rotate(angle, resample=Image.BICUBIC, expand=True)
 
         rx, ry = rotated.size
@@ -160,13 +240,76 @@ class EnergyFlowView(tk.Frame):
             return f"{watts:.0f} W"
         return f"{watts/1000:.2f} kW"
 
+    def _format_power_parts(self, watts: float) -> tuple[str, str]:
+        if abs(watts) < 1000:
+            return f"{watts:.0f}", "W"
+        return f"{watts/1000:.2f}", "kW"
+
+    def _hex_to_rgb(self, color: str) -> tuple[int, int, int]:
+        c = color.lstrip("#")
+        return tuple(int(c[i:i+2], 16) for i in (0, 2, 4))
+
+    def _tint(self, color: str, amount: float) -> str:
+        r, g, b = self._hex_to_rgb(color)
+        r = int(r + (255 - r) * amount)
+        g = int(g + (255 - g) * amount)
+        b = int(b + (255 - b) * amount)
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def _draw_soft_shadow(self, draw: ImageDraw.ImageDraw, x: int, y: int, r: int, color: str):
+        """Very soft multi-layer shadow with smooth falloff."""
+        # Shadow offset slightly down and right
+        offset_x = 2
+        offset_y = 4
+        
+        # More shadow layers with very smooth alpha falloff
+        shadow_layers = [
+            (r + 16, 4),   # Outermost, barely visible
+            (r + 12, 6),   # Outer
+            (r + 9, 9),    # Mid-outer
+            (r + 6, 12),   # Mid
+            (r + 3, 15),   # Inner
+        ]
+        
+        for shadow_r, alpha in shadow_layers:
+            draw.ellipse(
+                [x - shadow_r + offset_x, y - shadow_r + offset_y, 
+                 x + shadow_r + offset_x, y + shadow_r + offset_y],
+                fill=(0, 0, 0, alpha)
+            )
+
+    def _draw_subtle_glow(self, draw: ImageDraw.ImageDraw, x: int, y: int, r: int, color: str):
+        """Very subtle color-matched glow with smooth falloff."""
+        base = self._hex_to_rgb(color)
+        
+        # More glow layers for smoother transition
+        glow_layers = [
+            (r + 14, 4),   # Outermost glow
+            (r + 11, 6),   # Outer glow
+            (r + 8, 8),    # Mid-outer glow
+            (r + 5, 11),   # Mid glow
+            (r + 2, 14),   # Inner glow
+        ]
+        
+        for glow_r, alpha in glow_layers:
+            draw.ellipse(
+                [x - glow_r, y - glow_r, x + glow_r, y + glow_r],
+                fill=base + (alpha,)
+            )
+
+    def _draw_radial(self, draw: ImageDraw.ImageDraw, x: int, y: int, r: int, color: str):
+        for i in range(r, 0, -4):
+            t = 1 - (i / r)
+            c = self._tint(color, 0.18 + t * 0.25)
+            draw.ellipse([x - i, y - i, x + i, y + i], fill=c)
+
     def _draw_soc_ring(self, draw: ImageDraw.ImageDraw, center, soc: float):
         x, y = center
-        r = self.node_radius + 10
+        r = self.node_radius + self.ring_gap
         bbox = [x - r, y - r, x + r, y + r]
         extent = max(0, min(360, 360 * soc / 100))
         color = COLOR_SUCCESS if soc >= 70 else (COLOR_WARNING if soc >= 35 else COLOR_DANGER)
-        draw.arc(bbox, start=-90, end=-90 + extent, fill=color, width=6)
+        draw.arc(bbox, start=-90, end=-90 + extent, fill=color, width=4)
 
     def render_frame(self, pv_w: float, load_w: float, grid_w: float, batt_w: float, soc: float) -> Image.Image:
         img = self._base_img.copy()
@@ -186,39 +329,48 @@ class EnergyFlowView(tk.Frame):
         # PV -> Haus
         if pv_w > 0:
             self._draw_arrow(draw, pv, home, COLOR_SUCCESS, thickness(pv_w))
-            self._draw_flow_label(img, pv, home, self._format_power(abs(pv_w)), offset=10, along=-8, color=COLOR_SUCCESS)
+            self._draw_flow_label(img, pv, home, pv_w, offset=6, along=-8, color=COLOR_SUCCESS)
 
         # Grid Import/Export
         if grid_w > 0:
             self._draw_arrow(draw, grid, home, COLOR_INFO, thickness(grid_w))
-            self._draw_flow_label(img, grid, home, self._format_power(abs(grid_w)), offset=10, along=8, color=COLOR_INFO)
+            self._draw_flow_label(img, grid, home, grid_w, offset=6, along=8, color=COLOR_INFO, flip_text=True)
         elif grid_w < 0:
             self._draw_arrow(draw, home, grid, COLOR_INFO, thickness(grid_w))
-            self._draw_flow_label(img, home, grid, self._format_power(abs(grid_w)), offset=10, along=8, color=COLOR_INFO)
+            self._draw_flow_label(img, home, grid, grid_w, offset=6, along=8, color=COLOR_INFO)
 
         # Batterie Laden/Entladen (batt_w > 0 = Entladen)
         if batt_w > 0:
             # Entladen: Batterie -> Haus (rot)
             self._draw_arrow(draw, bat, home, COLOR_DANGER, thickness(batt_w))
-            self._draw_flow_label(img, bat, home, self._format_power(abs(batt_w)), offset=12, along=-6, color=COLOR_DANGER)
+            self._draw_flow_label(img, bat, home, batt_w, offset=8, along=-6, color=COLOR_DANGER)
         elif batt_w < 0:
             # Laden: Haus -> Batterie (grün)
             self._draw_arrow(draw, home, bat, COLOR_SUCCESS, thickness(batt_w))
-            self._draw_flow_label(img, home, bat, self._format_power(abs(batt_w)), offset=12, along=-6, color=COLOR_SUCCESS)
+            self._draw_flow_label(img, home, bat, batt_w, offset=8, along=-6, color=COLOR_SUCCESS)
 
         # SoC Ring um Batterie
         self._draw_soc_ring(draw, bat, soc)
 
         # Werte anzeigen mit Einheiten
         self._text_center(draw, f"Haus {self._format_power(load_w)}", home[0], home[1] + 70, size=16, color=COLOR_PRIMARY)
-        self._text_center(draw, f"SoC {soc:.0f}%", bat[0], bat[1] + 100, size=16)
+
+        # SoC inside battery with outline for readability
+        self._text_center(draw, f"{soc:.0f}%", bat[0], bat[1] - 8, size=20, color=COLOR_TEXT, outline=True)
+        self._text_center(draw, "SoC", bat[0], bat[1] + 12, size=12, color=COLOR_TEXT, outline=True)
         return img
 
     def update_flows(self, pv_w: float, load_w: float, grid_w: float, batt_w: float, soc: float):
-        # Recompute layout if canvas size changed (keeps nodes centered)
+        """Update power flows - checks for canvas size changes and redraws if needed."""
+        # DON'T recompute layout on every update - this causes constant redrawing
+        # Instead, only update if canvas size ACTUALLY changed significantly
         cw = max(200, self.canvas.winfo_width())
         ch = max(200, self.canvas.winfo_height())
-        if cw != self.width or ch != self.height:
+        
+        # Only recreate layout if size changed by more than 30px (ignore small pack/grid fluctuations)
+        if abs(cw - self.width) > 30 or abs(ch - self.height) > 30:
+            elapsed = time.time() - self._start_time
+            print(f"[ENERGY] update_flows detected SIGNIFICANT size change at {elapsed:.3f}s: {self.width}x{self.height} -> {cw}x{ch}")
             self.width, self.height = cw, ch
             self.nodes = self._define_nodes()
             self._base_img = self._render_background()
