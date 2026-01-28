@@ -247,7 +247,13 @@ class BufferStorageView(tk.Frame):
         self._update_sparkline()
         
         # Use draw_idle() to defer redraw and avoid blocking
+        # Note: This will redraw all static elements too (titles), causing flicker
+        # But it's necessary for matplotlib updates. The flicker is minimized by
+        # only updating when temperatures actually change (see check at top)
         print(f"[BUFFER] Calling canvas.draw_idle() at {time.time() - self._start_time:.3f}s")
+        
+        # Flush any pending draws before new one to reduce flicker
+        self.canvas.flush_events()
         self.canvas.draw_idle()
 
     def _build_stratified_data(self, top: float, mid: float, bottom: float) -> np.ndarray:
@@ -330,6 +336,12 @@ class BufferStorageView(tk.Frame):
         # Format x-axis to show hours
         import matplotlib.dates as mdates
         self.spark_ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        
+        # Ensure labels are visible within figure bounds
+        try:
+            self.spark_fig.tight_layout(pad=0.3)
+        except Exception as e:
+            print(f"[BUFFER] tight_layout warning: {e}")
         
         self.spark_canvas.draw_idle()
 

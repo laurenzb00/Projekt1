@@ -55,6 +55,14 @@ class Card(tk.Frame):
         w = max(1, event.width)
         h = max(1, event.height)
         r = min(self._radius, w // 2, h // 2)
+        
+        # Only redraw if size changed significantly (prevents flicker from minor updates)
+        if hasattr(self, '_last_size'):
+            last_w, last_h = self._last_size
+            if abs(w - last_w) < 2 and abs(h - last_h) < 2:
+                return  # Skip redraw for tiny changes
+        
+        self._last_size = (w, h)
 
         self.canvas.delete("card_bg")
 
