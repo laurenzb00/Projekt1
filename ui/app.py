@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 import time
+import threading
 from tkinter import ttk
 from ui.styles import (
     init_style,
@@ -90,6 +91,9 @@ class MainApp:
         self._last_size = (0, 0)
         self.root = root
         self.root.title("Smart Home Dashboard")
+        
+        # Start weekly Ertrag validation in background
+        self._start_ertrag_validator()
         
         # Debug: Bind Configure events
         self.root.bind("<Configure>", self._on_root_configure)
@@ -272,6 +276,30 @@ class MainApp:
         self.status.update_status("Beende...")
         self.root.after(100, self.root.quit)
 
+    def _start_ertrag_validator(self):
+        """Starte wöchentliche Ertrag-Validierung im Hintergrund."""
+        def validate_loop():
+            # Beim Start validieren
+            try:
+                from ertrag_validator import validate_and_repair_ertrag
+                print("[ERTRAG] Validation beim Start...")
+                validate_and_repair_ertrag()
+            except Exception as e:
+                print(f"[ERTRAG] Validator nicht verfügbar: {e}")
+            
+            # Dann jede Woche wiederholen (7 Tage = 604800 Sekunden)
+            while True:
+                time.sleep(7 * 24 * 3600)  # 1 Woche
+                try:
+                    from ertrag_validator import validate_and_repair_ertrag
+                    print("[ERTRAG] Wöchentliche Validierung...")
+                    validate_and_repair_ertrag()
+                except Exception as e:
+                    print(f"[ERTRAG] Fehler bei wöchentlicher Validierung: {e}")
+        
+        validator_thread = threading.Thread(target=validate_loop, daemon=True)
+        validator_thread.start()
+
     def _apply_fullscreen(self, target_w: int, target_h: int, offset_y: int):
         self.root.overrideredirect(True)
         self.root.geometry(f"{target_w}x{target_h}+0+{offset_y}")
@@ -447,9 +475,9 @@ class MainApp:
         except Exception as e:
             logging.debug(f"Fehler beim Abrufen echter Daten: {e}")
 
-        # Header every 1s
+        # Header every 1.5s
         now = datetime.now()
-        if self._tick % 2 == 0:
+        if self._tick % 1 == 0:
             date_text = now.strftime("%d.%m.%Y")
             weekday = now.strftime("%A")
             time_text = now.strftime("%H:%M")
@@ -459,7 +487,7 @@ class MainApp:
             soc = self._last_data["soc"]
             self.status.update_center(f"SOC {soc:.0f}%")
 
-        # Energy every 500ms
+        # Energy every 1.5s
         self.energy_view.update_flows(
             self._last_data["pv"],
             self._last_data["load"],
@@ -468,7 +496,7 @@ class MainApp:
             self._last_data["soc"],
         )
 
-        # Buffer every 2s
+        # Buffer every 6s
         if self._tick % 4 == 0:
             self.buffer_view.update_temperatures(
                 self._last_data["puffer_top"],
@@ -477,11 +505,11 @@ class MainApp:
                 self._last_data.get("kessel_c", 65.0),  # Boiler temperature
             )
 
-        # Data freshness every 5s
+        # Data freshness every 15s
         if self._tick % 10 == 0:
             self._update_freshness_and_sparkline()
 
-        self.root.after(500, self._loop)
+        self.root.after(1500, self._loop)
 
     def _update_freshness_and_sparkline(self):
         last_ts = self._get_last_timestamp()

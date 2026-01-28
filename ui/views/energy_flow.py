@@ -31,9 +31,9 @@ class EnergyFlowView(tk.Frame):
         self.node_radius = 38
         self.ring_gap = 10
         self._tk_img = None
-        self._font_big = ImageFont.truetype("arial.ttf", 32) if self._has_font("arial.ttf") else None
-        self._font_small = ImageFont.truetype("arial.ttf", 18) if self._has_font("arial.ttf") else None
-        self._font_tiny = ImageFont.truetype("arial.ttf", 13) if self._has_font("arial.ttf") else None
+        self._font_big = ImageFont.truetype("arial.ttf", 40) if self._has_font("arial.ttf") else None
+        self._font_small = ImageFont.truetype("arial.ttf", 24) if self._has_font("arial.ttf") else None
+        self._font_tiny = ImageFont.truetype("arial.ttf", 17) if self._has_font("arial.ttf") else None
         # Emoji font support with multiple fallbacks
         self._font_emoji = self._find_emoji_font(36)
         
