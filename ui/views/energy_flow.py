@@ -27,12 +27,14 @@ class EnergyFlowView(tk.Frame):
 
         self.width = width
         self.height = height
-        self.node_radius = 46
+        self.node_radius = 38
         self.ring_gap = 10
         self._tk_img = None
         self._font_big = ImageFont.truetype("arial.ttf", 32) if self._has_font("arial.ttf") else None
-        self._font_small = ImageFont.truetype("arial.ttf", 14) if self._has_font("arial.ttf") else None
-        self._font_tiny = ImageFont.truetype("arial.ttf", 11) if self._has_font("arial.ttf") else None
+        self._font_small = ImageFont.truetype("arial.ttf", 18) if self._has_font("arial.ttf") else None
+        self._font_tiny = ImageFont.truetype("arial.ttf", 13) if self._has_font("arial.ttf") else None
+        # Emoji font support
+        self._font_emoji = ImageFont.truetype("seguiemj.ttf", 36) if self._has_font("seguiemj.ttf") else None
 
         self.nodes = self._define_nodes()
         self._base_img = self._render_background()
@@ -73,10 +75,10 @@ class EnergyFlowView(tk.Frame):
         margin_top = 40
         margin_bottom = 90  # Platz für SoC-Text unter der Batterie
         usable_h = h - margin_top - margin_bottom
-        battery_dx = -140  # weit nach links versetzen, damit Haus/Batterie genügend Abstand haben
+        battery_dx = -160  # weit nach links versetzen, damit Haus/Batterie genügend Abstand haben
         return {
-            "pv": (margin_x + int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.15)),
-            "grid": (w - margin_x - int((w - 2 * margin_x) * 0.28), margin_top + int(usable_h * 0.15)),
+            "pv": (margin_x + int((w - 2 * margin_x) * 0.20), margin_top + int(usable_h * 0.15)),
+            "grid": (w - margin_x - int((w - 2 * margin_x) * 0.20), margin_top + int(usable_h * 0.15)),
             "home": (w // 2, margin_top + int(usable_h * 0.55)),
             "battery": (w // 2 + battery_dx, margin_top + int(usable_h * 0.94)),
         }
@@ -141,16 +143,23 @@ class EnergyFlowView(tk.Frame):
             "battery": "🔋",
         }[name]
         if label:
-            self._text_center(draw, label, x, y, size=32, fontweight="normal", outline=False)
+            # Move battery emoji higher to avoid SoC overlap
+            emoji_y = y - 18 if name == "battery" else y
+            self._text_center(draw, label, x, emoji_y, size=32, fontweight="normal", outline=False)
 
     def _text_center(self, draw: ImageDraw.ImageDraw, text: str, x: int, y: int, size: int, color: str = COLOR_TEXT, fontweight: str = "normal", outline: bool = False):
-        # Use bold font weight for node labels
-        try:
-            font = ImageFont.truetype("arial.ttf", size, weight="bold" if fontweight == "bold" else "normal")
-        except Exception:
-            font = self._font_big if size > 20 and self._font_big else ImageFont.load_default()
-            if size <= 20:
-                font = self._font_small if self._font_small else ImageFont.load_default()
+        # Use emoji font for emoji characters, otherwise use bold font
+        is_emoji = any(ord(c) > 0x1F000 for c in text)
+        
+        if is_emoji and self._font_emoji:
+            font = self._font_emoji
+        else:
+            try:
+                font = ImageFont.truetype("arial.ttf", size, weight="bold" if fontweight == "bold" else "normal")
+            except Exception:
+                font = self._font_big if size > 20 and self._font_big else ImageFont.load_default()
+                if size <= 20:
+                    font = self._font_small if self._font_small else ImageFont.load_default()
         bbox = draw.textbbox((0, 0), text, font=font)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
@@ -225,11 +234,11 @@ class EnergyFlowView(tk.Frame):
         h = max(vh, uh)
         w = vw + 4 + uw
 
-        txt_img = Image.new("RGBA", (w + 6, h + 6), (0, 0, 0, 0))
+        txt_img = Image.new("RGBA", (w + 12, h + 12), (0, 0, 0, 0))
         tdraw = ImageDraw.Draw(txt_img)
         unit_color = self._tint(color, 0.45)
-        tdraw.text((3, 3 + (h - vh) / 2), value_text, font=font_val, fill=color)
-        tdraw.text((3 + vw + 4, 3 + (h - uh) / 2), unit_text, font=font_unit, fill=unit_color)
+        tdraw.text((6, 6 + (h - vh) / 2), value_text, font=font_val, fill=color)
+        tdraw.text((6 + vw + 4, 6 + (h - uh) / 2), unit_text, font=font_unit, fill=unit_color)
         rotated = txt_img.rotate(angle, resample=Image.BICUBIC, expand=True)
 
         rx, ry = rotated.size
@@ -329,25 +338,25 @@ class EnergyFlowView(tk.Frame):
         # PV -> Haus
         if pv_w > 0:
             self._draw_arrow(draw, pv, home, COLOR_SUCCESS, thickness(pv_w))
-            self._draw_flow_label(img, pv, home, pv_w, offset=6, along=-8, color=COLOR_SUCCESS)
+            self._draw_flow_label(img, pv, home, pv_w, offset=28, along=0, color=COLOR_SUCCESS)
 
         # Grid Import/Export
         if grid_w > 0:
             self._draw_arrow(draw, grid, home, COLOR_INFO, thickness(grid_w))
-            self._draw_flow_label(img, grid, home, grid_w, offset=6, along=8, color=COLOR_INFO, flip_text=True)
+            self._draw_flow_label(img, grid, home, grid_w, offset=28, along=0, color=COLOR_INFO, flip_text=True)
         elif grid_w < 0:
             self._draw_arrow(draw, home, grid, COLOR_INFO, thickness(grid_w))
-            self._draw_flow_label(img, home, grid, grid_w, offset=6, along=8, color=COLOR_INFO)
+            self._draw_flow_label(img, home, grid, grid_w, offset=28, along=0, color=COLOR_INFO)
 
         # Batterie Laden/Entladen (batt_w > 0 = Entladen)
         if batt_w > 0:
             # Entladen: Batterie -> Haus (rot)
             self._draw_arrow(draw, bat, home, COLOR_DANGER, thickness(batt_w))
-            self._draw_flow_label(img, bat, home, batt_w, offset=8, along=-6, color=COLOR_DANGER)
+            self._draw_flow_label(img, bat, home, batt_w, offset=15, along=0, color=COLOR_DANGER)
         elif batt_w < 0:
             # Laden: Haus -> Batterie (grün)
             self._draw_arrow(draw, home, bat, COLOR_SUCCESS, thickness(batt_w))
-            self._draw_flow_label(img, home, bat, batt_w, offset=8, along=-6, color=COLOR_SUCCESS)
+            self._draw_flow_label(img, home, bat, batt_w, offset=15, along=0, color=COLOR_SUCCESS)
 
         # SoC Ring um Batterie
         self._draw_soc_ring(draw, bat, soc)
@@ -355,9 +364,9 @@ class EnergyFlowView(tk.Frame):
         # Werte anzeigen mit Einheiten
         self._text_center(draw, f"Haus {self._format_power(load_w)}", home[0], home[1] + 70, size=16, color=COLOR_PRIMARY)
 
-        # SoC inside battery with outline for readability
-        self._text_center(draw, f"{soc:.0f}%", bat[0], bat[1] - 8, size=20, color=COLOR_TEXT, outline=True)
-        self._text_center(draw, "SoC", bat[0], bat[1] + 12, size=12, color=COLOR_TEXT, outline=True)
+        # SoC inside battery with outline for readability - moved down to avoid emoji overlap
+        self._text_center(draw, f"{soc:.0f}%", bat[0], bat[1] + 8, size=20, color=COLOR_TEXT, outline=True)
+        self._text_center(draw, "SoC", bat[0], bat[1] + 28, size=12, color=COLOR_TEXT, outline=True)
         return img
 
     def update_flows(self, pv_w: float, load_w: float, grid_w: float, batt_w: float, soc: float):

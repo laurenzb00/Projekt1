@@ -150,7 +150,7 @@ class BufferStorageView(tk.Frame):
         self.ax.add_patch(hl)
 
         # Labels for Pufferspeicher zones
-        self.ax.text(0.08, 0.98, "Pufferspeicher", transform=self.ax.transAxes, color=COLOR_TITLE, fontsize=9, va="top", ha="center")
+        self.ax.text(0.20, 0.98, "Pufferspeicher", transform=self.ax.transAxes, color=COLOR_TITLE, fontsize=12, va="top", ha="center", weight="bold")
 
         # Boiler cylinder (right, single color with better styling) - much smaller height (about half Pufferspeicher), on same baseline
         self.boiler_rect = FancyBboxPatch(
@@ -177,7 +177,7 @@ class BufferStorageView(tk.Frame):
                    facecolor="#ffffff", alpha=0.06, linewidth=0)
         self.ax.add_patch(boiler_hl)
         
-        self.ax.text(0.69, 0.58, "Boiler", transform=self.ax.transAxes, color=COLOR_TITLE, fontsize=9, va="top", ha="center")
+        self.ax.text(0.69, 0.60, "Boiler", transform=self.ax.transAxes, color=COLOR_TITLE, fontsize=12, va="top", ha="center", weight="bold")
         
         # Add colorbar on the right
         from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -223,20 +223,23 @@ class BufferStorageView(tk.Frame):
         for t in self.val_texts:
             t.remove()
         self.val_texts = [
-            self.ax.text(0.37, 0.85, f"{top:.1f}°C", transform=self.ax.transAxes, color=c_top, fontsize=11, va="center", ha="left", weight="bold"),
-            self.ax.text(0.37, 0.50, f"{mid:.1f}°C", transform=self.ax.transAxes, color=c_mid, fontsize=12, va="center", ha="left", weight="bold"),
-            self.ax.text(0.37, 0.15, f"{bottom:.1f}°C", transform=self.ax.transAxes, color=c_bot, fontsize=11, va="center", ha="left", weight="bold"),
+            self.ax.text(0.04, 0.85, f"{top:.1f}°C", transform=self.ax.transAxes, color=c_top, fontsize=11, va="center", ha="right", weight="bold"),
+            self.ax.text(0.04, 0.50, f"{mid:.1f}°C", transform=self.ax.transAxes, color=c_mid, fontsize=12, va="center", ha="right", weight="bold"),
+            self.ax.text(0.04, 0.15, f"{bottom:.1f}°C", transform=self.ax.transAxes, color=c_bot, fontsize=11, va="center", ha="right", weight="bold"),
         ]
 
         if kessel_c is not None:
             c_kessel = self._temp_color(kessel_c)
             self.boiler_rect.set_facecolor(c_kessel)
-            # Add boiler temperature text
+            # Add boiler temperature text - smaller and without outline
             if hasattr(self, 'boiler_temp_text'):
                 self.boiler_temp_text.remove()
-            self.boiler_temp_text = self.ax.text(0.59, 0.50, f"{kessel_c:.1f}°C", 
-                transform=self.ax.transAxes, color=COLOR_ROOT, fontsize=10, 
-                va="center", ha="center", weight="bold")
+            if hasattr(self, 'boiler_temp_outline'):
+                for outline_text in self.boiler_temp_outline:
+                    outline_text.remove()
+            self.boiler_temp_text = self.ax.text(0.69, 0.30, f"{kessel_c:.1f}°C", 
+                transform=self.ax.transAxes, color="#FFFFFF", fontsize=10, 
+                va="center", ha="center", weight="bold", zorder=100)
         
         self._update_sparkline()
         

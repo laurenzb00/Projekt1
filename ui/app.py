@@ -469,6 +469,7 @@ class MainApp:
                 self._last_data["puffer_top"],
                 self._last_data["puffer_mid"],
                 self._last_data["puffer_bot"],
+                self._last_data.get("kessel_c", 65.0),  # Boiler temperature
             )
 
         # Data freshness every 5s
