@@ -19,6 +19,8 @@ from ui.styles import (
     COLOR_WARNING,
     COLOR_INFO,
     COLOR_DANGER,
+    COLOR_SUCCESS,
+    COLOR_PRIMARY,
 )
 
 
@@ -453,8 +455,18 @@ class BufferStorageView(tk.Frame):
 
     @staticmethod
     def _data_path(filename: str) -> str:
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        return os.path.join(base, filename)
+        # Try multiple common paths
+        candidates = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename),  # ui/ parent
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),  # Same as this file
+            os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi path
+            os.path.join("/home/pi/projekt1", filename),  # Alternative Pi path
+        ]
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+        # Default fallback
+        return candidates[0]
 
     @staticmethod
     def _read_lines_safe(path: str) -> list[str]:

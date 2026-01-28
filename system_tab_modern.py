@@ -92,96 +92,96 @@ class SystemTab:
 
     def _create_ram_card(self, parent) -> Card:
         """RAM Usage Card with circular progress."""
-        card = Card(parent, padding=12)
+        card = Card(parent, padding=8)
         card.add_title("RAM", icon="💾")
         
         # Canvas for circular progress
-        self.ram_canvas = tk.Canvas(card.content(), width=160, height=160, 
+        self.ram_canvas = tk.Canvas(card.content(), width=100, height=100, 
                                      bg=COLOR_CARD, highlightthickness=0)
-        self.ram_canvas.pack(pady=10)
+        self.ram_canvas.pack(pady=4)
         
         # Value label
         self.ram_label = tk.Label(card.content(), textvariable=self.var_ram, 
-                                   font=("Segoe UI", 32, "bold"), fg=COLOR_TEXT, bg=COLOR_CARD)
+                                   font=("Segoe UI", 20, "bold"), fg=COLOR_TEXT, bg=COLOR_CARD)
         self.ram_label.pack()
         
-        tk.Label(card.content(), text="%", font=("Segoe UI", 12), 
+        tk.Label(card.content(), text="%", font=("Segoe UI", 10), 
                  fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack()
         
         return card
 
     def _create_disk_card(self, parent) -> Card:
         """Disk Usage Card with circular progress."""
-        card = Card(parent, padding=12)
+        card = Card(parent, padding=8)
         card.add_title("SD-Karte", icon="💿")
         
         # Canvas for circular progress
-        self.disk_canvas = tk.Canvas(card.content(), width=160, height=160, 
+        self.disk_canvas = tk.Canvas(card.content(), width=100, height=100, 
                                       bg=COLOR_CARD, highlightthickness=0)
-        self.disk_canvas.pack(pady=10)
+        self.disk_canvas.pack(pady=4)
         
         # Value label
         self.disk_label = tk.Label(card.content(), textvariable=self.var_disk, 
-                                    font=("Segoe UI", 32, "bold"), fg=COLOR_TEXT, bg=COLOR_CARD)
+                                    font=("Segoe UI", 20, "bold"), fg=COLOR_TEXT, bg=COLOR_CARD)
         self.disk_label.pack()
         
-        tk.Label(card.content(), text="%", font=("Segoe UI", 12), 
+        tk.Label(card.content(), text="%", font=("Segoe UI", 10), 
                  fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack()
         
         return card
 
     def _create_temp_card(self, parent) -> Card:
         """Temperature Card."""
-        card = Card(parent, padding=12)
+        card = Card(parent, padding=8)
         card.add_title("Temperatur", icon="🌡️")
         
         temp_label = tk.Label(card.content(), textvariable=self.var_temp, 
-                              font=("Segoe UI", 42, "bold"), fg=COLOR_WARNING, bg=COLOR_CARD)
-        temp_label.pack(expand=True, pady=30)
+                              font=("Segoe UI", 28, "bold"), fg=COLOR_WARNING, bg=COLOR_CARD)
+        temp_label.pack(expand=True, pady=15)
         
         return card
 
     def _create_uptime_card(self, parent) -> Card:
         """Uptime Card."""
-        card = Card(parent, padding=12)
+        card = Card(parent, padding=8)
         card.add_title("Uptime", icon="⏱️")
         
         uptime_label = tk.Label(card.content(), textvariable=self.var_uptime, 
-                                font=("Segoe UI", 28, "bold"), fg=COLOR_SUCCESS, bg=COLOR_CARD)
-        uptime_label.pack(expand=True, pady=30)
+                                font=("Segoe UI", 18, "bold"), fg=COLOR_SUCCESS, bg=COLOR_CARD)
+        uptime_label.pack(expand=True, pady=12)
         
         # System info
         info_frame = tk.Frame(card.content(), bg=COLOR_CARD)
-        info_frame.pack(pady=5)
+        info_frame.pack(pady=3)
         
         system_info = f"{platform.system()} {platform.machine()}"
-        tk.Label(info_frame, text=system_info, font=("Segoe UI", 10), 
+        tk.Label(info_frame, text=system_info, font=("Segoe UI", 8), 
                  fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack()
         
         return card
 
     def _create_network_card(self, parent) -> Card:
         """Network Traffic Card."""
-        card = Card(parent, padding=12)
+        card = Card(parent, padding=8)
         card.add_title("Netzwerk", icon="📡")
         
         # Upload
         upload_frame = tk.Frame(card.content(), bg=COLOR_CARD)
-        upload_frame.pack(pady=10, fill=tk.X)
+        upload_frame.pack(pady=5, fill=tk.X)
         
-        tk.Label(upload_frame, text="↑ Upload", font=("Segoe UI", 10), 
-                 fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack(side=tk.LEFT, padx=5)
-        tk.Label(upload_frame, textvariable=self.var_network_tx, font=("Segoe UI", 14, "bold"), 
-                 fg=COLOR_PRIMARY, bg=COLOR_CARD).pack(side=tk.RIGHT, padx=5)
+        tk.Label(upload_frame, text="↑ Upload", font=("Segoe UI", 9), 
+                 fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack(side=tk.LEFT, padx=3)
+        tk.Label(upload_frame, textvariable=self.var_network_tx, font=("Segoe UI", 11, "bold"), 
+                 fg=COLOR_PRIMARY, bg=COLOR_CARD).pack(side=tk.RIGHT, padx=3)
         
         # Download
         download_frame = tk.Frame(card.content(), bg=COLOR_CARD)
-        download_frame.pack(pady=10, fill=tk.X)
+        download_frame.pack(pady=5, fill=tk.X)
         
-        tk.Label(download_frame, text="↓ Download", font=("Segoe UI", 10), 
-                 fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack(side=tk.LEFT, padx=5)
-        tk.Label(download_frame, textvariable=self.var_network_rx, font=("Segoe UI", 14, "bold"), 
-                 fg=COLOR_SUCCESS, bg=COLOR_CARD).pack(side=tk.RIGHT, padx=5)
+        tk.Label(download_frame, text="↓ Download", font=("Segoe UI", 9), 
+                 fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack(side=tk.LEFT, padx=3)
+        tk.Label(download_frame, textvariable=self.var_network_rx, font=("Segoe UI", 11, "bold"), 
+                 fg=COLOR_SUCCESS, bg=COLOR_CARD).pack(side=tk.RIGHT, padx=3)
         
         return card
 

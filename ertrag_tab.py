@@ -133,6 +133,15 @@ class ErtragTab:
 
     @staticmethod
     def _data_path(filename: str) -> str:
-        ui_dir = os.path.dirname(os.path.abspath(__file__))
-        data_root = os.path.dirname(ui_dir)
-        return os.path.join(data_root, filename)
+        # Try multiple common paths
+        candidates = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),  # Same dir
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename),  # Parent of ui/
+            os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi path
+            os.path.join("/home/pi/projekt1", filename),  # Alternative Pi path
+        ]
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+        # Default fallback
+        return candidates[1]
