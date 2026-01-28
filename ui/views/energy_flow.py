@@ -1,6 +1,7 @@
 import tkinter as tk
 import math
 import time
+import os
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 from ui.styles import (
     COLOR_CARD,
@@ -33,8 +34,8 @@ class EnergyFlowView(tk.Frame):
         self._font_big = ImageFont.truetype("arial.ttf", 32) if self._has_font("arial.ttf") else None
         self._font_small = ImageFont.truetype("arial.ttf", 18) if self._has_font("arial.ttf") else None
         self._font_tiny = ImageFont.truetype("arial.ttf", 13) if self._has_font("arial.ttf") else None
-        # Emoji font support
-        self._font_emoji = ImageFont.truetype("seguiemj.ttf", 36) if self._has_font("seguiemj.ttf") else None
+        # Emoji font support with multiple fallbacks
+        self._font_emoji = self._find_emoji_font(36)
 
         self.nodes = self._define_nodes()
         self._base_img = self._render_background()
@@ -68,6 +69,26 @@ class EnergyFlowView(tk.Frame):
             return True
         except Exception:
             return False
+
+    def _find_emoji_font(self, size: int):
+        """Find emoji font with multiple fallback paths for cross-platform support."""
+        # Common emoji font names and paths
+        emoji_fonts = [
+            "seguiemj.ttf",  # Windows
+            "/usr/share/fonts/opentype/noto/NotoColorEmoji.ttf",  # Linux
+            "/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf",  # Linux alternative
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  # Fallback
+            "DejaVuSans.ttf",  # Generic fallback
+        ]
+        
+        for font_path in emoji_fonts:
+            try:
+                return ImageFont.truetype(font_path, size)
+            except Exception:
+                pass
+        
+        # If no emoji font found, return None and use default
+        return None
 
     def _define_nodes(self):
         w, h = self.width, self.height
