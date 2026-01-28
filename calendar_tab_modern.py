@@ -154,31 +154,37 @@ class CalendarTab:
         title_label = ttk.Label(self.scroll_frame, text=month_name, font=("Arial", 14, "bold"))
         title_label.pack(pady=12)
         
-        # Wochentage Header
+        # Wochentage Header mit Grid
         weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
         header_frame = tk.Frame(self.scroll_frame, bg=COLOR_ROOT)
         header_frame.pack(fill=tk.X, pady=4, padx=6)
         
-        for day in weekdays:
+        for col, day in enumerate(weekdays):
+            header_frame.grid_columnconfigure(col, weight=1)
             day_label = ttk.Label(header_frame, text=day, font=("Arial", 9, "bold"))
-            day_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            day_label.grid(row=0, column=col, sticky="ew", padx=1)
         
         # Kalender-Grid
         cal = calendar.monthcalendar(self.displayed_month.year, self.displayed_month.month)
         today = datetime.date.today()
         
-        for week in cal:
-            week_frame = tk.Frame(self.scroll_frame, bg=COLOR_ROOT)
-            week_frame.pack(fill=tk.BOTH, expand=True, pady=2, padx=6)
-            
-            for day_num in week:
+        grid_frame = tk.Frame(self.scroll_frame, bg=COLOR_ROOT)
+        grid_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=4)
+        
+        for row, week in enumerate(cal):
+            for col, day_num in enumerate(week):
+                grid_frame.grid_columnconfigure(col, weight=1)
+                grid_frame.grid_rowconfigure(row, weight=1)
+                
                 if day_num == 0:
-                    day_card = tk.Frame(week_frame, bg=COLOR_ROOT)
+                    # Empty cell
+                    empty_frame = tk.Frame(grid_frame, bg=COLOR_ROOT)
+                    empty_frame.grid(row=row, column=col, sticky="nsew", padx=1, pady=1)
                 else:
                     day_date = datetime.date(self.displayed_month.year, self.displayed_month.month, day_num)
                     
                     # Card für jeden Tag
-                    day_card = tk.Frame(week_frame, bg=COLOR_CARD, relief=tk.RAISED, bd=1)
+                    day_card = tk.Frame(grid_frame, bg=COLOR_CARD, relief=tk.RAISED, bd=1)
                     day_card.configure(highlightthickness=0)
                     
                     # Styling für heute
@@ -189,24 +195,24 @@ class CalendarTab:
                         day_label_color = COLOR_TEXT
                     
                     # Tag-Nummer
-                    day_num_label = tk.Label(day_card, text=str(day_num), font=("Arial", 11, "bold"), 
+                    day_num_label = tk.Label(day_card, text=str(day_num), font=("Arial", 10, "bold"), 
                                             bg=day_card.cget("bg"), fg=day_label_color)
                     day_num_label.pack(anchor="ne", padx=3, pady=2)
                     
                     # Events für diesen Tag
                     day_events = [e for e in all_events if e['start'].date() == day_date]
                     for i, event in enumerate(day_events[:2]):  # Nur erste 2 Events
-                        event_text = event['title'][:12]  # Kürzen
+                        event_text = event['title'][:14]  # Kürzen
                         event_label = tk.Label(day_card, text=event_text, font=("Arial", 7), 
-                                             bg=day_card.cget("bg"), fg=COLOR_SUBTEXT, wraplength=40, justify=tk.LEFT)
-                        event_label.pack(anchor="w", padx=2, pady=1)
+                                             bg=day_card.cget("bg"), fg=COLOR_SUBTEXT, wraplength=45, justify=tk.LEFT)
+                        event_label.pack(anchor="w", padx=2, pady=1, fill=tk.X)
                     
                     if len(day_events) > 2:
                         more_label = tk.Label(day_card, text=f"+{len(day_events) - 2}", font=("Arial", 7, "italic"),
                                             bg=day_card.cget("bg"), fg=COLOR_SUBTEXT)
                         more_label.pack(anchor="w", padx=2)
-                
-                day_card.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=1)
+                    
+                    day_card.grid(row=row, column=col, sticky="nsew", padx=1, pady=1)
 
     def _loop(self):
         """Hintergrund-Update Loop."""
