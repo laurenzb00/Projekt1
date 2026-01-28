@@ -36,6 +36,10 @@ class EnergyFlowView(tk.Frame):
         self._font_tiny = ImageFont.truetype("arial.ttf", 13) if self._has_font("arial.ttf") else None
         # Emoji font support with multiple fallbacks
         self._font_emoji = self._find_emoji_font(36)
+        
+        # Load PNG icons - will be pasted onto PIL image
+        self._icons_pil = {}  # PIL Images for embedding
+        self._load_icons()
 
         self.nodes = self._define_nodes()
         self._base_img = self._render_background()
@@ -69,6 +73,42 @@ class EnergyFlowView(tk.Frame):
             return True
         except Exception:
             return False
+
+    def _load_icons(self):
+        """Load and cache PNG icons from icons directory."""
+        elapsed = time.time() - self._start_time
+        
+        # Robust path: relative to this file's directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(current_dir))  # Go up to ui/views -> ui -> project
+        icon_dir = os.path.join(project_root, "icons")
+        
+        icon_files = {
+            "pv": "pv.png",
+            "grid": "grid.png",
+            "home": "house.png",
+            "battery": "battery.png",
+        }
+        
+        icon_size = int(self.node_radius * 1.15)  # Dynamic sizing based on node radius
+        
+        for icon_name, filename in icon_files.items():
+            try:
+                icon_path = os.path.join(icon_dir, filename)
+                if not os.path.exists(icon_path):
+                    print(f"[ICONS] WARNING: {icon_name} icon not found at {icon_path}")
+                    continue
+                    
+                # Load, convert to RGBA, and resize
+                img = Image.open(icon_path).convert("RGBA")
+                img = img.resize((icon_size, icon_size), Image.LANCZOS)
+                self._icons_pil[icon_name] = img
+                print(f"[ICONS] Loaded {icon_name} at {elapsed:.3f}s ({icon_size}x{icon_size})")
+            except Exception as e:
+                print(f"[ICONS] Error loading {icon_name}: {e}")
+        
+        if not self._icons_pil:
+            print(f"[ICONS] WARNING: No icons loaded! Falling back to text labels.")
 
     def _find_emoji_font(self, size: int):
         """Find emoji font with multiple fallback paths for cross-platform support."""
@@ -107,9 +147,20 @@ class EnergyFlowView(tk.Frame):
     def _render_background(self) -> Image.Image:
         img = self._draw_bg_gradient()
         draw = ImageDraw.Draw(img)
-        # No border, no outline - seamless background
+        # Draw node circles (background + effects)
         for name, (x, y) in self.nodes.items():
-            self._draw_node(draw, x, y, name)
+            self._draw_node_circle(draw, x, y, name)
+        # Paste icons on top
+        for name, (x, y) in self.nodes.items():
+            if name in self._icons_pil:
+                icon = self._icons_pil[name]
+                icon_w, icon_h = icon.size
+                paste_x = int(x - icon_w / 2)
+                paste_y = int(y - icon_h / 2)
+                # Battery offset to avoid SoC overlap
+                if name == "battery":
+                    paste_y -= 8
+                img.paste(icon, (paste_x, paste_y), icon)  # Use alpha channel
         return img
 
     def _draw_bg_gradient(self) -> Image.Image:
@@ -140,7 +191,8 @@ class EnergyFlowView(tk.Frame):
         
         return img
 
-    def _draw_node(self, draw: ImageDraw.ImageDraw, x: int, y: int, name: str):
+    def _draw_node_circle(self, draw: ImageDraw.ImageDraw, x: int, y: int, name: str):
+        """Draw node circle background with effects (no text/icons)."""
         r = self.node_radius + (6 if name == "home" else 0)
         fill = COLOR_BORDER
         if name == "home":
@@ -157,16 +209,6 @@ class EnergyFlowView(tk.Frame):
         # Radial gradient (subtle)
         self._draw_radial(draw, x, y, r, fill)
         draw.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=None, width=0)
-        label = {
-            "pv": "🔆",
-            "grid": "⚡",
-            "home": "🏠",
-            "battery": "🔋",
-        }[name]
-        if label:
-            # Move battery emoji higher to avoid SoC overlap
-            emoji_y = y - 12 if name == "battery" else y
-            self._text_center(draw, label, x, emoji_y, size=24, fontweight="normal", outline=False)
 
     def _text_center(self, draw: ImageDraw.ImageDraw, text: str, x: int, y: int, size: int, color: str = COLOR_TEXT, fontweight: str = "normal", outline: bool = False):
         # Use emoji font for emoji characters, otherwise use bold font

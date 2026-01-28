@@ -1,0 +1,214 @@
+import threading
+import time
+import tkinter as tk
+from tkinter import ttk
+from ui.styles import (
+    COLOR_ROOT,
+    COLOR_CARD,
+    COLOR_BORDER,
+    COLOR_PRIMARY,
+    COLOR_SUCCESS,
+    COLOR_WARNING,
+    COLOR_DANGER,
+    COLOR_TEXT,
+    COLOR_SUBTEXT,
+    emoji,
+)
+from ui.components.card import Card
+
+# --- KONFIGURATION ---
+TADO_USER = "laurenzbandzauner@gmail.com"  
+TADO_PASS = "Sw1mm1ngp00l"           
+
+class TadoTab:
+    """Klima-Steuerung mit modernem Card-Layout."""
+    
+    def __init__(self, root: tk.Tk, notebook: ttk.Notebook):
+        self.root = root
+        self.notebook = notebook
+        self.alive = True
+        self.api = None
+        self.zone_id = None
+        
+        # UI Variablen
+        self.var_temp_ist = tk.StringVar(value="--.- °C")
+        self.var_temp_soll = tk.StringVar(value="-- °C")
+        self.var_humidity = tk.StringVar(value="-- %")
+        self.var_status = tk.StringVar(value="Verbinde...")
+        self.var_power = tk.IntVar(value=0)
+
+        # Tab Frame
+        self.tab_frame = tk.Frame(notebook, bg=COLOR_ROOT)
+        notebook.add(self.tab_frame, text=emoji("🌡️ Klima", "Klima"))
+        
+        self.tab_frame.grid_columnconfigure(0, weight=1)
+        self.tab_frame.grid_rowconfigure(1, weight=1)
+
+        # Header mit Status
+        header = tk.Frame(self.tab_frame, bg=COLOR_ROOT)
+        header.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+        
+        ttk.Label(header, text="Schlafzimmer Klima", font=("Arial", 14, "bold")).pack(side=tk.LEFT)
+        ttk.Label(header, textvariable=self.var_status, foreground=COLOR_SUBTEXT, font=("Arial", 9)).pack(side=tk.RIGHT)
+
+        # Hauptgrid: 2 Cards nebeneinander
+        content = tk.Frame(self.tab_frame, bg=COLOR_ROOT)
+        content.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_columnconfigure(1, weight=1)
+
+        # Card 1: Aktuelle Werte (IST)
+        card1 = Card(content)
+        card1.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=0)
+        card1.add_title("Aktuelle Werte", icon="📊")
+        
+        # Temperatur (große Anzeige)
+        temp_frame = tk.Frame(card1.content(), bg=COLOR_CARD)
+        temp_frame.pack(fill=tk.X, pady=(0, 12))
+        
+        ttk.Label(temp_frame, text="Temperatur", font=("Arial", 10), foreground=COLOR_SUBTEXT).pack(anchor="w", padx=6, pady=(0, 2))
+        ttk.Label(temp_frame, textvariable=self.var_temp_ist, font=("Arial", 32, "bold"), foreground=COLOR_PRIMARY).pack(anchor="w", padx=6)
+        
+        # Luftfeuchtigkeit
+        hum_frame = tk.Frame(card1.content(), bg=COLOR_CARD)
+        hum_frame.pack(fill=tk.X, pady=6)
+        
+        ttk.Label(hum_frame, text="Luftfeuchtigkeit", font=("Arial", 10), foreground=COLOR_SUBTEXT).pack(anchor="w", padx=6, pady=(0, 2))
+        ttk.Label(hum_frame, textvariable=self.var_humidity, font=("Arial", 20, "bold")).pack(anchor="w", padx=6)
+        
+        # Heizleistung
+        power_frame = tk.Frame(card1.content(), bg=COLOR_CARD)
+        power_frame.pack(fill=tk.X, pady=6)
+        
+        ttk.Label(power_frame, text="Heizleistung", font=("Arial", 10), foreground=COLOR_SUBTEXT).pack(anchor="w", padx=6, pady=(0, 2))
+        ttk.Progressbar(power_frame, variable=self.var_power, maximum=100, length=200).pack(fill=tk.X, padx=6)
+
+        # Card 2: Steuerung
+        card2 = Card(content)
+        card2.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=0)
+        card2.add_title("Steuerung", icon="⚙️")
+        
+        # Zieltemperatur Regler
+        ctrl_label = ttk.Label(card2.content(), text="Zieltemperatur", font=("Arial", 10), foreground=COLOR_SUBTEXT)
+        ctrl_label.pack(pady=(0, 8))
+        
+        ctrl_frame = tk.Frame(card2.content(), bg=COLOR_CARD)
+        ctrl_frame.pack(pady=12)
+        
+        minus_btn = ttk.Button(ctrl_frame, text="−", width=3, command=lambda: self._change_temp(-1))
+        minus_btn.pack(side=tk.LEFT, padx=8)
+        
+        ttk.Label(ctrl_frame, textvariable=self.var_temp_soll, font=("Arial", 28, "bold"), foreground=COLOR_WARNING).pack(side=tk.LEFT, padx=16)
+        
+        plus_btn = ttk.Button(ctrl_frame, text="+", width=3, command=lambda: self._change_temp(+1))
+        plus_btn.pack(side=tk.LEFT, padx=8)
+        
+        # Buttons
+        btn_frame = tk.Frame(card2.content(), bg=COLOR_CARD)
+        btn_frame.pack(fill=tk.X, pady=12)
+        
+        ttk.Button(btn_frame, text="Heizen", command=self._set_heating).pack(side=tk.LEFT, padx=3, fill=tk.X, expand=True)
+        ttk.Button(btn_frame, text="Aus", command=self._set_off).pack(side=tk.LEFT, padx=3, fill=tk.X, expand=True)
+
+        # Start Update Loop
+        threading.Thread(target=self._loop, daemon=True).start()
+
+    def stop(self):
+        self.alive = False
+
+    def _change_temp(self, delta: int):
+        """Ändere Zieltemperatur um delta Grad."""
+        try:
+            current = float(self.var_temp_soll.get().split()[0])
+            new_temp = max(12, min(30, current + delta))  # Begrenzt 12-30°C
+            self.var_temp_soll.set(f"{new_temp:.0f} °C")
+            if self.api and self.zone_id:
+                self.api.set_temperature(self.zone_id, new_temp)
+        except Exception:
+            pass
+
+    def _set_heating(self):
+        """Aktiviere Heizung."""
+        try:
+            if self.api and self.zone_id:
+                current = float(self.var_temp_soll.get().split()[0])
+                self.api.set_temperature(self.zone_id, current)
+                self.var_status.set("Heizung aktiviert")
+        except Exception:
+            self.var_status.set("Fehler")
+
+    def _set_off(self):
+        """Deaktiviere Heizung."""
+        try:
+            if self.api and self.zone_id:
+                self.api.reset_zone_override(self.zone_id)
+                self.var_status.set("Heizung aus")
+        except Exception:
+            self.var_status.set("Fehler")
+
+    def _loop(self):
+        """Hintergrund-Update Loop."""
+        # Login
+        try:
+            from PyTado.interface import Tado
+            self.api = Tado(TADO_USER, TADO_PASS)
+            
+            zones = self.api.get_zones()
+            for z in zones:
+                if "Schlaf" in z.get('name', '') or "Bed" in z.get('name', ''):
+                    self.zone_id = z.get('id')
+                    break
+            
+            if not self.zone_id and zones:
+                self.zone_id = zones[0].get('id')
+            
+            self.var_status.set("Verbunden")
+        except ImportError:
+            self.var_status.set("PyTado nicht installiert")
+            self.var_temp_ist.set("N/A")
+            self.var_humidity.set("N/A")
+            while self.alive:
+                time.sleep(5)
+            return
+        except Exception as e:
+            self.var_status.set(f"Login fehlgeschlagen")
+            self.var_temp_ist.set("N/A")
+            self.var_humidity.set("N/A")
+            while self.alive:
+                time.sleep(30)
+            return
+
+        # Update Loop
+        while self.alive:
+            try:
+                state = self.api.get_zone_state(self.zone_id)
+                
+                # Temperatur
+                current = state.get('sensorDataPoints', {}).get('insideTemperature', {}).get('celsius', 0)
+                self.var_temp_ist.set(f"{current:.1f} °C")
+                
+                # Feuchtigkeit
+                humidity = state.get('sensorDataPoints', {}).get('humidity', {}).get('percentage', 0)
+                self.var_humidity.set(f"{humidity:.0f} %")
+                
+                # Zieltemperatur
+                overlay = state.get('overlay')
+                if overlay:
+                    target = overlay.get('setting', {}).get('temperature', {}).get('celsius', 20)
+                    self.var_temp_soll.set(f"{target:.0f} °C")
+                    
+                    power = overlay.get('setting', {}).get('power', 'OFF')
+                    if power == 'ON':
+                        self.var_power.set(75)
+                        self.var_status.set("Heizung aktiv")
+                    else:
+                        self.var_power.set(0)
+                        self.var_status.set("Heizung aus")
+                else:
+                    self.var_power.set(0)
+                    self.var_status.set("Automatik")
+                    
+            except Exception:
+                pass
+            
+            time.sleep(30)  # Update alle 30 Sekunden

@@ -48,14 +48,14 @@ try:
 except ImportError:
     ErtragTab = None
 
-# Import Tab Modules (alte Tabs in neuem Design)
+# Import Modern Tab Modules
 try:
     from spotify_tab_modern import SpotifyTab
 except ImportError:
     SpotifyTab = None
     
 try:
-    from tado_tab import TadoTab
+    from tado_tab_modern import TadoTab
 except ImportError:
     TadoTab = None
     
@@ -65,14 +65,19 @@ except ImportError:
     HueTab = None
     
 try:
-    from system_tab import SystemTab
+    from system_tab_modern import SystemTab
 except ImportError:
     SystemTab = None
     
 try:
-    from calendar_tab import CalendarTab
+    from calendar_tab_modern import CalendarTab
 except ImportError:
     CalendarTab = None
+
+try:
+    from analyse_tab_modern import AnalyseTab
+except ImportError:
+    AnalyseTab = None
 
 
 

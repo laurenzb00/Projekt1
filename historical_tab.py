@@ -5,6 +5,7 @@ import csv
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from ui.styles import (
     COLOR_ROOT,
@@ -35,24 +36,35 @@ class HistoricalTab:
         self.tab_frame.grid_rowconfigure(0, weight=0)
         self.tab_frame.grid_rowconfigure(1, weight=1)
 
-        # Card
+        # Main Card
         self.card = Card(self.tab_frame)
         self.card.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=12, pady=12)
         self.card.add_title("Heizungsdaten (letzte 7 Tage)", icon="🌡️")
 
-        # Current values row
-        stats = ttk.Frame(self.card.content())
-        stats.pack(fill=tk.X, pady=(0, 6))
-        self.var_top = tk.StringVar(value="Puffer oben: -- °C")
-        self.var_mid = tk.StringVar(value="Puffer mitte: -- °C")
-        self.var_bot = tk.StringVar(value="Puffer unten: -- °C")
-        self.var_boiler = tk.StringVar(value="Boiler: -- °C")
-        self.var_out = tk.StringVar(value="Außen: -- °C")
-        ttk.Label(stats, textvariable=self.var_top).pack(side=tk.LEFT, padx=6)
-        ttk.Label(stats, textvariable=self.var_mid).pack(side=tk.LEFT, padx=6)
-        ttk.Label(stats, textvariable=self.var_bot).pack(side=tk.LEFT, padx=6)
-        ttk.Label(stats, textvariable=self.var_boiler).pack(side=tk.LEFT, padx=6)
-        ttk.Label(stats, textvariable=self.var_out).pack(side=tk.LEFT, padx=6)
+        # Stats Grid: 5 stat cards in one frame
+        stats_frame = tk.Frame(self.card.content(), bg=COLOR_CARD)
+        stats_frame.pack(fill=tk.X, pady=(0, 12))
+        
+        self.var_top = tk.StringVar(value="-- °C")
+        self.var_mid = tk.StringVar(value="-- °C")
+        self.var_bot = tk.StringVar(value="-- °C")
+        self.var_boiler = tk.StringVar(value="-- °C")
+        self.var_out = tk.StringVar(value="-- °C")
+        
+        stats_grid = [
+            ("Puffer oben", self.var_top, COLOR_PRIMARY),
+            ("Puffer mitte", self.var_mid, COLOR_INFO),
+            ("Puffer unten", self.var_bot, COLOR_SUBTEXT),
+            ("Boiler", self.var_boiler, COLOR_WARNING),
+            ("Außen", self.var_out, COLOR_TEXT),
+        ]
+        
+        for idx, (label, var, color) in enumerate(stats_grid):
+            stat_card = tk.Frame(stats_frame, bg=COLOR_CARD)
+            stat_card.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4)
+            
+            ttk.Label(stat_card, text=label, font=("Arial", 9), foreground=color).pack(anchor="w", padx=6, pady=(4, 2))
+            ttk.Label(stat_card, textvariable=var, font=("Arial", 14, "bold")).pack(anchor="w", padx=6, pady=(0, 4))
 
         # Plot
         self.fig, self.ax = plt.subplots(figsize=(7.2, 3.6), dpi=100)
@@ -127,25 +139,26 @@ class HistoricalTab:
                 self.ax.set_ylabel("°C", color=COLOR_TEXT, fontsize=10)
                 self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
                 self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
+                self.ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=False))
                 self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))
                 self.ax.grid(True, color=COLOR_BORDER, alpha=0.3, linewidth=0.8)
                 self.ax.legend(facecolor=COLOR_CARD, edgecolor=COLOR_BORDER, labelcolor=COLOR_TEXT, fontsize=8)
 
                 # Current values
-                self.var_top.set(f"Puffer oben: {top[-1]:.1f} °C")
-                self.var_mid.set(f"Puffer mitte: {mid[-1]:.1f} °C")
-                self.var_bot.set(f"Puffer unten: {bot[-1]:.1f} °C")
-                self.var_boiler.set(f"Boiler: {boiler[-1]:.1f} °C")
-                self.var_out.set(f"Außen: {outside[-1]:.1f} °C")
+                self.var_top.set(f"{top[-1]:.1f} °C")
+                self.var_mid.set(f"{mid[-1]:.1f} °C")
+                self.var_bot.set(f"{bot[-1]:.1f} °C")
+                self.var_boiler.set(f"{boiler[-1]:.1f} °C")
+                self.var_out.set(f"{outside[-1]:.1f} °C")
             else:
                 self.ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", transform=self.ax.transAxes)
                 self.ax.set_xticks([])
                 self.ax.set_yticks([])
-                self.var_top.set("Puffer oben: -- °C")
-                self.var_mid.set("Puffer mitte: -- °C")
-                self.var_bot.set("Puffer unten: -- °C")
-                self.var_boiler.set("Boiler: -- °C")
-                self.var_out.set("Außen: -- °C")
+                self.var_top.set("-- °C")
+                self.var_mid.set("-- °C")
+                self.var_bot.set("-- °C")
+                self.var_boiler.set("-- °C")
+                self.var_out.set("-- °C")
 
             self.fig.autofmt_xdate()
             self.canvas.draw_idle()

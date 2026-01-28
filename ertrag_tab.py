@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from ui.styles import (
     COLOR_ROOT,
@@ -109,6 +110,7 @@ class ErtragTab:
             self.ax.set_ylabel("Ertrag (kWh)", color=COLOR_TEXT, fontsize=10)
             self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
             self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
+            self.ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=False))
             self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))
             self.ax.grid(True, color=COLOR_BORDER, alpha=0.3, linewidth=0.8)
 

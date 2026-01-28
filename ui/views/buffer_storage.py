@@ -4,6 +4,7 @@ import csv
 import time
 from datetime import datetime, timedelta
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -48,7 +49,7 @@ class BufferStorageView(tk.Frame):
 
         self.spark_frame = tk.Frame(self.layout, bg=COLOR_CARD)
         self.spark_frame.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(8, 0))
-        tk.Label(self.spark_frame, text="Puffer (24h)", fg=COLOR_TITLE, bg=COLOR_CARD, font=("Segoe UI", 10)).pack(anchor="w")
+        tk.Label(self.spark_frame, text="PV & Außentemp. (24h)", fg=COLOR_TITLE, bg=COLOR_CARD, font=("Segoe UI", 10)).pack(anchor="w")
 
         fig_width = 3.2
         fig_height = max(1.8, self.height / 100)
@@ -274,14 +275,145 @@ class BufferStorageView(tk.Frame):
         if (datetime.now().timestamp() - self._last_spark_update) < 60:
             return
         self._last_spark_update = datetime.now().timestamp()
-        series = self._load_puffer_series(hours=24, bin_minutes=15)
+        
+        pv_series = self._load_pv_series(hours=24, bin_minutes=15)
+        temp_series = self._load_outdoor_temp_series(hours=24, bin_minutes=15)
+        
         self.spark_ax.clear()
-        self.spark_ax.set_axis_off()
-        if series:
-            xs, ys = zip(*series)
-            self.spark_ax.plot(xs, ys, color=COLOR_WARNING, linewidth=1.3)
-            self.spark_ax.scatter([xs[-1]], [ys[-1]], color=COLOR_WARNING, s=8)
+        
+        # Create second y-axis for temperature
+        ax2 = self.spark_ax.twinx()
+        
+        # Plot PV production (left axis) - yellow/green
+        if pv_series:
+            xs_pv, ys_pv = zip(*pv_series)
+            self.spark_ax.plot(xs_pv, ys_pv, color=COLOR_SUCCESS, linewidth=2.0, alpha=0.9, label="PV")
+            self.spark_ax.fill_between(xs_pv, ys_pv, color=COLOR_SUCCESS, alpha=0.15)
+            self.spark_ax.scatter([xs_pv[-1]], [ys_pv[-1]], color=COLOR_SUCCESS, s=12, zorder=10)
+        
+        # Plot outdoor temperature (right axis) - blue
+        if temp_series:
+            xs_temp, ys_temp = zip(*temp_series)
+            ax2.plot(xs_temp, ys_temp, color=COLOR_INFO, linewidth=2.0, alpha=0.9, label="Temp", linestyle="--")
+            ax2.scatter([xs_temp[-1]], [ys_temp[-1]], color=COLOR_INFO, s=12, zorder=10)
+        
+        # Subtle axis styling
+        self.spark_ax.spines['top'].set_visible(False)
+        self.spark_ax.spines['right'].set_visible(False)
+        self.spark_ax.spines['left'].set_color(COLOR_BORDER)
+        self.spark_ax.spines['bottom'].set_color(COLOR_BORDER)
+        self.spark_ax.spines['left'].set_linewidth(0.5)
+        self.spark_ax.spines['bottom'].set_linewidth(0.5)
+        
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['left'].set_visible(False)
+        ax2.spines['right'].set_color(COLOR_BORDER)
+        ax2.spines['bottom'].set_color(COLOR_BORDER)
+        ax2.spines['right'].set_linewidth(0.5)
+        ax2.spines['bottom'].set_linewidth(0.5)
+        
+        # Light tick styling
+        self.spark_ax.tick_params(axis='both', which='major', labelsize=7, colors=COLOR_SUBTEXT, length=2, width=0.5)
+        ax2.tick_params(axis='y', which='major', labelsize=7, colors=COLOR_SUBTEXT, length=2, width=0.5)
+        
+        # Y-axis labels with units
+        self.spark_ax.set_ylabel('kW', fontsize=7, color=COLOR_SUCCESS, rotation=0, labelpad=10, va='center')
+        ax2.set_ylabel('°C', fontsize=7, color=COLOR_INFO, rotation=0, labelpad=10, va='center')
+        
+        # Limit number of ticks
+        self.spark_ax.yaxis.set_major_locator(plt.MaxNLocator(4))
+        ax2.yaxis.set_major_locator(plt.MaxNLocator(4))
+        self.spark_ax.xaxis.set_major_locator(plt.MaxNLocator(6))
+        
+        # Format x-axis to show hours
+        import matplotlib.dates as mdates
+        self.spark_ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        
         self.spark_canvas.draw_idle()
+
+    def _load_pv_series(self, hours: int = 24, bin_minutes: int = 15) -> list[tuple[datetime, float]]:
+        """Load PV production with smoothing."""
+        path = self._data_path("FroniusDaten.csv")
+        if not os.path.exists(path):
+            return []
+        cutoff = datetime.now() - timedelta(hours=hours)
+        lines = self._read_lines_safe(path)
+        if len(lines) < 2:
+            return []
+        rows = []
+        for line in lines[-1000:]:
+            line = line.strip()
+            if not line or line.lower().startswith("zeit"):
+                continue
+            try:
+                row = next(csv.reader([line]))
+                ts = datetime.fromisoformat(row[0])
+                if ts < cutoff:
+                    continue
+                pv_kw = float(row[1])  # PV production in kW
+                ts_bin = ts - timedelta(minutes=ts.minute % bin_minutes, seconds=ts.second, microseconds=ts.microsecond)
+                rows.append((ts_bin, pv_kw))
+            except Exception:
+                continue
+        if not rows:
+            return []
+        # Aggregate by time bin
+        agg = {}
+        for ts, val in rows:
+            s, c = agg.get(ts, (0.0, 0))
+            agg[ts] = (s + val, c + 1)
+        out = [(ts, s / c) for ts, (s, c) in sorted(agg.items())]
+        # Strong smoothing with moving average (window of 5)
+        return self._smooth_series(out, window=5)
+    
+    def _load_outdoor_temp_series(self, hours: int = 24, bin_minutes: int = 15) -> list[tuple[datetime, float]]:
+        """Load outdoor temperature with smoothing."""
+        path = self._data_path("Heizungstemperaturen.csv")
+        if not os.path.exists(path):
+            return []
+        cutoff = datetime.now() - timedelta(hours=hours)
+        lines = self._read_lines_safe(path)
+        if len(lines) < 2:
+            return []
+        rows = []
+        for line in lines[-800:]:
+            line = line.strip()
+            if not line or line.lower().startswith("zeit"):
+                continue
+            try:
+                row = next(csv.reader([line]))
+                ts = datetime.fromisoformat(row[0])
+                if ts < cutoff:
+                    continue
+                outdoor_temp = float(row[8])  # Außentemperatur
+                ts_bin = ts - timedelta(minutes=ts.minute % bin_minutes, seconds=ts.second, microseconds=ts.microsecond)
+                rows.append((ts_bin, outdoor_temp))
+            except Exception:
+                continue
+        if not rows:
+            return []
+        # Aggregate by time bin
+        agg = {}
+        for ts, val in rows:
+            s, c = agg.get(ts, (0.0, 0))
+            agg[ts] = (s + val, c + 1)
+        out = [(ts, s / c) for ts, (s, c) in sorted(agg.items())]
+        # Strong smoothing with moving average (window of 5)
+        return self._smooth_series(out, window=5)
+    
+    def _smooth_series(self, series: list[tuple[datetime, float]], window: int = 5) -> list[tuple[datetime, float]]:
+        """Apply moving average smoothing to series."""
+        if len(series) < window:
+            return series
+        smoothed = []
+        half_window = window // 2
+        for i in range(len(series)):
+            start = max(0, i - half_window)
+            end = min(len(series), i + half_window + 1)
+            window_values = [val for _, val in series[start:end]]
+            smoothed_val = sum(window_values) / len(window_values)
+            smoothed.append((series[i][0], smoothed_val))
+        return smoothed
 
     def _load_puffer_series(self, hours: int = 24, bin_minutes: int = 15) -> list[tuple[datetime, float]]:
         path = self._data_path("Heizungstemperaturen.csv")
