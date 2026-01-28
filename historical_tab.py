@@ -14,13 +14,14 @@ from ui.styles import (
     COLOR_SUBTEXT,
     COLOR_PRIMARY,
     COLOR_INFO,
+    COLOR_WARNING,
     emoji,
 )
 from ui.components.card import Card
 
 
 class HistoricalTab:
-    """Tab für historische Daten: Temperaturen (letzte Woche)."""
+    """Historie der Heizung/Puffer/Außen + aktuelle Werte."""
 
     def __init__(self, root: tk.Tk, notebook: ttk.Notebook):
         self.root = root
@@ -31,21 +32,37 @@ class HistoricalTab:
         self.notebook.add(self.tab_frame, text=emoji("📈 Historie", "Historie"))
 
         self.tab_frame.grid_columnconfigure(0, weight=1)
-        self.tab_frame.grid_rowconfigure(0, weight=1)
+        self.tab_frame.grid_rowconfigure(0, weight=0)
+        self.tab_frame.grid_rowconfigure(1, weight=1)
 
-        # Temperaturen Card
-        self.temp_card = Card(self.tab_frame)
-        self.temp_card.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
-        self.temp_card.add_title("Temperaturen (letzte 7 Tage)", icon="🌡️")
-        self.temp_fig, self.temp_ax = plt.subplots(figsize=(6.8, 3.6), dpi=100)
-        self.temp_fig.patch.set_facecolor(COLOR_CARD)
-        self.temp_ax.set_facecolor(COLOR_CARD)
-        self.temp_canvas = FigureCanvasTkAgg(self.temp_fig, master=self.temp_card.content())
-        self.temp_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        # Card
+        self.card = Card(self.tab_frame)
+        self.card.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=12, pady=12)
+        self.card.add_title("Heizungsdaten (letzte 7 Tage)", icon="🌡️")
 
-        self._last_temp_key = None
+        # Current values row
+        stats = ttk.Frame(self.card.content())
+        stats.pack(fill=tk.X, pady=(0, 6))
+        self.var_top = tk.StringVar(value="Puffer oben: -- °C")
+        self.var_mid = tk.StringVar(value="Puffer mitte: -- °C")
+        self.var_bot = tk.StringVar(value="Puffer unten: -- °C")
+        self.var_boiler = tk.StringVar(value="Boiler: -- °C")
+        self.var_out = tk.StringVar(value="Außen: -- °C")
+        ttk.Label(stats, textvariable=self.var_top).pack(side=tk.LEFT, padx=6)
+        ttk.Label(stats, textvariable=self.var_mid).pack(side=tk.LEFT, padx=6)
+        ttk.Label(stats, textvariable=self.var_bot).pack(side=tk.LEFT, padx=6)
+        ttk.Label(stats, textvariable=self.var_boiler).pack(side=tk.LEFT, padx=6)
+        ttk.Label(stats, textvariable=self.var_out).pack(side=tk.LEFT, padx=6)
 
-        self._update_plots()
+        # Plot
+        self.fig, self.ax = plt.subplots(figsize=(7.2, 3.6), dpi=100)
+        self.fig.patch.set_facecolor(COLOR_CARD)
+        self.ax.set_facecolor(COLOR_CARD)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.card.content())
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        self._last_key = None
+        self._update_plot()
 
     def stop(self):
         self.alive = False
@@ -64,11 +81,13 @@ class HistoricalTab:
                     try:
                         ts = datetime.fromisoformat(row.get("Zeit", row.get("Zeitstempel", "")))
                         top = float(row.get("Pufferspeicher Oben", row.get("Puffer_Top", row.get("PufferTop", row.get("puffer_top", 0)))))
+                        mid = float(row.get("Pufferspeicher Mitte", row.get("Puffer_Mitte", row.get("PufferMid", row.get("puffer_mid", 0)))))
+                        bot = float(row.get("Pufferspeicher Unten", row.get("Puffer_Bottom", row.get("PufferBot", row.get("puffer_bot", 0)))))
                         boiler = float(row.get("Kesseltemperatur", row.get("Boiler", row.get("Kessel", 0))))
                         outside = float(row.get("Außentemperatur", row.get("Aussentemperatur", row.get("Aussen", row.get("out_temp", 0)))))
-                        all_rows.append((ts, top, boiler, outside))
+                        all_rows.append((ts, top, mid, bot, boiler, outside))
                         if ts >= cutoff:
-                            rows.append((ts, top, boiler, outside))
+                            rows.append((ts, top, mid, bot, boiler, outside))
                     except Exception:
                         continue
         except Exception:
@@ -76,52 +95,62 @@ class HistoricalTab:
         rows.sort(key=lambda r: r[0])
         if rows:
             return rows
-        # Fallback: wenn keine Daten im Zeitraum, zeige letzte 500 Einträge
         all_rows.sort(key=lambda r: r[0])
         return all_rows[-500:]
 
-    def _style_axes(self, ax):
-        ax.set_facecolor(COLOR_CARD)
+    def _style_axes(self):
+        self.ax.set_facecolor(COLOR_CARD)
         for spine in ["top", "right"]:
-            ax.spines[spine].set_visible(False)
+            self.ax.spines[spine].set_visible(False)
         for spine in ["left", "bottom"]:
-            ax.spines[spine].set_color(COLOR_BORDER)
-            ax.spines[spine].set_linewidth(1)
+            self.ax.spines[spine].set_color(COLOR_BORDER)
+            self.ax.spines[spine].set_linewidth(1)
 
-    def _update_plots(self):
+    def _update_plot(self):
         if not self.alive:
             return
 
-        # Temps
-        temp_rows = self._load_temps()
-        temp_key = (len(temp_rows), temp_rows[-1]) if temp_rows else ("empty",)
-        temp_changed = temp_key != self._last_temp_key
-        if temp_changed:
-            self._last_temp_key = temp_key
-            self.temp_ax.clear()
-            self._style_axes(self.temp_ax)
-            if temp_rows:
-                ts, top, boiler, outside = zip(*temp_rows)
-                self.temp_ax.plot(ts, top, color=COLOR_PRIMARY, label="Puffer Oben", linewidth=1.6)
-                self.temp_ax.plot(ts, boiler, color=COLOR_INFO, label="Boiler", linewidth=1.4)
-                self.temp_ax.plot(ts, outside, color=COLOR_SUBTEXT, label="Außen", linewidth=1.4)
-                self.temp_ax.set_ylabel("°C", color=COLOR_TEXT, fontsize=10)
-                self.temp_ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
-                self.temp_ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
-                self.temp_ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))
-                self.temp_ax.grid(True, color=COLOR_BORDER, alpha=0.3, linewidth=0.8)
-                self.temp_ax.legend(facecolor=COLOR_CARD, edgecolor=COLOR_BORDER, labelcolor=COLOR_TEXT, fontsize=8)
+        rows = self._load_temps()
+        key = (len(rows), rows[-1]) if rows else ("empty",)
+        if key != self._last_key:
+            self._last_key = key
+            self.ax.clear()
+            self._style_axes()
+
+            if rows:
+                ts, top, mid, bot, boiler, outside = zip(*rows)
+                self.ax.plot(ts, top, color=COLOR_PRIMARY, label="Puffer oben", linewidth=1.6)
+                self.ax.plot(ts, mid, color=COLOR_INFO, label="Puffer mitte", linewidth=1.2)
+                self.ax.plot(ts, bot, color=COLOR_SUBTEXT, label="Puffer unten", linewidth=1.2)
+                self.ax.plot(ts, boiler, color=COLOR_WARNING, label="Boiler", linewidth=1.4)
+                self.ax.plot(ts, outside, color=COLOR_TEXT, label="Außen", linewidth=1.2)
+                self.ax.set_ylabel("°C", color=COLOR_TEXT, fontsize=10)
+                self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
+                self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
+                self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))
+                self.ax.grid(True, color=COLOR_BORDER, alpha=0.3, linewidth=0.8)
+                self.ax.legend(facecolor=COLOR_CARD, edgecolor=COLOR_BORDER, labelcolor=COLOR_TEXT, fontsize=8)
+
+                # Current values
+                self.var_top.set(f"Puffer oben: {top[-1]:.1f} °C")
+                self.var_mid.set(f"Puffer mitte: {mid[-1]:.1f} °C")
+                self.var_bot.set(f"Puffer unten: {bot[-1]:.1f} °C")
+                self.var_boiler.set(f"Boiler: {boiler[-1]:.1f} °C")
+                self.var_out.set(f"Außen: {outside[-1]:.1f} °C")
             else:
-                self.temp_ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", transform=self.temp_ax.transAxes)
-                self.temp_ax.set_xticks([])
-                self.temp_ax.set_yticks([])
+                self.ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", transform=self.ax.transAxes)
+                self.ax.set_xticks([])
+                self.ax.set_yticks([])
+                self.var_top.set("Puffer oben: -- °C")
+                self.var_mid.set("Puffer mitte: -- °C")
+                self.var_bot.set("Puffer unten: -- °C")
+                self.var_boiler.set("Boiler: -- °C")
+                self.var_out.set("Außen: -- °C")
 
-        if temp_changed:
-            self.temp_fig.autofmt_xdate()
-            self.temp_canvas.draw_idle()
+            self.fig.autofmt_xdate()
+            self.canvas.draw_idle()
 
-        # Refresh alle 5 Minuten
-        self.root.after(5 * 60 * 1000, self._update_plots)
+        self.root.after(5 * 60 * 1000, self._update_plot)
 
     @staticmethod
     def _data_path(filename: str) -> str:

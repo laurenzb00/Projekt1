@@ -124,6 +124,12 @@ class EnergyFlowView(tk.Frame):
         right = (x1 - ux * size - uy * size * 0.6, y1 - uy * size + ux * size * 0.6)
         draw.polygon([left, right, (x1, y1)], fill=color)
 
+    def _draw_flow_label(self, draw: ImageDraw.ImageDraw, src, dst, text: str, dy: int = -10):
+        start, end = self._edge_points(src, dst, self.node_radius + 6)
+        mx = (start[0] + end[0]) / 2
+        my = (start[1] + end[1]) / 2 + dy
+        self._text_center(draw, text, mx, my, size=14)
+
     def _format_power(self, watts: float) -> str:
         if abs(watts) < 1000:
             return f"{watts:.0f} W"
@@ -155,27 +161,29 @@ class EnergyFlowView(tk.Frame):
         # PV -> Haus
         if pv_w > 0:
             self._draw_arrow(draw, pv, home, COLOR_SUCCESS, thickness(pv_w))
+            self._draw_flow_label(draw, pv, home, self._format_power(abs(pv_w)))
 
         # Grid Import/Export
         if grid_w > 0:
             self._draw_arrow(draw, grid, home, COLOR_INFO, thickness(grid_w))
+            self._draw_flow_label(draw, grid, home, self._format_power(abs(grid_w)))
         elif grid_w < 0:
             self._draw_arrow(draw, home, grid, COLOR_INFO, thickness(grid_w))
+            self._draw_flow_label(draw, home, grid, self._format_power(abs(grid_w)))
 
-        # Batterie Laden/Entladen (batt_w > 0 = laden)
+        # Batterie Laden/Entladen (batt_w > 0 = Entladen)
         if batt_w > 0:
-            self._draw_arrow(draw, home, bat, COLOR_WARNING, thickness(batt_w))
-        elif batt_w < 0:
             self._draw_arrow(draw, bat, home, COLOR_SUCCESS, thickness(batt_w))
+            self._draw_flow_label(draw, bat, home, self._format_power(abs(batt_w)), dy=8)
+        elif batt_w < 0:
+            self._draw_arrow(draw, home, bat, COLOR_WARNING, thickness(batt_w))
+            self._draw_flow_label(draw, home, bat, self._format_power(abs(batt_w)), dy=8)
 
         # SoC Ring um Batterie
         self._draw_soc_ring(draw, bat, soc)
 
         # Werte anzeigen mit Einheiten
-        self._text_center(draw, f"PV {self._format_power(pv_w)}", pv[0], pv[1] + 70, size=16)
-        self._text_center(draw, f"Netz {self._format_power(grid_w)}", grid[0], grid[1] + 70, size=16)
         self._text_center(draw, f"Haus {self._format_power(load_w)}", home[0], home[1] + 70, size=16)
-        self._text_center(draw, f"Batt {self._format_power(batt_w)}", bat[0], bat[1] + 70, size=16)
         self._text_center(draw, f"SoC {soc:.0f}%", bat[0], bat[1] + 100, size=16)
         return img
 
