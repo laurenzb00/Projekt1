@@ -55,12 +55,15 @@ class ErtragTab:
     def stop(self):
         self.alive = False
 
-    def _load_pv_daily(self, days: int = 365):
+    def _load_pv_monthly(self, months: int = 12):
+        """Lade und aggregiere PV-Ertrag nach Monaten."""
         path = self._data_path("ErtragHistory.csv")
         if not os.path.exists(path):
             return []
-        cutoff = datetime.now() - timedelta(days=days)
-        daily = {}
+        
+        cutoff = datetime.now() - timedelta(days=months * 30)
+        monthly = {}
+        
         try:
             with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
                 reader = csv.DictReader(f)
@@ -68,17 +71,21 @@ class ErtragTab:
                     try:
                         ts = datetime.fromisoformat(row.get("Zeitstempel", ""))
                         val = float(row.get("Ertrag_kWh", 0))
+                        
                         if ts < cutoff:
                             continue
-                        day = ts.date()
-                        daily[day] = daily.get(day, 0.0) + val
+                        
+                        # Aggregiere nach Monat (1. des Monats)
+                        month_key = ts.replace(day=1)
+                        month_str = month_key.strftime("%Y-%m")
+                        monthly[month_str] = monthly.get(month_str, 0.0) + val
                     except Exception:
                         continue
         except Exception:
             return []
 
-        out = [(datetime.combine(day, datetime.min.time()), total) for day, total in daily.items()]
-        out.sort(key=lambda r: r[0])
+        # Sortiere nach Monat und konvertiere zu Datetime
+        out = [(datetime.strptime(month_str, "%Y-%m"), total) for month_str, total in sorted(monthly.items())]
         return out
 
     def _style_axes(self):
