@@ -158,15 +158,15 @@ class EnergyFlowView(tk.Frame):
         self._draw_radial(draw, x, y, r, fill)
         draw.ellipse([x - r, y - r, x + r, y + r], fill=fill, outline=None, width=0)
         label = {
-            "pv": "◯",
-            "grid": "▲",
-            "home": "⊞",
-            "battery": "◻",
+            "pv": "🔆",
+            "grid": "⚡",
+            "home": "🏠",
+            "battery": "🔋",
         }[name]
         if label:
-            # Move battery symbol down to avoid SoC overlap
-            symbol_y = y - 8 if name == "battery" else y
-            self._text_center(draw, label, x, symbol_y, size=24, fontweight="bold", outline=False)
+            # Move battery emoji higher to avoid SoC overlap
+            emoji_y = y - 12 if name == "battery" else y
+            self._text_center(draw, label, x, emoji_y, size=24, fontweight="normal", outline=False)
 
     def _text_center(self, draw: ImageDraw.ImageDraw, text: str, x: int, y: int, size: int, color: str = COLOR_TEXT, fontweight: str = "normal", outline: bool = False):
         # Use emoji font for emoji characters, otherwise use bold font
