@@ -124,11 +124,36 @@ class EnergyFlowView(tk.Frame):
         right = (x1 - ux * size - uy * size * 0.6, y1 - uy * size + ux * size * 0.6)
         draw.polygon([left, right, (x1, y1)], fill=color)
 
-    def _draw_flow_label(self, draw: ImageDraw.ImageDraw, src, dst, text: str, dy: int = -10):
+    def _draw_flow_label(self, base_img: Image.Image, src, dst, text: str, offset: int = 10, along: int = 0, color: str = COLOR_TEXT):
         start, end = self._edge_points(src, dst, self.node_radius + 6)
         mx = (start[0] + end[0]) / 2
-        my = (start[1] + end[1]) / 2 + dy
-        self._text_center(draw, text, mx, my, size=14)
+        my = (start[1] + end[1]) / 2
+
+        # Perpendicular offset away from the arrow line
+        vx, vy = end[0] - start[0], end[1] - start[1]
+        length = max((vx ** 2 + vy ** 2) ** 0.5, 1e-3)
+        nx, ny = -vy / length, vx / length
+        ux, uy = vx / length, vy / length
+        px = mx + nx * offset + ux * along
+        py = my + ny * offset + uy * along
+
+        # Render rotated text along arrow direction
+        angle = -1 * (180 / 3.14159265) * (0 if length == 0 else __import__("math").atan2(vy, vx))
+        font = self._font_small if self._font_small else ImageFont.load_default()
+
+        dummy = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+        ddraw = ImageDraw.Draw(dummy)
+        bbox = ddraw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+
+        txt_img = Image.new("RGBA", (tw + 6, th + 6), (0, 0, 0, 0))
+        tdraw = ImageDraw.Draw(txt_img)
+        tdraw.text((3, 3), text, font=font, fill=color)
+        rotated = txt_img.rotate(angle, resample=Image.BICUBIC, expand=True)
+
+        rx, ry = rotated.size
+        base_img.paste(rotated, (int(px - rx / 2), int(py - ry / 2)), rotated)
 
     def _format_power(self, watts: float) -> str:
         if abs(watts) < 1000:
@@ -161,29 +186,31 @@ class EnergyFlowView(tk.Frame):
         # PV -> Haus
         if pv_w > 0:
             self._draw_arrow(draw, pv, home, COLOR_SUCCESS, thickness(pv_w))
-            self._draw_flow_label(draw, pv, home, self._format_power(abs(pv_w)))
+            self._draw_flow_label(img, pv, home, self._format_power(abs(pv_w)), offset=10, along=-8, color=COLOR_SUCCESS)
 
         # Grid Import/Export
         if grid_w > 0:
             self._draw_arrow(draw, grid, home, COLOR_INFO, thickness(grid_w))
-            self._draw_flow_label(draw, grid, home, self._format_power(abs(grid_w)))
+            self._draw_flow_label(img, grid, home, self._format_power(abs(grid_w)), offset=10, along=8, color=COLOR_INFO)
         elif grid_w < 0:
             self._draw_arrow(draw, home, grid, COLOR_INFO, thickness(grid_w))
-            self._draw_flow_label(draw, home, grid, self._format_power(abs(grid_w)))
+            self._draw_flow_label(img, home, grid, self._format_power(abs(grid_w)), offset=10, along=8, color=COLOR_INFO)
 
         # Batterie Laden/Entladen (batt_w > 0 = Entladen)
         if batt_w > 0:
-            self._draw_arrow(draw, bat, home, COLOR_SUCCESS, thickness(batt_w))
-            self._draw_flow_label(draw, bat, home, self._format_power(abs(batt_w)), dy=8)
+            # Entladen: Batterie -> Haus (rot)
+            self._draw_arrow(draw, bat, home, COLOR_DANGER, thickness(batt_w))
+            self._draw_flow_label(img, bat, home, self._format_power(abs(batt_w)), offset=12, along=-6, color=COLOR_DANGER)
         elif batt_w < 0:
-            self._draw_arrow(draw, home, bat, COLOR_WARNING, thickness(batt_w))
-            self._draw_flow_label(draw, home, bat, self._format_power(abs(batt_w)), dy=8)
+            # Laden: Haus -> Batterie (grün)
+            self._draw_arrow(draw, home, bat, COLOR_SUCCESS, thickness(batt_w))
+            self._draw_flow_label(img, home, bat, self._format_power(abs(batt_w)), offset=12, along=-6, color=COLOR_SUCCESS)
 
         # SoC Ring um Batterie
         self._draw_soc_ring(draw, bat, soc)
 
         # Werte anzeigen mit Einheiten
-        self._text_center(draw, f"Haus {self._format_power(load_w)}", home[0], home[1] + 70, size=16)
+        self._text_center(draw, f"Haus {self._format_power(load_w)}", home[0], home[1] + 70, size=16, color=COLOR_PRIMARY)
         self._text_center(draw, f"SoC {soc:.0f}%", bat[0], bat[1] + 100, size=16)
         return img
 
