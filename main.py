@@ -2,10 +2,40 @@ import threading
 import logging
 import time
 import tkinter as tk
+import subprocess
+import sys
+import platform
 
 import BMKDATEN
 import Wechselrichter
 from ui.app import MainApp
+
+# --- Ensure Emoji Font is installed ---
+def ensure_emoji_font():
+    """Install emoji font if not available (for Raspberry Pi compatibility)."""
+    system = platform.system()
+    try:
+        if system == "Linux":
+            # Try to install fonts-noto-color-emoji on Linux/Raspberry Pi
+            try:
+                subprocess.run(["dpkg", "-l"], capture_output=True, check=True, timeout=5)
+                # apt is available, check if emoji font is installed
+                result = subprocess.run(
+                    ["dpkg", "-l", "|", "grep", "fonts-noto-color-emoji"],
+                    shell=True, capture_output=True, text=True, timeout=5
+                )
+                if result.returncode != 0:
+                    print("[EMOJI] Installing fonts-noto-color-emoji...")
+                    subprocess.run(
+                        ["sudo", "apt-get", "install", "-y", "fonts-noto-color-emoji"],
+                        timeout=60, capture_output=True
+                    )
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"[EMOJI] Could not ensure emoji font: {e}")
+
+ensure_emoji_font()
 
 # --- Logging ---
 logging.basicConfig(

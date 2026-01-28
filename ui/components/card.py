@@ -94,7 +94,7 @@ class Card(tk.Frame):
         tk.Label(
             header,
             text=text,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 14, "bold"),
             bg=COLOR_CARD,
             fg=COLOR_TITLE,
         ).pack(side=tk.LEFT)

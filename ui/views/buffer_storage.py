@@ -223,9 +223,9 @@ class BufferStorageView(tk.Frame):
         for t in self.val_texts:
             t.remove()
         self.val_texts = [
-            self.ax.text(0.04, 0.85, f"{top:.1f}°C", transform=self.ax.transAxes, color=c_top, fontsize=11, va="center", ha="right", weight="bold"),
-            self.ax.text(0.04, 0.50, f"{mid:.1f}°C", transform=self.ax.transAxes, color=c_mid, fontsize=12, va="center", ha="right", weight="bold"),
-            self.ax.text(0.04, 0.15, f"{bottom:.1f}°C", transform=self.ax.transAxes, color=c_bot, fontsize=11, va="center", ha="right", weight="bold"),
+            self.ax.text(0.04, 0.85, f"{top:.1f}°C", transform=self.ax.transAxes, color=c_top, fontsize=9, va="center", ha="right", weight="bold"),
+            self.ax.text(0.04, 0.50, f"{mid:.1f}°C", transform=self.ax.transAxes, color=c_mid, fontsize=10, va="center", ha="right", weight="bold"),
+            self.ax.text(0.04, 0.15, f"{bottom:.1f}°C", transform=self.ax.transAxes, color=c_bot, fontsize=9, va="center", ha="right", weight="bold"),
         ]
 
         if kessel_c is not None:
@@ -238,7 +238,7 @@ class BufferStorageView(tk.Frame):
                 for outline_text in self.boiler_temp_outline:
                     outline_text.remove()
             self.boiler_temp_text = self.ax.text(0.69, 0.30, f"{kessel_c:.1f}°C", 
-                transform=self.ax.transAxes, color="#FFFFFF", fontsize=10, 
+                transform=self.ax.transAxes, color="#FFFFFF", fontsize=8, 
                 va="center", ha="center", weight="bold", zorder=100)
         
         self._update_sparkline()
