@@ -100,7 +100,7 @@ class ErtragTab:
         if not self.alive:
             return
 
-        data = self._load_pv_monthly(12)
+        data = self._load_pv_daily(365)
         key = (len(data), data[-1]) if data else ("empty",)
         if key == self._last_key:
             self.root.after(5 * 60 * 1000, self._update_plot)
@@ -112,13 +112,13 @@ class ErtragTab:
 
         if data:
             ts, vals = zip(*data)
-            self.ax.plot(ts, vals, color=COLOR_PRIMARY, linewidth=2.0)
+            self.ax.plot(ts, vals, color=COLOR_PRIMARY, linewidth=2.0, marker='o', markersize=4)
             self.ax.fill_between(ts, vals, color=COLOR_PRIMARY, alpha=0.12)
             self.ax.set_ylabel("Ertrag (kWh)", color=COLOR_TEXT, fontsize=10)
             self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
             self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
-            self.ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=False))
-            self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))
+            self.ax.xaxis.set_major_locator(mdates.MonthLocator())
+            self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%b"))
             self.ax.grid(True, color=COLOR_BORDER, alpha=0.3, linewidth=0.8)
 
             total = sum(vals)
