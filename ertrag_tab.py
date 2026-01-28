@@ -55,6 +55,32 @@ class ErtragTab:
     def stop(self):
         self.alive = False
 
+    def _load_pv_daily(self, days: int = 365):
+        path = self._data_path("ErtragHistory.csv")
+        if not os.path.exists(path):
+            return []
+        cutoff = datetime.now() - timedelta(days=days)
+        daily = {}
+        try:
+            with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    try:
+                        ts = datetime.fromisoformat(row.get("Zeitstempel", ""))
+                        val = float(row.get("Ertrag_kWh", 0))
+                        if ts < cutoff:
+                            continue
+                        day = ts.date()
+                        daily[day] = daily.get(day, 0.0) + val
+                    except Exception:
+                        continue
+        except Exception:
+            return []
+
+        out = [(datetime.combine(day, datetime.min.time()), total) for day, total in daily.items()]
+        out.sort(key=lambda r: r[0])
+        return out
+
     def _load_pv_monthly(self, months: int = 12):
         """Lade und aggregiere PV-Ertrag nach Monaten."""
         path = self._data_path("ErtragHistory.csv")
