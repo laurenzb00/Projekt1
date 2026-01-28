@@ -25,51 +25,57 @@ def load_data():
     return fronius, ertrag
 
 
-def reconstruct_ertrag_from_fronius(fronius_df: pd.DataFrame, resample_hours: float = 1.0) -> pd.DataFrame:
+def reconstruct_ertrag_from_fronius(fronius_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Rekonstruiere ErtragHistory aus FroniusDaten durch zeitliche Integration.
+    Rekonstruiere ErtragHistory aus FroniusDaten durch tägliche Integration.
+    
+    Methode:
+    - Gruppiere FroniusDaten nach Tag
+    - Berechne PV-Energie pro Tag durch Trapez-Integration
+    - Energy [kWh] = ∑(kW × Δt_hours) für alle Messwerte an diesem Tag
     
     Args:
-        fronius_df: FroniusDaten DataFrame
-        resample_hours: Intervall für Ertrag-Aggregation (1.0 = stündlich)
+        fronius_df: FroniusDaten DataFrame mit Spalten: Zeitstempel, PV-Leistung (kW)
     
     Returns:
-        Reconstructed ErtragHistory DataFrame
+        ErtragHistory DataFrame mit täglichen Werten
     """
     if fronius_df.empty:
         return pd.DataFrame(columns=["Zeitstempel", "Ertrag_kWh"])
     
-    fronius_df = fronius_df.copy().sort_values("Zeitstempel")
+    fronius_df = fronius_df.copy().sort_values("Zeitstempel").reset_index(drop=True)
     
-    # Erstelle stundliche Bins
-    start = fronius_df["Zeitstempel"].min()
-    end = fronius_df["Zeitstempel"].max()
-    
-    bin_edges = pd.date_range(start, end, freq=f"{int(resample_hours)}H")
+    # Extrahiere Datum (ohne Zeit)
+    fronius_df["Date"] = fronius_df["Zeitstempel"].dt.date
     
     ertrag_records = []
     
-    for i in range(len(bin_edges) - 1):
-        bin_start = bin_edges[i]
-        bin_end = bin_edges[i + 1]
+    # Iteriere über jeden Tag
+    for date, day_group in fronius_df.groupby("Date"):
+        day_group = day_group.sort_values("Zeitstempel").reset_index(drop=True)
         
-        # Daten im Bin
-        mask = (fronius_df["Zeitstempel"] >= bin_start) & (fronius_df["Zeitstempel"] < bin_end)
-        segment = fronius_df[mask].sort_values("Zeitstempel")
-        
-        if segment.empty:
+        if day_group.empty:
             continue
         
-        # Integriere PV-Leistung
-        segment["TimeDiff"] = segment["Zeitstempel"].diff().dt.total_seconds() / 3600  # in Stunden
-        segment.loc[segment.index[0], "TimeDiff"] = 0  # Erste Differenz = 0
+        # Berechne Zeitdifferenzen zwischen Messwerten (in Stunden)
+        time_diffs = day_group["Zeitstempel"].diff()
+        time_diffs_hours = time_diffs.dt.total_seconds() / 3600
+        time_diffs_hours.iloc[0] = 0  # Erste Differenz = 0
         
-        segment["Energy"] = segment["PV-Leistung (kW)"] * segment["TimeDiff"]
-        energy_kwh = segment["Energy"].sum()
+        # Berechne Energie: kW × Δt_h = kWh
+        # Nutze Trapez-Integration für bessere Genauigkeit
+        energy_kwh = 0.0
+        for i in range(len(day_group) - 1):
+            p1 = day_group["PV-Leistung (kW)"].iloc[i]
+            p2 = day_group["PV-Leistung (kW)"].iloc[i + 1]
+            dt = (day_group["Zeitstempel"].iloc[i + 1] - day_group["Zeitstempel"].iloc[i]).total_seconds() / 3600
+            
+            # Trapez-Regel: E = (P1 + P2) / 2 × Δt
+            energy_kwh += (p1 + p2) / 2.0 * dt
         
         if energy_kwh > 0:
             ertrag_records.append({
-                "Zeitstempel": bin_end,
+                "Zeitstempel": pd.Timestamp(datetime.combine(date, datetime.min.time())),
                 "Ertrag_kWh": energy_kwh
             })
     
@@ -99,7 +105,7 @@ def validate_and_repair_ertrag():
     
     # Rekonstruiere aus Fronius
     print("\n→ Rekonstruiere ErtragHistory aus FroniusDaten...")
-    ertrag_reconstructed = reconstruct_ertrag_from_fronius(fronius, resample_hours=1.0)
+    ertrag_reconstructed = reconstruct_ertrag_from_fronius(fronius)
     
     print(f"✓ Rekonstruiert: {len(ertrag_reconstructed)} Einträge")
     
