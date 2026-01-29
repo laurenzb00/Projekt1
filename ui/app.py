@@ -41,6 +41,27 @@ def _read_lines_safe(path: str) -> list[str]:
             return f.readlines()
     except Exception:
         return []
+
+
+def _read_last_data_line(path: str, max_bytes: int = 65536) -> str | None:
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - max_bytes))
+            chunk = f.read().decode("utf-8-sig", errors="replace")
+        lines = chunk.splitlines()
+    except Exception:
+        lines = _read_lines_safe(path)
+
+    for line in reversed(lines):
+        line = line.strip()
+        if not line:
+            continue
+        if line.lower().startswith("zeit"):
+            continue
+        return line
+    return None
 try:
     from historical_tab import HistoricalTab
 except ImportError:
@@ -630,11 +651,9 @@ class MainApp:
         # Fronius Daten (letzter Eintrag)
         if os.path.exists(fronius_csv):
             try:
-                lines = _read_lines_safe(fronius_csv)
-                if len(lines) > 1:
-                    last_line = lines[-1].strip()
-                    reader = csv.reader([last_line])
-                    row = next(reader)
+                last_line = _read_last_data_line(fronius_csv)
+                if last_line:
+                    row = next(csv.reader([last_line]))
                     if len(row) >= 6:
                         pv_kw = float(row[1])
                         grid_kw = float(row[2])
@@ -659,11 +678,9 @@ class MainApp:
         # BMK Daten (letzter Eintrag)
         if os.path.exists(bmk_csv):
             try:
-                lines = _read_lines_safe(bmk_csv)
-                if len(lines) > 1:
-                    last_line = lines[-1].strip()
-                    reader = csv.reader([last_line])
-                    row = next(reader)
+                last_line = _read_last_data_line(bmk_csv)
+                if last_line:
+                    row = next(csv.reader([last_line]))
                     if len(row) >= 7:
                         self._last_data["out_temp"] = float(row[2])
                         self._last_data["puffer_top"] = float(row[3])
