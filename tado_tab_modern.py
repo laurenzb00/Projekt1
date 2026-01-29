@@ -268,7 +268,9 @@ class TadoTab:
                     self._state_logged = True
                 
                 # Temperatur
-                current = self._get_nested(state, "sensorDataPoints", "insideTemperature", "celsius")
+                current = state.get("current_temp")
+                if current is None:
+                    current = self._get_nested(state, "sensorDataPoints", "insideTemperature", "celsius")
                 if current is None:
                     current = self._get_nested(state, "sensorDataPoints", "insideTemperature", "value")
                 if current is None:
@@ -280,7 +282,9 @@ class TadoTab:
                 self._ui_set(self.var_temp_ist, f"{current:.1f} °C")
                 
                 # Feuchtigkeit
-                humidity = self._get_nested(state, "sensorDataPoints", "humidity", "percentage")
+                humidity = state.get("current_humidity")
+                if humidity is None:
+                    humidity = self._get_nested(state, "sensorDataPoints", "humidity", "percentage")
                 if humidity is None:
                     humidity = self._get_nested(state, "sensorDataPoints", "humidity", "value")
                 if humidity is None:
@@ -288,29 +292,31 @@ class TadoTab:
                 self._ui_set(self.var_humidity, f"{humidity:.0f} %")
                 
                 # Zieltemperatur
+                target = state.get("target_temp")
                 overlay = state.get('overlay')
                 setting = (overlay or {}).get("setting") or state.get("setting", {})
-                if setting:
+                if target is None and setting:
                     target = self._get_nested(setting, "temperature", "celsius")
-                    if target is None:
-                        target = 20
+                if target is None and setting:
+                    target = 20
+
+                if target is not None:
                     self._ui_set(self.var_temp_soll, f"{target:.0f} °C")
                     
-                    power = setting.get('power', 'OFF')
-                    if power == 'ON':
-                        power_pct = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
-                        if power_pct is None:
-                            power_pct = 75
-                        self.var_power.set(int(power_pct))
-                        self._ui_set(self.var_status, "Heizung aktiv")
-                    else:
-                        self.var_power.set(0)
-                        self._ui_set(self.var_status, "Heizung aus")
-                else:
-                    power_pct = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
+                power = state.get("power") or setting.get('power', 'OFF')
+                if power == 'ON':
+                    power_pct = state.get("heating_power_percentage")
                     if power_pct is None:
-                        power_pct = 0
+                        power_pct = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
+                    if power_pct is None:
+                        power_pct = 75
                     self.var_power.set(int(power_pct))
+                    self._ui_set(self.var_status, "Heizung aktiv")
+                else:
+                    self.var_power.set(0)
+                    self._ui_set(self.var_status, "Heizung aus")
+                if target is None:
+                    self._ui_set(self.var_temp_soll, "-- °C")
                     self._ui_set(self.var_status, "Automatik")
                     
             except Exception as e:

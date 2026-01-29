@@ -183,28 +183,33 @@ class TadoTab:
                     self._state_logged = True
                 
                 # Daten parsen
-                temp = self._get_nested(state, "sensorDataPoints", "insideTemperature", "celsius")
+                temp = state.get("current_temp")
+                if temp is None:
+                    temp = self._get_nested(state, "sensorDataPoints", "insideTemperature", "celsius")
                 if temp is None:
                     temp = self._get_nested(state, "sensorDataPoints", "insideTemperature", "value")
                 if temp is None:
                     temp = 0.0
 
-                hum = self._get_nested(state, "sensorDataPoints", "humidity", "percentage")
+                hum = state.get("current_humidity")
+                if hum is None:
+                    hum = self._get_nested(state, "sensorDataPoints", "humidity", "percentage")
                 if hum is None:
                     hum = self._get_nested(state, "sensorDataPoints", "humidity", "value")
                 if hum is None:
                     hum = 0.0
 
-                power = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
+                power = state.get("heating_power_percentage")
+                if power is None:
+                    power = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
                 if power is None:
                     power = 0.0
 
                 setting = state.get("setting", {})
-                if setting.get("power") == "ON":
+                target = state.get("target_temp")
+                if target is None and setting.get("power") == "ON":
                     target = self._get_nested(setting, "temperature", "celsius")
-                    if target is None:
-                        target = 0
-                else:
+                if target is None:
                     target = 0
                 
                 # GUI Update
