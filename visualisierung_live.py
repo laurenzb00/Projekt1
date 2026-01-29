@@ -78,6 +78,116 @@ class LivePlotApp:
         self.setup_dashboard_tab()
         self.setup_plot_tabs()
 
+        # Neuer Status-Tab
+        self.status_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.status_tab, text="Status")
+        self.setup_status_tab()
+    def setup_status_tab(self):
+        # Hauptcontainer für Status-Tab
+        frame = tk.Frame(self.status_tab, bg="#181e2a")
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        # Statusfelder oben
+        self.status_brenner = StringVar(value="--")
+        self.status_betriebsmodus = StringVar(value="--")
+        self.status_puffer = StringVar(value="--")
+        self.status_ww = StringVar(value="--")
+        self.status_kessel = StringVar(value="--")
+        self.status_empfehlung = StringVar(value="--")
+        self.status_letzte_aktiv = StringVar(value="--")
+        self.status_betriebsstunden = StringVar(value="--")
+
+        # Ampel/Statusfelder
+        row = 0
+        tk.Label(frame, text="Brenner", font=("Segoe UI", 16), fg="white", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=8)
+        tk.Label(frame, textvariable=self.status_brenner, font=("Segoe UI", 16, "bold"), fg="#f59e0b", bg="#181e2a").grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Betriebsmodus", font=("Segoe UI", 14), fg="white", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_betriebsmodus, font=("Segoe UI", 14), fg="#38bdf8", bg="#181e2a").grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Pufferladung", font=("Segoe UI", 14), fg="white", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_puffer, font=("Segoe UI", 14), fg="#10b981", bg="#181e2a").grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Warmwasser", font=("Segoe UI", 14), fg="white", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_ww, font=("Segoe UI", 14), fg="#f472b6", bg="#181e2a").grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Kesseltemp.", font=("Segoe UI", 14), fg="white", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_kessel, font=("Segoe UI", 14), fg="#fbbf24", bg="#181e2a").grid(row=row, column=1, sticky="w")
+
+        # Handlungsempfehlung
+        row += 1
+        tk.Label(frame, text="Empfehlung", font=("Segoe UI", 16, "bold"), fg="#f87171", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=16)
+        tk.Label(frame, textvariable=self.status_empfehlung, font=("Segoe UI", 16, "bold"), fg="#f87171", bg="#181e2a").grid(row=row, column=1, sticky="w")
+
+        # Letzte Aktivität und Betriebsstunden
+        row += 1
+        tk.Label(frame, text="Letzte Aktivität", font=("Segoe UI", 12), fg="#a3a3a3", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=8)
+        tk.Label(frame, textvariable=self.status_letzte_aktiv, font=("Segoe UI", 12), fg="#a3a3a3", bg="#181e2a").grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Betriebsstunden", font=("Segoe UI", 12), fg="#a3a3a3", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_betriebsstunden, font=("Segoe UI", 12), fg="#a3a3a3", bg="#181e2a").grid(row=row, column=1, sticky="w")
+
+        # Initiales Update
+        self.update_status_tab()
+
+    def update_status_tab(self):
+        # Lese aktuelle Werte aus CSV (letzte Zeile)
+        df = read_csv_tail_fixed(BMK_CSV, 1)
+        if df is None or df.empty:
+            self.status_brenner.set("--")
+            self.status_betriebsmodus.set("--")
+            self.status_puffer.set("--")
+            self.status_ww.set("--")
+            self.status_kessel.set("--")
+            self.status_empfehlung.set("Keine Daten")
+            self.status_letzte_aktiv.set("--")
+            self.status_betriebsstunden.set("--")
+            return
+        row = df.iloc[-1]
+        # Dummy-Logik für Statusanzeige (später anpassen)
+        # Brenner-Status: (ersetzt durch echten Wert, falls vorhanden)
+        self.status_brenner.set(str(row.get("Brenner_Status", "--")))
+        self.status_betriebsmodus.set(str(row.get("Betriebsmodus", "--")))
+        puffer = row.get("Pufferladung", None)
+        if puffer is not None:
+            try:
+                puffer = float(puffer)
+                if puffer < 30:
+                    puffer_str = f"{puffer:.0f}% (Niedrig)"
+                elif puffer < 70:
+                    puffer_str = f"{puffer:.0f}% (Mittel)"
+                else:
+                    puffer_str = f"{puffer:.0f}% (Hoch)"
+            except:
+                puffer_str = str(puffer)
+        else:
+            puffer_str = "--"
+        self.status_puffer.set(puffer_str)
+        self.status_ww.set(f"{row.get('Warmwassertemperatur', '--')} °C")
+        self.status_kessel.set(f"{row.get('Kesseltemperatur', '--')} °C")
+        # Handlungsempfehlung
+        try:
+            kessel = float(row.get("Kesseltemperatur", 0))
+            puffer = float(row.get("Pufferladung", 0))
+            brenner = str(row.get("Brenner_Status", "")).upper()
+            if brenner == "AUS" and (kessel < 60 or puffer < 30):
+                empfehlung = "Nachlegen!"
+            elif brenner == "HEIZEN":
+                empfehlung = "Kessel läuft."
+            elif puffer < 30:
+                empfehlung = "Puffer fast leer."
+            else:
+                empfehlung = "Alles ok."
+        except:
+            empfehlung = "--"
+        self.status_empfehlung.set(empfehlung)
+        # Letzte Aktivität (Dummy: Zeitstempel)
+        self.status_letzte_aktiv.set(str(row.get("Zeitstempel", "--")))
+        self.status_betriebsstunden.set(str(row.get("Betriebsstunden", "--")))
+
+        # Automatisches Update alle 60s
+        self.root.after(60000, self.update_status_tab)
+
         self.setup_bottom_bar()
         self.update_plots()
         self.schedule_ertrag_updates()
