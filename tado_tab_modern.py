@@ -293,7 +293,9 @@ class TadoTab:
                     self.var_power.set(int(power_pct))
                     self._ui_set(self.var_status, "Automatik")
                     
-            except Exception:
-                pass
+            except Exception as e:
+                if not getattr(self, "_state_error_logged", False):
+                    print(f"[TADO] zone_state error: {type(e).__name__}: {e}")
+                    self._state_error_logged = True
             
             time.sleep(30)  # Update alle 30 Sekunden
