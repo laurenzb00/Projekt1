@@ -9,6 +9,7 @@ import json
 import logging
 import time
 import threading
+import os
 from tkinter import ttk
 from ui.styles import (
     init_style,
@@ -87,6 +88,7 @@ class MainApp:
 
     def __init__(self, root: tk.Tk):
         self._start_time = time.time()
+        self._debug_log = os.getenv("DASH_DEBUG", "0") == "1"
         self._configure_debounce_id = None
         self._last_size = (0, 0)
         self._resize_enabled = False
@@ -122,7 +124,8 @@ class MainApp:
         init_style(self.root)
         self._ensure_emoji_font()
         
-        print(f"[DEBUG] Screen: {sw}x{sh}, Target: {target_w}x{target_h}")
+        if self._debug_log:
+            print(f"[DEBUG] Screen: {sw}x{sh}, Target: {target_w}x{target_h}")
 
         # Grid Setup: Minimize fixed row sizes to maximize content area
         self._base_header_h = 52
@@ -185,7 +188,8 @@ class MainApp:
         self.status.grid(row=2, column=0, sticky="nsew", padx=8, pady=(2, 4))
         
         # [DEBUG] Instrumentation: Log when UI is fully built
-        print(f"[LAYOUT] UI built at {time.time() - self._start_time:.3f}s")
+        if self._debug_log:
+            print(f"[LAYOUT] UI built at {time.time() - self._start_time:.3f}s")
         
         # LAYOUT FIX: Let Tkinter complete ALL geometry calculations before anything else
         # This prevents the Configure cascade that causes layout jumping
@@ -196,14 +200,16 @@ class MainApp:
         
         w = self.root.winfo_width()
         h = self.root.winfo_height()
-        print(f"[LAYOUT] Size after 3x update_idletasks: {w}x{h}")
+        if self._debug_log:
+            print(f"[LAYOUT] Size after 3x update_idletasks: {w}x{h}")
         
         # NOW get the actual canvas sizes and initialize views with correct dimensions
         try:
             energy_w = max(200, self.energy_view.canvas.winfo_width())
             energy_h = max(200, self.energy_view.canvas.winfo_height())
             buffer_h = max(160, self.buffer_view.winfo_height())
-            print(f"[LAYOUT] Final widget sizes - Energy: {energy_w}x{energy_h}, Buffer: {buffer_h}")
+            if self._debug_log:
+                print(f"[LAYOUT] Final widget sizes - Energy: {energy_w}x{energy_h}, Buffer: {buffer_h}")
             
             # Force views to initialize with these final sizes
             self.energy_view.width = energy_w
@@ -215,11 +221,13 @@ class MainApp:
             self.buffer_view.height = buffer_h
             self.buffer_view.configure(height=buffer_h)
         except Exception as e:
-            print(f"[LAYOUT] Error setting initial sizes: {e}")
+            if self._debug_log:
+                print(f"[LAYOUT] Error setting initial sizes: {e}")
         
         # Mark layout as stable immediately (no delay needed now)
         self._layout_stable = True
-        print(f"[LAYOUT] Marked stable at {time.time() - self._start_time:.3f}s")
+        if self._debug_log:
+            print(f"[LAYOUT] Marked stable at {time.time() - self._start_time:.3f}s")
 
         # Add other tabs
         self._add_other_tabs()
@@ -246,9 +254,11 @@ class MainApp:
             self.spotify_tab = SpotifyTab(self.root, self.notebook)
         if TadoTab:
             self.tado_tab = TadoTab(self.root, self.notebook)
-            print("[TADO] Tab added")
+            if self._debug_log:
+                print(f"[TADO] Tab added")
         else:
-            print("[TADO] Tab not available (import failed)")
+            if self._debug_log:
+                print(f"[TADO] Tab not available (import failed)")
         if HueTab:
             self.hue_tab = HueTab(self.root, self.notebook)
         if SystemTab:
@@ -352,7 +362,8 @@ class MainApp:
     def _mark_layout_stable(self):
         """Mark layout as stable after initial settling period."""
         elapsed = time.time() - self._start_time
-        print(f"[LAYOUT] Marked stable at {elapsed:.3f}s")
+        if self._debug_log:
+            print(f"[LAYOUT] Marked stable at {elapsed:.3f}s")
         self._layout_stable = True
         
     def _on_root_configure(self, event):
@@ -396,7 +407,8 @@ class MainApp:
     def _handle_resize(self, w: int, h: int):
         """Handle debounced resize events - only if size actually changed significantly."""
         elapsed = time.time() - self._start_time
-        print(f"[RESIZE] Handling resize at {elapsed:.3f}s: {w}x{h}")
+        if self._debug_log:
+            print(f"[RESIZE] Handling resize at {elapsed:.3f}s: {w}x{h}")
         
         try:
             header_h = max(1, self.header.winfo_height())
@@ -407,13 +419,15 @@ class MainApp:
             
             # Only resize if change is significant (>10px)
             if hasattr(self, '_last_view_h') and abs(view_h - self._last_view_h) < 10:
-                print(f"[RESIZE] Skipping - change too small")
+                if self._debug_log:
+                    print(f"[RESIZE] Skipping - change too small")
                 return
             
             self._last_view_h = view_h
             
             if hasattr(self, "energy_view"):
-                print(f"[RESIZE] Resizing energy_view to height {view_h}")
+                if self._debug_log:
+                    print(f"[RESIZE] Resizing energy_view to height {view_h}")
                 # DON'T use full resize - just update canvas size
                 current_energy_h = self.energy_view.canvas.winfo_height()
                 if abs(current_energy_h - view_h) >= 2:
@@ -421,7 +435,8 @@ class MainApp:
                     self.energy_view.height = view_h
                 
             if hasattr(self, "buffer_view"):
-                print(f"[RESIZE] Resizing buffer_view to height {view_h}")
+                if self._debug_log:
+                    print(f"[RESIZE] Resizing buffer_view to height {view_h}")
                 # DON'T recreate figure - just resize container
                 current_buffer_h = self.buffer_view.winfo_height()
                 if abs(current_buffer_h - view_h) >= 2:
@@ -430,7 +445,8 @@ class MainApp:
             self._resize_enabled = False
                 
         except Exception as e:
-            print(f"[RESIZE] Exception: {e}")
+            if self._debug_log:
+                print(f"[RESIZE] Exception: {e}")
             self._resize_enabled = False
 
     def _apply_runtime_scaling(self):

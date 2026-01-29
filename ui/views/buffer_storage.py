@@ -24,6 +24,8 @@ from ui.styles import (
 )
 
 
+DEBUG_LOG = os.getenv("DASH_DEBUG", "0") == "1"
+
 class BufferStorageView(tk.Frame):
     """Zylindrischer Pufferspeicher mit geclippter Heatmap + Sparkline."""
 
@@ -62,7 +64,8 @@ class BufferStorageView(tk.Frame):
     def resize(self, height: int):
         """FIXED: Don't recreate figure on resize - just update container height."""
         elapsed = time.time() - self._start_time
-        print(f"[BUFFER] resize() called at {elapsed:.3f}s with height={height}")
+        if DEBUG_LOG:
+            print(f"[BUFFER] resize() called at {elapsed:.3f}s with height={height}")
         
         old_height = self.height
         self.height = max(160, int(height))
@@ -70,7 +73,8 @@ class BufferStorageView(tk.Frame):
         # Only reconfigure container height, don't recreate matplotlib figure
         self.configure(height=self.height)
         # Log but DON'T recreate the entire plot
-        print(f"[BUFFER] Height changed from {old_height} to {self.height}, NOT recreating figure")
+        if DEBUG_LOG:
+            print(f"[BUFFER] Height changed from {old_height} to {self.height}, NOT recreating figure")
         
         # If you MUST resize the figure (e.g., very large change), do it sparingly:
         # if abs(self.height - old_height) > 50:
@@ -84,10 +88,12 @@ class BufferStorageView(tk.Frame):
     def _create_figure(self, fig_width: float, fig_height: float):
         """Create matplotlib figure and canvas - only called once at init."""
         elapsed = time.time() - self._start_time
-        print(f"[BUFFER] _create_figure() at {elapsed:.3f}s: {fig_width}x{fig_height}")
+        if DEBUG_LOG:
+            print(f"[BUFFER] _create_figure() at {elapsed:.3f}s: {fig_width}x{fig_height}")
         
         if hasattr(self, "canvas_widget") and self.canvas_widget.winfo_exists():
-            print(f"[BUFFER] WARNING: Destroying existing canvas at {elapsed:.3f}s")
+            if DEBUG_LOG:
+                print(f"[BUFFER] WARNING: Destroying existing canvas at {elapsed:.3f}s")
             self.canvas_widget.destroy()
         self.fig = Figure(figsize=(fig_width, fig_height), dpi=100)
         self.fig.patch.set_alpha(0)
@@ -101,7 +107,8 @@ class BufferStorageView(tk.Frame):
     def _setup_plot(self):
         """Setup plot elements - only called once at init or after explicit recreate."""
         elapsed = time.time() - self._start_time
-        print(f"[BUFFER] _setup_plot() at {elapsed:.3f}s")
+        if DEBUG_LOG:
+            print(f"[BUFFER] _setup_plot() at {elapsed:.3f}s")
         
         self.fig.clear()
         self.ax = self.fig.add_subplot(111)
@@ -207,7 +214,8 @@ class BufferStorageView(tk.Frame):
             return
         
         elapsed = time.time() - self._start_time
-        print(f"[BUFFER] update_temperatures() at {elapsed:.3f}s: {top:.1f}/{mid:.1f}/{bottom:.1f}")
+        if DEBUG_LOG:
+            print(f"[BUFFER] update_temperatures() at {elapsed:.3f}s: {top:.1f}/{mid:.1f}/{bottom:.1f}")
         
         self._last_temps = temps
         vmin = min(temps) - 3
@@ -249,7 +257,8 @@ class BufferStorageView(tk.Frame):
         # Note: This will redraw all static elements too (titles), causing flicker
         # But it's necessary for matplotlib updates. The flicker is minimized by
         # only updating when temperatures actually change (see check at top)
-        print(f"[BUFFER] Calling canvas.draw_idle() at {time.time() - self._start_time:.3f}s")
+        if DEBUG_LOG:
+            print(f"[BUFFER] Calling canvas.draw_idle() at {time.time() - self._start_time:.3f}s")
         
         # Redraw safely if widget still exists
         try:

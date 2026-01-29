@@ -17,6 +17,8 @@ from ui.styles import (
 )
 
 
+DEBUG_LOG = os.getenv("DASH_DEBUG", "0") == "1"
+
 class EnergyFlowView(tk.Frame):
     """PIL-basierter, flimmerfreier Energiefluss. Ein Canvas-Image pro Update."""
 
@@ -48,7 +50,8 @@ class EnergyFlowView(tk.Frame):
     def resize(self, width: int, height: int):
         """FIXED: Only update canvas size and dimensions, don't recreate background."""
         elapsed = time.time() - self._start_time
-        print(f"[ENERGY] resize() called at {elapsed:.3f}s with {width}x{height}")
+        if DEBUG_LOG:
+            print(f"[ENERGY] resize() called at {elapsed:.3f}s with {width}x{height}")
         
         old_w, old_h = self.width, self.height
         width = max(240, int(width))
@@ -62,10 +65,12 @@ class EnergyFlowView(tk.Frame):
         
         # Only recreate background if size changed significantly (>20px)
         if abs(width - old_w) > 20 or abs(height - old_h) > 20:
-            print(f"[ENERGY] Large size change, recreating background")
+            if DEBUG_LOG:
+                print(f"[ENERGY] Large size change, recreating background")
             self._base_img = self._render_background()
         else:
-            print(f"[ENERGY] Small change, skipping background recreate")
+            if DEBUG_LOG:
+                print(f"[ENERGY] Small change, skipping background recreate")
 
     def _has_font(self, name: str) -> bool:
         try:
@@ -442,7 +447,8 @@ class EnergyFlowView(tk.Frame):
         # Only recreate layout if size changed by more than 30px (ignore small pack/grid fluctuations)
         if abs(cw - self.width) > 30 or abs(ch - self.height) > 30:
             elapsed = time.time() - self._start_time
-            print(f"[ENERGY] update_flows detected SIGNIFICANT size change at {elapsed:.3f}s: {self.width}x{self.height} -> {cw}x{ch}")
+            if DEBUG_LOG:
+                print(f"[ENERGY] update_flows detected SIGNIFICANT size change at {elapsed:.3f}s: {self.width}x{self.height} -> {cw}x{ch}")
             self.width, self.height = cw, ch
             self.nodes = self._define_nodes()
             self._base_img = self._render_background()
