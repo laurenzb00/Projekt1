@@ -1,4 +1,5 @@
 import threading
+import os
 import time
 import tkinter as tk
 from tkinter import ttk
@@ -17,8 +18,12 @@ from ui.styles import (
 from ui.components.card import Card
 
 # --- KONFIGURATION ---
-TADO_USER = "laurenzbandzauner@gmail.com"  
-TADO_PASS = "Sw1mm1ngp00l"           
+TADO_USER = os.getenv("TADO_USER")
+TADO_PASS = os.getenv("TADO_PASS")
+TADO_TOKEN_FILE = os.getenv(
+    "TADO_TOKEN_FILE",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".tado_refresh_token"),
+)
 
 class TadoTab:
     """Klima-Steuerung mit modernem Card-Layout."""
@@ -151,7 +156,33 @@ class TadoTab:
         # Login
         try:
             from PyTado.interface import Tado
-            self.api = Tado(TADO_USER, TADO_PASS)
+
+            # OAuth Device Flow (seit 2025) + Token-Cache
+            self.api = Tado(token_file_path=TADO_TOKEN_FILE)
+            status = self.api.device_activation_status()
+            if status != "COMPLETED":
+                url = self.api.device_verification_url()
+                if url:
+                    print(f"[TADO] Device activation URL: {url}")
+                    self.var_status.set("Tado: Bitte Gerät im Browser aktivieren")
+
+                # Wait until flow is pending before activation
+                start = time.time()
+                while status == "NOT_STARTED" and (time.time() - start) < 10:
+                    time.sleep(1)
+                    status = self.api.device_activation_status()
+
+                if status == "PENDING":
+                    self.api.device_activation()
+                    status = self.api.device_activation_status()
+
+                if status != "COMPLETED":
+                    self.var_status.set("Tado Aktivierung fehlgeschlagen")
+                    self.var_temp_ist.set("N/A")
+                    self.var_humidity.set("N/A")
+                    while self.alive:
+                        time.sleep(30)
+                    return
             
             zones = self.api.get_zones()
             for z in zones:
@@ -171,7 +202,7 @@ class TadoTab:
                 time.sleep(5)
             return
         except Exception as e:
-            self.var_status.set(f"Login fehlgeschlagen")
+            self.var_status.set(f"Login fehlgeschlagen: {type(e).__name__}")
             self.var_temp_ist.set("N/A")
             self.var_humidity.set("N/A")
             while self.alive:

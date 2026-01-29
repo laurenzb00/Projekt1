@@ -98,6 +98,7 @@ class MainApp:
         
         # Debug: Bind Configure events
         self.root.bind("<Configure>", self._on_root_configure)
+        self.root.bind("<Map>", self._on_root_map)
         # Fix DPI scaling and force a true 1024x600 borderless fullscreen
         try:
             self.root.tk.call("tk", "scaling", 1.0)
@@ -318,22 +319,25 @@ class MainApp:
         self.root.geometry(f"{w}x{h}+{x}+{y}")
 
     def toggle_fullscreen(self):
+        # Instead of windowed mode, minimize to taskbar
+        try:
+            self.root.iconify()
+            self.status.update_status("Minimiert")
+        except Exception:
+            pass
+
+    def _on_root_map(self, event):
+        """Restore fullscreen after window is brought back from taskbar."""
+        if event.widget != self.root:
+            return
         sw = max(1, self.root.winfo_screenwidth())
         sh = max(1, self.root.winfo_screenheight())
         target_w = min(sw, 1024)
         target_h = min(sh, 600)
-        if self.is_fullscreen:
-            self.is_fullscreen = False
-            self._apply_windowed()
-            self._resize_enabled = True
-            self.root.after(200, lambda: self._handle_resize(self.root.winfo_width(), self.root.winfo_height()))
-            self.status.update_status("Fenster-Modus")
-        else:
-            self.is_fullscreen = True
-            self._apply_fullscreen(target_w, target_h, 0)
-            self._resize_enabled = True
-            self.root.after(200, lambda: self._handle_resize(self.root.winfo_width(), self.root.winfo_height()))
-            self.status.update_status("Fullscreen")
+        self.is_fullscreen = True
+        self._apply_fullscreen(target_w, target_h, 0)
+        self._resize_enabled = True
+        self.root.after(200, lambda: self._handle_resize(self.root.winfo_width(), self.root.winfo_height()))
 
     def _mark_layout_stable(self):
         """Mark layout as stable after initial settling period."""

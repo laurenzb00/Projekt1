@@ -54,16 +54,23 @@ class Card(tk.Frame):
     def _on_resize(self, event):
         w = max(1, event.width)
         h = max(1, event.height)
-        r = min(self._radius, w // 2, h // 2)
-        
         # Only redraw if size changed significantly (prevents flicker from minor updates)
         if hasattr(self, '_last_size'):
             last_w, last_h = self._last_size
-            if abs(w - last_w) < 2 and abs(h - last_h) < 2:
+            if abs(w - last_w) < 4 and abs(h - last_h) < 4:
                 return  # Skip redraw for tiny changes
-        
         self._last_size = (w, h)
 
+        # Debounce redraw to avoid rapid flicker
+        if hasattr(self, '_redraw_after_id') and self._redraw_after_id:
+            try:
+                self.after_cancel(self._redraw_after_id)
+            except Exception:
+                pass
+        self._redraw_after_id = self.after(80, lambda: self._redraw_card(w, h))
+
+    def _redraw_card(self, w: int, h: int):
+        r = min(self._radius, w // 2, h // 2)
         self.canvas.delete("card_bg")
 
         # Shadow layers (soft)

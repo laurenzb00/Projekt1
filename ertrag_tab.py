@@ -181,7 +181,7 @@ class ErtragTab:
                 return
         self._last_canvas_size = (w, h)
         try:
-            self.fig.set_size_inches(w / 100.0, h / 100.0, forward=False)
+            self.fig.tight_layout(pad=0.6)
             self.canvas.draw_idle()
         except Exception:
             pass

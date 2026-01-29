@@ -1,4 +1,5 @@
 import threading
+import os
 import time
 import tkinter as tk
 from tkinter import ttk
@@ -16,8 +17,12 @@ from ui.styles import (
 from ui.components.card import Card
 
 # --- KONFIGURATION ---
-TADO_USER = "laurenzbandzauner@gmail.com"  # <--- HIER ÄNDERN
-TADO_PASS = "Sw1mm1ngp00l"           # <--- HIER ÄNDERN
+TADO_USER = os.getenv("TADO_USER")
+TADO_PASS = os.getenv("TADO_PASS")
+TADO_TOKEN_FILE = os.getenv(
+    "TADO_TOKEN_FILE",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".tado_refresh_token"),
+)
 
 class TadoTab:
     def __init__(self, root, notebook):
@@ -90,7 +95,28 @@ class TadoTab:
         # 1. Login
         try:
             from PyTado.interface import Tado
-            self.api = Tado(TADO_USER, TADO_PASS)
+
+            # OAuth Device Flow + Token-Cache
+            self.api = Tado(token_file_path=TADO_TOKEN_FILE)
+            status = self.api.device_activation_status()
+            if status != "COMPLETED":
+                url = self.api.device_verification_url()
+                if url:
+                    print(f"[TADO] Device activation URL: {url}")
+                    self.var_status.set("Tado: Bitte Gerät im Browser aktivieren")
+
+                start = time.time()
+                while status == "NOT_STARTED" and (time.time() - start) < 10:
+                    time.sleep(1)
+                    status = self.api.device_activation_status()
+
+                if status == "PENDING":
+                    self.api.device_activation()
+                    status = self.api.device_activation_status()
+
+                if status != "COMPLETED":
+                    self.var_status.set("Tado Aktivierung fehlgeschlagen")
+                    return
             
             # Zone "Schlafzimmer" suchen (oder Zone 1 nehmen)
             zones = self.api.get_zones()
@@ -107,7 +133,7 @@ class TadoTab:
             self.var_status.set(f"Verbunden: {target_zone['name']}")
             
         except Exception as e:
-            self.var_status.set(f"Login Fehler: {e}")
+            self.var_status.set(f"Login Fehler: {type(e).__name__}")
             return # Abbruch
 
         # 2. Update Loop
