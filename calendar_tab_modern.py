@@ -83,6 +83,12 @@ class CalendarTab:
     def stop(self):
         self.alive = False
 
+    def _ui_set(self, var: tk.StringVar, value: str):
+        try:
+            self.root.after(0, var.set, value)
+        except Exception:
+            pass
+
     def _prev_month(self):
         """Gehe einen Monat zurück."""
         if self.displayed_month.month == 1:
@@ -147,7 +153,7 @@ class CalendarTab:
             widget.destroy()
         
         # Load events
-        all_events = self._load_events()
+        all_events = list(self.events_data)
         
         # Title
         month_name = self.displayed_month.strftime("%B %Y")
@@ -218,11 +224,12 @@ class CalendarTab:
         """Hintergrund-Update Loop."""
         while self.alive:
             try:
-                self.status_var.set("Lade...")
-                self._render_calendar()
-                self.status_var.set("Aktuell")
+                self._ui_set(self.status_var, "Lade...")
+                self.events_data = self._load_events()
+                self.root.after(0, self._render_calendar)
+                self._ui_set(self.status_var, "Aktuell")
             except Exception as e:
-                self.status_var.set("Fehler beim Laden")
+                self._ui_set(self.status_var, "Fehler beim Laden")
                 print(f"Kalender-Fehler: {e}")
             
             # Update alle 10 Minuten

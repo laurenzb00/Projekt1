@@ -129,23 +129,26 @@ class SystemTab:
                 uptime_str = str(delta).split('.')[0] # Mikrosekunden abschneiden
 
                 # 3. GUI Update mit modernen Widgets
-                self.var_cpu.set(int(cpu))
-                self.cpu_widget.update_value(int(cpu), "CPU")
-                
-                self.var_ram.set(int(ram))
-                self.ram_widget.update_value(int(ram), "RAM")
-                
-                self.var_disk.set(int(disk))
-                self.disk_widget.update_value(int(disk), "Disk")
-                
-                self.var_temp.set(f"{temp:.1f} °C")
-                self.var_uptime.set(f"Laufzeit: {uptime_str}")
-                
-                # App Status Logik (Simpel)
-                if cpu > 90: self.var_status.set("Warnung: Hohe CPU Last")
-                elif ram > 90: self.var_status.set("Warnung: Wenig RAM")
-                elif temp > 80: self.var_status.set("KRITISCH: Überhitzung!")
-                else: self.var_status.set("Alles OK - System läuft stabil")
+                def _update_ui():
+                    self.var_cpu.set(int(cpu))
+                    self.cpu_widget.update_value(int(cpu), "CPU")
+                    
+                    self.var_ram.set(int(ram))
+                    self.ram_widget.update_value(int(ram), "RAM")
+                    
+                    self.var_disk.set(int(disk))
+                    self.disk_widget.update_value(int(disk), "Disk")
+                    
+                    self.var_temp.set(f"{temp:.1f} °C")
+                    self.var_uptime.set(f"Laufzeit: {uptime_str}")
+                    
+                    # App Status Logik (Simpel)
+                    if cpu > 90: self.var_status.set("Warnung: Hohe CPU Last")
+                    elif ram > 90: self.var_status.set("Warnung: Wenig RAM")
+                    elif temp > 80: self.var_status.set("KRITISCH: Überhitzung!")
+                    else: self.var_status.set("Alles OK - System läuft stabil")
+
+                self.root.after(0, _update_ui)
 
             except Exception as e:
                 print(f"System Monitor Fehler: {e}")

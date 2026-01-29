@@ -121,6 +121,12 @@ class TadoTab:
     def stop(self):
         self.alive = False
 
+    def _ui_set(self, var: tk.StringVar, value: str):
+        try:
+            self.root.after(0, var.set, value)
+        except Exception:
+            pass
+
     def _change_temp(self, delta: int):
         """Ändere Zieltemperatur um delta Grad."""
         try:
@@ -164,7 +170,7 @@ class TadoTab:
                 url = self.api.device_verification_url()
                 if url:
                     print(f"[TADO] Device activation URL: {url}")
-                    self.var_status.set("Tado: Bitte Gerät im Browser aktivieren")
+                    self._ui_set(self.var_status, "Tado: Bitte Gerät im Browser aktivieren")
 
                 # Wait until flow is pending before activation
                 start = time.time()
@@ -177,9 +183,9 @@ class TadoTab:
                     status = self.api.device_activation_status()
 
                 if status != "COMPLETED":
-                    self.var_status.set("Tado Aktivierung fehlgeschlagen")
-                    self.var_temp_ist.set("N/A")
-                    self.var_humidity.set("N/A")
+                    self._ui_set(self.var_status, "Tado Aktivierung fehlgeschlagen")
+                    self._ui_set(self.var_temp_ist, "N/A")
+                    self._ui_set(self.var_humidity, "N/A")
                     while self.alive:
                         time.sleep(30)
                     return
@@ -193,18 +199,18 @@ class TadoTab:
             if not self.zone_id and zones:
                 self.zone_id = zones[0].get('id')
             
-            self.var_status.set("Verbunden")
+            self._ui_set(self.var_status, "Verbunden")
         except ImportError:
-            self.var_status.set("PyTado nicht installiert")
-            self.var_temp_ist.set("N/A")
-            self.var_humidity.set("N/A")
+            self._ui_set(self.var_status, "PyTado nicht installiert")
+            self._ui_set(self.var_temp_ist, "N/A")
+            self._ui_set(self.var_humidity, "N/A")
             while self.alive:
                 time.sleep(5)
             return
         except Exception as e:
-            self.var_status.set(f"Login fehlgeschlagen: {type(e).__name__}")
-            self.var_temp_ist.set("N/A")
-            self.var_humidity.set("N/A")
+            self._ui_set(self.var_status, f"Login fehlgeschlagen: {type(e).__name__}")
+            self._ui_set(self.var_temp_ist, "N/A")
+            self._ui_set(self.var_humidity, "N/A")
             while self.alive:
                 time.sleep(30)
             return
@@ -216,28 +222,28 @@ class TadoTab:
                 
                 # Temperatur
                 current = state.get('sensorDataPoints', {}).get('insideTemperature', {}).get('celsius', 0)
-                self.var_temp_ist.set(f"{current:.1f} °C")
+                self._ui_set(self.var_temp_ist, f"{current:.1f} °C")
                 
                 # Feuchtigkeit
                 humidity = state.get('sensorDataPoints', {}).get('humidity', {}).get('percentage', 0)
-                self.var_humidity.set(f"{humidity:.0f} %")
+                self._ui_set(self.var_humidity, f"{humidity:.0f} %")
                 
                 # Zieltemperatur
                 overlay = state.get('overlay')
                 if overlay:
                     target = overlay.get('setting', {}).get('temperature', {}).get('celsius', 20)
-                    self.var_temp_soll.set(f"{target:.0f} °C")
+                    self._ui_set(self.var_temp_soll, f"{target:.0f} °C")
                     
                     power = overlay.get('setting', {}).get('power', 'OFF')
                     if power == 'ON':
                         self.var_power.set(75)
-                        self.var_status.set("Heizung aktiv")
+                        self._ui_set(self.var_status, "Heizung aktiv")
                     else:
                         self.var_power.set(0)
-                        self.var_status.set("Heizung aus")
+                        self._ui_set(self.var_status, "Heizung aus")
                 else:
                     self.var_power.set(0)
-                    self.var_status.set("Automatik")
+                    self._ui_set(self.var_status, "Automatik")
                     
             except Exception:
                 pass

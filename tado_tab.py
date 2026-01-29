@@ -91,6 +91,12 @@ class TadoTab:
         ttk.Label(right, text="Heizleistung:", font=("Arial", 10)).pack(anchor="w", pady=(20, 5))
         ttk.Progressbar(right, variable=self.var_power, maximum=100).pack(fill=tk.X)
 
+    def _ui_set(self, var: tk.StringVar, value: str):
+        try:
+            self.root.after(0, var.set, value)
+        except Exception:
+            pass
+
     def _loop(self):
         # 1. Login
         try:
@@ -103,7 +109,7 @@ class TadoTab:
                 url = self.api.device_verification_url()
                 if url:
                     print(f"[TADO] Device activation URL: {url}")
-                    self.var_status.set("Tado: Bitte Gerät im Browser aktivieren")
+                    self._ui_set(self.var_status, "Tado: Bitte Gerät im Browser aktivieren")
 
                 start = time.time()
                 while status == "NOT_STARTED" and (time.time() - start) < 10:
@@ -115,7 +121,7 @@ class TadoTab:
                     status = self.api.device_activation_status()
 
                 if status != "COMPLETED":
-                    self.var_status.set("Tado Aktivierung fehlgeschlagen")
+                    self._ui_set(self.var_status, "Tado Aktivierung fehlgeschlagen")
                     return
             
             # Zone "Schlafzimmer" suchen (oder Zone 1 nehmen)
@@ -130,10 +136,10 @@ class TadoTab:
                 target_zone = zones[0] # Fallback: Erste Zone
             
             self.zone_id = target_zone['id']
-            self.var_status.set(f"Verbunden: {target_zone['name']}")
+            self._ui_set(self.var_status, f"Verbunden: {target_zone['name']}")
             
         except Exception as e:
-            self.var_status.set(f"Login Fehler: {type(e).__name__}")
+            self._ui_set(self.var_status, f"Login Fehler: {type(e).__name__}")
             return # Abbruch
 
         # 2. Update Loop
@@ -148,17 +154,17 @@ class TadoTab:
                 target = state['setting']['temperature']['celsius'] if state['setting']['power'] == 'ON' else 0
                 
                 # GUI Update
-                self.var_temp_ist.set(f"{temp:.1f} °C")
-                self.var_humidity.set(f"{hum:.1f} %")
+                self._ui_set(self.var_temp_ist, f"{temp:.1f} °C")
+                self._ui_set(self.var_humidity, f"{hum:.1f} %")
                 self.var_power.set(int(power))
                 
                 if target > 0:
-                    self.var_temp_soll.set(f"{target:.0f} °C")
+                    self._ui_set(self.var_temp_soll, f"{target:.0f} °C")
                 else:
-                    self.var_temp_soll.set("AUS")
+                    self._ui_set(self.var_temp_soll, "AUS")
                     
             except Exception as e:
-                self.var_status.set("Datenfehler...")
+                self._ui_set(self.var_status, "Datenfehler...")
                 print(f"Tado Error: {e}")
             
             time.sleep(60) # Alle 60s aktualisieren
@@ -176,14 +182,14 @@ class TadoTab:
             new_val = max(10, min(25, new_val))
             
             self.api.set_zone_overlay(self.zone_id, "MANUAL", new_val, termination="AUTO")
-            self.var_status.set(f"Setze {new_val}°C...")
+            self._ui_set(self.var_status, f"Setze {new_val}°C...")
             # Schnelles UI Feedback
-            self.var_temp_soll.set(f"{new_val:.0f} °C")
+            self._ui_set(self.var_temp_soll, f"{new_val:.0f} °C")
             
             time.sleep(2)
-            self.var_status.set("Gespeichert")
+            self._ui_set(self.var_status, "Gespeichert")
         except Exception as e:
-            self.var_status.set("Fehler beim Setzen")
+            self._ui_set(self.var_status, "Fehler beim Setzen")
 
     def stop(self):
         self.alive = False

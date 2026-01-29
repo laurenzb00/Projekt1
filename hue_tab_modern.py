@@ -83,6 +83,12 @@ class HueTab:
     def stop(self):
         self.alive = False
 
+    def _ui_set(self, var: tk.StringVar, value: str):
+        try:
+            self.root.after(0, var.set, value)
+        except Exception:
+            pass
+
     def _build_header(self):
         """Moderner Header mit Gradient"""
         header = tk.Frame(self.tab_frame, bg=COLOR_WARNING, height=70)
@@ -135,14 +141,14 @@ class HueTab:
             try:
                 self.bridge = Bridge(HUE_BRIDGE_IP)
                 self.bridge.connect()
-                self.status_var.set("✓ Verbunden")
+                self._ui_set(self.status_var, "✓ Verbunden")
                 self.root.after(0, self._refresh_lights_ui)
                 break
             except PhueRegistrationException:
-                self.status_var.set("⚠ BITTE KNOPF AUF BRIDGE DRÜCKEN!")
+                self._ui_set(self.status_var, "⚠ BITTE KNOPF AUF BRIDGE DRÜCKEN!")
                 time.sleep(2)
             except Exception as e:
-                self.status_var.set(f"⚠ Verbindungsproblem...")
+                self._ui_set(self.status_var, "⚠ Verbindungsproblem...")
                 time.sleep(5)
         
         # Background refresh (alle 20s)
@@ -180,7 +186,7 @@ class HueTab:
                     row += 1
                     
         except Exception as e:
-            self.status_var.set(f"Fehler: {e}")
+            self._ui_set(self.status_var, f"Fehler: {e}")
 
     def _create_light_card(self, light, row, col):
         """Erstellt moderne Lichtkarte"""

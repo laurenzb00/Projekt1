@@ -221,40 +221,40 @@ class SystemTab:
             try:
                 # CPU
                 cpu = int(psutil.cpu_percent(interval=0.5))
-                self.var_cpu.set(cpu)
+                self.root.after(0, self.var_cpu.set, cpu)
                 
                 # RAM
                 ram = psutil.virtual_memory()
                 ram_percent = int(ram.percent)
-                self.var_ram.set(ram_percent)
+                self.root.after(0, self.var_ram.set, ram_percent)
                 
                 # Disk
                 disk = psutil.disk_usage('/')
                 disk_percent = int(disk.percent)
-                self.var_disk.set(disk_percent)
+                self.root.after(0, self.var_disk.set, disk_percent)
                 
                 # Temperature
                 try:
                     with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
                         temp_raw = int(f.read().strip())
                         temp_c = temp_raw / 1000.0
-                        self.var_temp.set(f"{temp_c:.1f}°C")
+                        self.root.after(0, self.var_temp.set, f"{temp_c:.1f}°C")
                 except Exception:
-                    self.var_temp.set("N/A")
+                    self.root.after(0, self.var_temp.set, "N/A")
                 
                 # Uptime
                 uptime = datetime.now() - self.start_time
                 hours = int(uptime.total_seconds() // 3600)
                 minutes = int((uptime.total_seconds() % 3600) // 60)
                 seconds = int(uptime.total_seconds() % 60)
-                self.var_uptime.set(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
+                self.root.after(0, self.var_uptime.set, f"{hours:02d}:{minutes:02d}:{seconds:02d}")
                 
                 # Network
                 net = psutil.net_io_counters()
                 tx_rate = (net.bytes_sent - last_net.bytes_sent) / 1024 / 1024 / 2  # MB/s
                 rx_rate = (net.bytes_recv - last_net.bytes_recv) / 1024 / 1024 / 2  # MB/s
-                self.var_network_tx.set(f"{tx_rate:.2f} MB/s")
-                self.var_network_rx.set(f"{rx_rate:.2f} MB/s")
+                self.root.after(0, self.var_network_tx.set, f"{tx_rate:.2f} MB/s")
+                self.root.after(0, self.var_network_rx.set, f"{rx_rate:.2f} MB/s")
                 last_net = net
                 
                 # Update circular progress indicators

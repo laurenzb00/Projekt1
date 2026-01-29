@@ -82,6 +82,12 @@ class CalendarTab:
     def stop(self):
         self.alive = False
 
+    def _ui_set(self, var: tk.StringVar, value: str):
+        try:
+            self.root.after(0, var.set, value)
+        except Exception:
+            pass
+
     def _build_header(self):
         header = ttk.Frame(self.tab_frame)
         header.pack(fill=tk.X, padx=15, pady=(15, 5))
@@ -266,7 +272,7 @@ class CalendarTab:
                     ).pack(anchor="nw", pady=(1, 0))
 
     def _fetch_calendar(self):
-        self.status_var.set("Kalender wird geladen...")
+        self._ui_set(self.status_var, "Kalender wird geladen...")
         self.events_data = []
 
         try:
@@ -295,9 +301,9 @@ class CalendarTab:
                         })
 
             self.events_data.sort(key=lambda x: x["start"])
-            self.status_var.set(f"{len(self.events_data)} Termine geladen")
+            self._ui_set(self.status_var, f"{len(self.events_data)} Termine geladen")
         except Exception as e:
-            self.status_var.set("Fehler beim Laden")
+            self._ui_set(self.status_var, "Fehler beim Laden")
             print(f"Kalender Fehler: {e}")
 
         # Schedule UI update on main thread
