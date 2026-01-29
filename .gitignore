@@ -5,3 +5,4 @@ __pycache__/
 *.pyd
 .cache-spotify
 *.log
+_archive/

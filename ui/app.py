@@ -380,10 +380,7 @@ class MainApp:
             print(f"[LAYOUT] Marked stable at {time.time() - self._start_time:.3f}s")
 
 
-        # Add Status Tab
-        self.status_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
-        self.notebook.add(self.status_tab, text=emoji("🟢 Status", "Status"))
-        self._init_status_tab()
+        # Status Tab entfernt
 
         # Add PV Status Tab
         self.pv_status_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
@@ -392,72 +389,6 @@ class MainApp:
 
         # Add other tabs
         self._add_other_tabs()
-    def _init_status_tab(self):
-        frame = self.status_tab
-        self.status_brenner = tk.StringVar(value="--")
-        self.status_betriebsmodus = tk.StringVar(value="--")
-        self.status_puffer = tk.StringVar(value="--")
-        self.status_ww = tk.StringVar(value="--")
-        self.status_kessel = tk.StringVar(value="--")
-        self.status_empfehlung = tk.StringVar(value="--")
-        self.status_letzte_aktiv = tk.StringVar(value="--")
-        self.status_betriebsstunden = tk.StringVar(value="--")
-        row = 0
-        tk.Label(frame, text="Brenner", font=("Segoe UI", 16), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
-        tk.Label(frame, textvariable=self.status_brenner, font=("Segoe UI", 16, "bold"), fg="#f59e0b", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        row += 1
-        tk.Label(frame, text="Betriebsmodus", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
-        tk.Label(frame, textvariable=self.status_betriebsmodus, font=("Segoe UI", 14), fg="#38bdf8", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        row += 1
-        tk.Label(frame, text="Pufferladung", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
-        tk.Label(frame, textvariable=self.status_puffer, font=("Segoe UI", 14), fg="#10b981", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        row += 1
-        tk.Label(frame, text="Warmwasser", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
-        tk.Label(frame, textvariable=self.status_ww, font=("Segoe UI", 14), fg="#fbbf24", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        row += 1
-        tk.Label(frame, text="Kessel", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
-        tk.Label(frame, textvariable=self.status_kessel, font=("Segoe UI", 14), fg="#a3e635", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        row += 1
-        tk.Label(frame, text="Empfehlung", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
-        tk.Label(frame, textvariable=self.status_empfehlung, font=("Segoe UI", 14), fg="#f87171", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        row += 1
-        tk.Label(frame, text="Letzte Aktivität", font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
-        tk.Label(frame, textvariable=self.status_letzte_aktiv, font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        row += 1
-        tk.Label(frame, text="Betriebsstunden", font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
-        tk.Label(frame, textvariable=self.status_betriebsstunden, font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
-        self._update_status_tab()
-
-    def _update_status_tab(self):
-        bmk_csv = _data_path("Heizungstemperaturen.csv")
-        if os.path.exists(bmk_csv):
-            try:
-                row_dict = _read_last_row_dict(bmk_csv)
-                last_line = _read_last_data_line(bmk_csv)
-                row = next(csv.reader([last_line])) if last_line else []
-
-                parsed = _get_last_valid_bmk_values(bmk_csv) or _parse_bmk_row(row) or _parse_short_bmk_row(row)
-
-                brenner = _get_row_value(row_dict, "Brenner_Status", "Brennerstatus")
-                betriebsmodus = parsed.get("Betriebsmodus") or _get_row_value(row_dict, "Betriebsmodus")
-                puffer = parsed.get("Pufferspeicher Oben") or _get_row_value(
-                    row_dict,
-                    "Pufferspeicher Oben",
-                    "Puffer_Oben",
-                    "Puffer Oben",
-                )
-                warmwasser = parsed.get("Warmwasser") or _get_row_value(row_dict, "Warmwasser", "Warmwassertemperatur")
-                kessel = parsed.get("Kesseltemperatur") or _get_row_value(row_dict, "Kesseltemperatur")
-                zeit = _get_row_value(row_dict, "Zeitstempel", "Zeit")
-
-                self.status_brenner.set(brenner if brenner is not None else (row[1] if len(row) > 1 else "--"))
-                self.status_betriebsmodus.set(betriebsmodus if betriebsmodus is not None else (row[1] if len(row) > 1 else "--"))
-                self.status_puffer.set(puffer if puffer is not None else "--")
-                self.status_ww.set(warmwasser if warmwasser is not None else "--")
-                self.status_kessel.set(kessel if kessel is not None else "--")
-                try:
-                    puffer_val = _safe_float(puffer)
-                    self.status_empfehlung.set("OK" if puffer_val and puffer_val > 30 else "Nachladen")
                 except Exception:
                     self.status_empfehlung.set("--")
                 self.status_letzte_aktiv.set(zeit if zeit is not None else (row[0] if len(row) > 0 else "--"))
@@ -830,7 +761,7 @@ class MainApp:
                 self._last_data["puffer_top"],
                 self._last_data["puffer_mid"],
                 self._last_data["puffer_bot"],
-                self._last_data.get("kessel_c", 65.0),  # Boiler temperature
+                self._last_data.get("warmwasser", 65.0),  # Boiler temperature jetzt Warmwasser
             )
 
         # Data freshness every 15s
@@ -954,6 +885,7 @@ class MainApp:
                 top_val = _safe_float(parsed.get("Pufferspeicher Oben")) if parsed else None
                 mid_val = _safe_float(parsed.get("Pufferspeicher Mitte")) if parsed else None
                 bot_val = _safe_float(parsed.get("Pufferspeicher Unten")) if parsed else None
+                warm_val = _safe_float(parsed.get("Warmwasser")) if parsed else None
 
                 if out_val is None and row_dict:
                     out_val = _safe_float(_get_row_value(row_dict, "Außentemperatur", "Aussentemperatur", "OutdoorTemp", "OutTemp"))
@@ -963,16 +895,19 @@ class MainApp:
                     mid_val = _safe_float(_get_row_value(row_dict, "Pufferspeicher Mitte", "Puffer_Mitte", "Puffer Mitte"))
                 if bot_val is None and row_dict:
                     bot_val = _safe_float(_get_row_value(row_dict, "Pufferspeicher Unten", "Puffer_Unten", "Puffer Unten"))
+                if warm_val is None and row_dict:
+                    warm_val = _safe_float(_get_row_value(row_dict, "Warmwasser", "Warmwassertemperatur"))
 
                 if out_val is not None:
                     self._last_data["out_temp"] = out_val
                 if top_val is not None:
                     self._last_data["puffer_top"] = top_val
-
                 if mid_val is not None:
                     self._last_data["puffer_mid"] = mid_val
                 if bot_val is not None:
                     self._last_data["puffer_bot"] = bot_val
+                if warm_val is not None:
+                    self._last_data["warmwasser"] = warm_val
             except Exception as e:
                 logging.debug(f"BMK CSV Fehler: {e}")
 

@@ -11,19 +11,19 @@ logger = logging.getLogger(__name__)
 # Mapping aller PP-Indizes zu ihren korrekten Namen
 PP_INDEX_MAPPING = {
     0: "Betriebsmodus",              # z.B. "TEILLAST"
-    1: "Wert_1",
-    2: "Kesseltemperatur",
-    3: "Außentemperatur",
-    6: "Pufferspeicher_Mitte",
-    7: "Puffer_Unten",
-    13: "Warmwassertemperatur",
-    45: "Puffer_Oben",
+    1: "Kesseltemperatur",
+    2: "Außentemperatur",
+    3: "Wert_3",
+    4: "Puffer_Oben",
+    5: "Pufferspeicher_Mitte",
+    6: "Puffer_Unten",
+    7: "Wert_7",
     8: "Kesselrücklauf",
     9: "Rauchgastemperatur",        # Abgastemperatur des Kessels
     10: "Wert_10",                  # Unbekannt, Platzhalter
     11: "Rauchgasauslastung",       # in %
-    12: "CO2_Gehalt",               # CO2 in %
-    13: "Warmwassertemperatur",
+    12: "Warmwassertemperatur",
+    13: "Wert_13",
     14: "Hysterese_14",             # -20.00 = typische Regelabweichung
     15: "Differenzial_15",          # 0 = Schwellwert
     16: "Hysterese_16",             # -20.00 = typische Regelabweichung
@@ -53,9 +53,9 @@ PP_INDEX_MAPPING = {
     40: "Temperatur_Sensor_40",     # 64.00°C = zusätzlicher Sensor
     41: "Relais_41",                # "AUS" = Relais
     42: "Modus_Status",             # z.B. "Normal"
-    43: "Brenner_Status",           # KRITISCH: "HEIZEN" oder "AUS"
+    43: "Brenner_Status",           # "HEIZEN" oder "AUS"
     44: "Brenner_Status_2",         # Duplikat
-    45: "Puffer_Oben",
+    45: "Wert_45",
     46: "Relais_10_Status",         # "AUS"
     47: "Relais_11_Status",         # "AUS"
     48: "Relais_12_Status",         # "AUS"
@@ -180,9 +180,9 @@ def _extrahiere_pufferdaten(values, zeitstempel):
     
     try:
         # Berechne Durchschnittstemp und Stratifikation
-        temp_oben = _safe_float(values[45]) if len(values) > 45 else None
-        temp_mitte = _safe_float(values[6]) if len(values) > 6 else None
-        temp_unten = _safe_float(values[7]) if len(values) > 7 else None
+        temp_oben = _safe_float(values[4]) if len(values) > 4 else None
+        temp_mitte = _safe_float(values[5]) if len(values) > 5 else None
+        temp_unten = _safe_float(values[6]) if len(values) > 6 else None
         
         temps = [temp_oben, temp_mitte, temp_unten]
         temps_valid = [t for t in temps if t is not None]
