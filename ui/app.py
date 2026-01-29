@@ -321,6 +321,12 @@ class MainApp:
     def toggle_fullscreen(self):
         # Instead of windowed mode, minimize to taskbar
         try:
+            try:
+                self.root.attributes("-fullscreen", False)
+            except Exception:
+                pass
+            self.root.overrideredirect(False)
+            self.root.update_idletasks()
             self.root.iconify()
             self.status.update_status("Minimiert")
         except Exception:
@@ -335,6 +341,7 @@ class MainApp:
         target_w = min(sw, 1024)
         target_h = min(sh, 600)
         self.is_fullscreen = True
+        self.root.overrideredirect(True)
         self._apply_fullscreen(target_w, target_h, 0)
         self._resize_enabled = True
         self.root.after(200, lambda: self._handle_resize(self.root.winfo_width(), self.root.winfo_height()))
