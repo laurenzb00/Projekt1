@@ -246,6 +246,9 @@ class MainApp:
             self.spotify_tab = SpotifyTab(self.root, self.notebook)
         if TadoTab:
             self.tado_tab = TadoTab(self.root, self.notebook)
+            print("[TADO] Tab added")
+        else:
+            print("[TADO] Tab not available (import failed)")
         if HueTab:
             self.hue_tab = HueTab(self.root, self.notebook)
         if SystemTab:

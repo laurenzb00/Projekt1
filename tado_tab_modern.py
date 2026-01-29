@@ -34,6 +34,7 @@ class TadoTab:
         self.alive = True
         self.api = None
         self.zone_id = None
+        print("[TADO] TadoTab initialized")
         
         # UI Variablen
         self.var_temp_ist = tk.StringVar(value="--.- °C")
@@ -167,6 +168,7 @@ class TadoTab:
 
     def _loop(self):
         """Hintergrund-Update Loop."""
+        print("[TADO] Loop started")
         # Login
         try:
             from PyTado.interface import Tado
