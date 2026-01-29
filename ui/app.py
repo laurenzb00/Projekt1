@@ -389,13 +389,6 @@ class MainApp:
 
         # Add other tabs
         self._add_other_tabs()
-                except Exception:
-                    self.status_empfehlung.set("--")
-                self.status_letzte_aktiv.set(zeit if zeit is not None else (row[0] if len(row) > 0 else "--"))
-                self.status_betriebsstunden.set("--")
-            except Exception:
-                pass
-        self.root.after(60000, self._update_status_tab)
 
     def _init_pv_status_tab(self):
         frame = self.pv_status_tab
