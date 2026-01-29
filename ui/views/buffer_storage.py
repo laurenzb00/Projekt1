@@ -253,8 +253,11 @@ class BufferStorageView(tk.Frame):
         print(f"[BUFFER] Calling canvas.draw_idle() at {time.time() - self._start_time:.3f}s")
         
         # Flush any pending draws before new one to reduce flicker
-        self.canvas.flush_events()
-        self.canvas.draw_idle()
+        try:
+            self.canvas.flush_events()
+            self.canvas.draw_idle()
+        except Exception as e:
+            print(f"[BUFFER] Canvas draw error: {e}")
 
     def _build_stratified_data(self, top: float, mid: float, bottom: float) -> np.ndarray:
         # Build smooth vertical stratification (bottom->mid->top)
@@ -343,7 +346,10 @@ class BufferStorageView(tk.Frame):
         except Exception as e:
             print(f"[BUFFER] tight_layout warning: {e}")
         
-        self.spark_canvas.draw_idle()
+        try:
+            self.spark_canvas.draw_idle()
+        except Exception as e:
+            print(f"[BUFFER] Sparkline canvas draw error: {e}")
 
     def _load_pv_series(self, hours: int = 24, bin_minutes: int = 15) -> list[tuple[datetime, float]]:
         """Load PV production with smoothing."""

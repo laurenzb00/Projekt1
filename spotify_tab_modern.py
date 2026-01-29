@@ -441,10 +441,12 @@ class SpotifyTab:
                 cache_path=cache_path,
                 open_browser=False,
                 show_dialog=False,
+                requests_timeout=10,  # Increase timeout to 10 seconds
             )
             token_info = self.oauth.get_cached_token()
             if token_info:
-                self.sp = spotipy.Spotify(auth_manager=self.oauth)
+                # Configure spotipy with increased timeout
+                self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 self.ready = True
                 self.root.after(0, self._build_ui)
                 self.status_text_var.set("Verbunden")
@@ -469,7 +471,8 @@ class SpotifyTab:
             token_info = self.oauth.get_access_token(as_dict=True)
             if token_info and token_info.get("access_token"):
                 import spotipy
-                self.sp = spotipy.Spotify(auth_manager=self.oauth)
+                # Configure spotipy with increased timeout
+                self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 self.ready = True
                 self.root.after(0, self._build_ui)
                 self.status_text_var.set("Verbunden")
@@ -528,7 +531,20 @@ class SpotifyTab:
     def update_spotify(self):
         if not self.alive or not self.ready: return
         try:
-            pb = self.sp.current_playback()
+            # Add timeout to prevent blocking and memory corruption
+            import requests
+            pb = None
+            try:
+                pb = self.sp.current_playback()
+            except requests.exceptions.Timeout:
+                print(f"Spotify Update: Timeout (retry in 3s)")
+                if self.alive: self.root.after(3000, self.update_spotify)
+                return
+            except requests.exceptions.RequestException as e:
+                print(f"Spotify Update: Connection error: {e}")
+                if self.alive: self.root.after(5000, self.update_spotify)
+                return
+            
             if pb and pb.get("item"):
                 item = pb["item"]
                 
@@ -593,7 +609,11 @@ class SpotifyTab:
                 self.album_var.set("")
                 self.is_playing_var.set(emoji("⏸", "Pause"))
         except Exception as e:
+            import traceback
             print(f"Spotify Update Fehler: {e}")
+            # Don't spam errors - increase retry interval on failure
+            if self.alive: self.root.after(5000, self.update_spotify)
+            return
         
         # Album Art update
         if not self.image_queue.empty():
