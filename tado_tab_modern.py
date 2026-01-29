@@ -176,6 +176,7 @@ class TadoTab:
             # OAuth Device Flow (seit 2025) + Token-Cache
             self.api = Tado(token_file_path=TADO_TOKEN_FILE)
             status = self.api.device_activation_status()
+            print(f"[TADO] device_activation_status: {status}")
             if status != "COMPLETED":
                 url = self.api.device_verification_url()
                 if url:
@@ -191,6 +192,7 @@ class TadoTab:
                 if status == "PENDING":
                     self.api.device_activation()
                     status = self.api.device_activation_status()
+                    print(f"[TADO] device_activation_status after activation: {status}")
 
                 if status != "COMPLETED":
                     self._ui_set(self.var_status, "Tado Aktivierung fehlgeschlagen")
@@ -201,6 +203,7 @@ class TadoTab:
                     return
             
             zones = self.api.get_zones()
+            print(f"[TADO] zones: {len(zones)}")
             for z in zones:
                 if "Schlaf" in z.get('name', '') or "Bed" in z.get('name', ''):
                     self.zone_id = z.get('id')
@@ -208,6 +211,12 @@ class TadoTab:
             
             if not self.zone_id and zones:
                 self.zone_id = zones[0].get('id')
+
+            if not self.zone_id:
+                self._ui_set(self.var_status, "Tado: Keine Zone gefunden")
+                while self.alive:
+                    time.sleep(30)
+                return
             
             self._ui_set(self.var_status, "Verbunden")
         except ImportError:
