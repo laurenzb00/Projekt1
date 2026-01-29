@@ -1,8 +1,8 @@
+
+# Only import what is actually used in the code
 import os
 import tkinter as tk
 from tkinter import StringVar
-
-# --- DESIGN & PLOTTING ---
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 import pandas as pd
@@ -11,8 +11,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
 import numpy as np
 from ttkbootstrap.icons import Icon
-
-# Matplotlib fest auf Dunkel setzen
 plt.style.use("dark_background")
 
 # --- KONFIGURATION ---
@@ -36,21 +34,27 @@ def read_csv_tail_fixed(path: str, max_rows: int) -> pd.DataFrame:
     try:
         header_df = pd.read_csv(path, nrows=0, sep=",")
         col_names = header_df.columns.tolist()
-        with open(path, "rb") as f:
-            total_lines = sum(1 for _ in f)
-        skip_rows = max(1, total_lines - max_rows)
-        df = pd.read_csv(path, sep=",", names=col_names, skiprows=skip_rows)
+        expected_cols = len(col_names)
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        # Always keep header
+        data_lines = lines[1:]
+        # Only keep lines with correct number of columns
+        valid_lines = [lines[0]] + [l for l in data_lines if len(l.strip().split(",")) == expected_cols]
+        # Write to temp file for pandas
+        import tempfile
+        with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8") as tmp:
+            tmp.writelines(valid_lines[-max_rows-1:])  # header + last max_rows
+            tmp_path = tmp.name
+        df = pd.read_csv(tmp_path, sep=",", header=0)
         df.columns = df.columns.str.strip()
-        
         # Zeitstempel sofort konvertieren
         if "Zeitstempel" in df.columns:
             df["Zeitstempel"] = pd.to_datetime(df["Zeitstempel"], errors='coerce')
-            # Entferne Zeilen mit ungültigem Zeitstempel
             df = df.dropna(subset=["Zeitstempel"])
-        
         return df
     except Exception as e:
-        print(f"Fehler beim Lesen von {path}: {e}")
+        pass  # Fehler beim Lesen werden ignoriert
         return None
 
 # --- HAUPTKLASSE ---
@@ -82,6 +86,71 @@ class LivePlotApp:
         self.status_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.status_tab, text="Status")
         self.setup_status_tab()
+
+        # PV Status Tab
+        self.pv_status_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.pv_status_tab, text="PV Status")
+        self.setup_pv_status_tab()
+        def setup_pv_status_tab(self):
+            frame = tk.Frame(self.pv_status_tab, bg="#181e2a")
+            frame.pack(fill=tk.BOTH, expand=True)
+
+            self.pv_status_pv = StringVar(value="-- kW")
+            self.pv_status_batt = StringVar(value="-- %")
+            self.pv_status_grid = StringVar(value="-- kW")
+            self.pv_status_recommend = StringVar(value="--")
+            self.pv_status_time = StringVar(value="-")
+
+            row = 0
+            tk.Label(frame, text="PV-Leistung", font=("Segoe UI", 16), fg="#0ea5e9", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=8)
+            tk.Label(frame, textvariable=self.pv_status_pv, font=("Segoe UI", 16, "bold"), fg="#0ea5e9", bg="#181e2a").grid(row=row, column=1, sticky="w")
+            row += 1
+            tk.Label(frame, text="Batterie", font=("Segoe UI", 14), fg="#10b981", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=4)
+            tk.Label(frame, textvariable=self.pv_status_batt, font=("Segoe UI", 14), fg="#10b981", bg="#181e2a").grid(row=row, column=1, sticky="w")
+            row += 1
+            tk.Label(frame, text="Netzbezug", font=("Segoe UI", 14), fg="#ef4444", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=4)
+            tk.Label(frame, textvariable=self.pv_status_grid, font=("Segoe UI", 14), fg="#ef4444", bg="#181e2a").grid(row=row, column=1, sticky="w")
+            row += 1
+            tk.Label(frame, text="Empfehlung", font=("Segoe UI", 16, "bold"), fg="#f87171", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=16)
+            tk.Label(frame, textvariable=self.pv_status_recommend, font=("Segoe UI", 16, "bold"), fg="#f87171", bg="#181e2a").grid(row=row, column=1, sticky="w")
+            row += 1
+            tk.Label(frame, text="Letztes Update", font=("Segoe UI", 12), fg="#a3a3a3", bg="#181e2a").grid(row=row, column=0, sticky="w", padx=20, pady=8)
+            tk.Label(frame, textvariable=self.pv_status_time, font=("Segoe UI", 12), fg="#a3a3a3", bg="#181e2a").grid(row=row, column=1, sticky="w")
+
+            self.update_pv_status_tab()
+
+        def update_pv_status_tab(self):
+            df = read_csv_tail_fixed(FRONIUS_CSV, 1)
+            if df is None or df.empty:
+                self.pv_status_pv.set("-- kW")
+                self.pv_status_batt.set("-- %")
+                self.pv_status_grid.set("-- kW")
+                self.pv_status_recommend.set("Keine Daten")
+                self.pv_status_time.set("--")
+                return
+            row = df.iloc[-1]
+            pv = row.get("PV-Leistung (kW)", None)
+            batt = row.get("Batterieladestand (%)", None)
+            grid = row.get("Netz-Leistung (kW)", None)
+            self.pv_status_pv.set(f"{pv:.2f} kW" if pv is not None else "-- kW")
+            self.pv_status_batt.set(f"{batt:.0f} %" if batt is not None else "-- %")
+            self.pv_status_grid.set(f"{grid:.2f} kW" if grid is not None else "-- kW")
+            # Empfehlung: Einfache Logik
+            try:
+                if pv is not None and pv < 0.2:
+                    rec = "Wenig PV – Netzbezug möglich."
+                elif batt is not None and batt < 20:
+                    rec = "Batterie fast leer."
+                elif grid is not None and grid > 0.5:
+                    rec = "Hoher Netzbezug."
+                else:
+                    rec = "Alles ok."
+            except:
+                rec = "--"
+            self.pv_status_recommend.set(rec)
+            self.pv_status_time.set(str(row.get("Zeitstempel", "--")))
+            # Automatisches Update alle 60s
+            self.root.after(60000, self.update_pv_status_tab)
     def setup_status_tab(self):
         # Hauptcontainer für Status-Tab
         frame = tk.Frame(self.status_tab, bg="#181e2a")
@@ -578,7 +647,7 @@ class LivePlotApp:
                 self._update_combined_trend(fronius_df, bmk_df, now)
                 self.dash_status.set("PV Daten aktuell.")
             except Exception as e:
-                print(f"Fronius Update Fehler: {e}")
+                pass  # Fehler beim Fronius-Update werden ignoriert
 
         # 2. Temperatur Daten
         if bmk_df is not None and not bmk_df.empty:
@@ -597,7 +666,7 @@ class LivePlotApp:
                 
                 self._plot_temps(bmk_df, now)
             except Exception as e:
-                print(f"BMK Update Fehler: {e}")
+                pass  # Fehler beim BMK-Update werden ignoriert
 
         self.status_time_var.set(f"Update: {now.strftime('%H:%M:%S')}")
         # Schedule update safely
@@ -640,7 +709,7 @@ class LivePlotApp:
                 return
             self._append_ertrag_segment(segment)
         except Exception as e:
-            print(f"Ertrag Aggregation Fehler: {e}")
+            pass  # Fehler bei der Ertrag-Aggregation werden ignoriert
 
     def schedule_ertrag_updates(self):
         self._ensure_ertrag_file()
@@ -825,7 +894,7 @@ class LivePlotApp:
                 ax.text(0.5, 0.5, "Keine Daten verfügbar", color="white", ha="center",
                         transform=ax.transAxes, fontsize=12)
         except Exception as e:
-            print(f"Ertrag Plot Fehler: {e}")
+            pass  # Fehler beim Ertrag-Plot werden ignoriert
 
         self.ertrag_canvas.draw()
 
@@ -883,11 +952,11 @@ class LivePlotApp:
 
     # --- Neue Funktionen für Buttons ---
     def show_consumption_details(self):
-        print("Verbrauchsdetails anzeigen")
+        pass  # Verbrauchsdetails anzeigen (Platzhalter)
         # Hier könnte ein neues Fenster oder eine Ansicht geöffnet werden
 
     def show_historical_data(self):
-        print("Historische Daten anzeigen")
+        pass  # Historische Daten anzeigen (Platzhalter)
         # Hier könnte ein Diagramm oder eine Ansicht geöffnet werden
 
     def update_puffer_animation(self):

@@ -24,47 +24,35 @@ def abrufen_und_speichern():
             # Relevante Werte extrahieren
             kesseltemperatur = values[1]
             aussentemperatur = values[2]
-            puffer_oben = values[4]
-            puffer_mitte = values[5]
-            puffer_unten = values[6]
-            warmwasser = values[12]
+            puffer_oben = values[3]
+            puffer_mitte = values[4]
+            puffer_unten = values[5]
+            warmwasser = values[6]
 
             # Zeitstempel hinzufügen
             zeitstempel = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # ERWEITERTE Datenextraktion - ALLE PP-Daten erfassen
-            daten = {
-                "Zeitstempel": zeitstempel,
-                "Kesseltemperatur": kesseltemperatur,
-                "Außentemperatur": aussentemperatur,
-                "Kesselrücklauf": values[3] if len(values) > 3 else "",
-                "Pufferspeicher Oben": puffer_oben,
-                "Pufferspeicher Mitte": puffer_mitte,
-                "Pufferspeicher Unten": puffer_unten,
-                "Speicher2_Oben": values[7] if len(values) > 7 else "",
-                "Speicher2_Unten": values[8] if len(values) > 8 else "",
-                "Warmwassertemperatur": values[9] if len(values) > 9 else "",
-                "Wert_10": values[10] if len(values) > 10 else "",
-                "Wert_11": values[11] if len(values) > 11 else "",
-                "Warmwasser": warmwasser,
-            }
 
-            # Zusätzliche Werte wenn vorhanden
-            for idx in range(13, min(len(values), 25)):
-                daten[f"Wert_{idx}"] = values[idx]
+            # Schreibe NUR die Spalten, die im Header stehen (wie zu Beginn der CSV):
+            # Zeitstempel,Kesseltemperatur,Außentemperatur,Pufferspeicher Oben,Pufferspeicher Mitte,Pufferspeicher Unten,Warmwasser
+            daten = [
+                zeitstempel,
+                kesseltemperatur,
+                aussentemperatur,
+                puffer_oben,
+                puffer_mitte,
+                puffer_unten,
+                warmwasser
+            ]
 
-            print(f"Extrahierte Daten ({len(values)} Werte total): {daten}")
-
-            # Daten in CSV speichern
             csv_datei = "Heizungstemperaturen.csv"
             datei_existiert = os.path.exists(csv_datei)
-
             with open(csv_datei, "a", newline="", encoding="utf-8") as file:
                 writer = csv.writer(file)
                 if not datei_existiert:
-                    writer.writerow(daten.keys())  # Schreibe die Spaltenüberschriften
+                    writer.writerow(["Zeitstempel","Kesseltemperatur","Außentemperatur","Pufferspeicher Oben","Pufferspeicher Mitte","Pufferspeicher Unten","Warmwasser"])
                 print(f"Schreibe folgende Daten in die CSV-Datei: {daten}")
-                writer.writerow(daten.values())  # Schreibe die Werte
+                writer.writerow(daten)
 
             print(f"Daten wurden in '{csv_datei}' gespeichert.")
             
@@ -84,9 +72,9 @@ def _speichere_pufferdaten(values, zeitstempel):
     try:
         puffer_data = {
             "Zeitstempel": zeitstempel,
-            "Oben": float(values[4]) if values[4] else None,
-            "Mitte": float(values[5]) if values[5] else None,
-            "Unten": float(values[6]) if values[6] else None,
+            "Oben": float(values[3]) if len(values) > 3 and values[3] else None,
+            "Mitte": float(values[4]) if len(values) > 4 and values[4] else None,
+            "Unten": float(values[5]) if len(values) > 5 and values[5] else None,
             "Status": _bestimme_puffer_status(values)
         }
         
@@ -115,7 +103,7 @@ def _speichere_pufferdaten(values, zeitstempel):
 def _bestimme_puffer_status(values):
     """Bestimmt den Puffer-Status basierend auf Temperaturen"""
     try:
-        temps = [float(values[4]), float(values[5]), float(values[6])]
+        temps = [float(values[3]), float(values[4]), float(values[5])]
         temps = [t for t in temps if t]  # Filtere None/0-Werte
         if not temps:
             return "FEHLER"

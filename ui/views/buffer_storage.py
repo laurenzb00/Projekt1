@@ -26,6 +26,19 @@ from ui.styles import (
 
 DEBUG_LOG = os.getenv("DASH_DEBUG", "0") == "1"
 
+
+def _normalize_header(name: str) -> str:
+    return (
+        name.strip()
+        .lower()
+        .replace("ä", "ae")
+        .replace("ö", "oe")
+        .replace("ü", "ue")
+        .replace("ß", "ss")
+        .replace(" ", "")
+        .replace("_", "")
+    )
+
 class BufferStorageView(tk.Frame):
     """Zylindrischer Pufferspeicher mit geclippter Heatmap + Sparkline."""
 
@@ -413,6 +426,15 @@ class BufferStorageView(tk.Frame):
         lines = self._read_lines_safe(path)
         if len(lines) < 2:
             return []
+        header = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            if line.lower().startswith("zeit"):
+                header = next(csv.reader([line]))
+                break
+        idx_map = self._header_indices(header) if header else {}
         rows = []
         for line in lines[-800:]:
             line = line.strip()
@@ -423,7 +445,17 @@ class BufferStorageView(tk.Frame):
                 ts = datetime.fromisoformat(row[0])
                 if ts < cutoff:
                     continue
-                outdoor_temp = float(row[8])  # Außentemperatur
+                val = self._row_value_by_keys(
+                    row,
+                    idx_map,
+                    "Außentemperatur",
+                    "Aussentemperatur",
+                    "OutdoorTemp",
+                    "OutTemp",
+                )
+                if val is None:
+                    continue
+                outdoor_temp = float(val)
                 ts_bin = ts - timedelta(minutes=ts.minute % bin_minutes, seconds=ts.second, microseconds=ts.microsecond)
                 rows.append((ts_bin, outdoor_temp))
             except Exception:
@@ -453,6 +485,20 @@ class BufferStorageView(tk.Frame):
             smoothed.append((series[i][0], smoothed_val))
         return smoothed
 
+    @staticmethod
+    def _header_indices(header: list[str]) -> dict[str, int]:
+        return {_normalize_header(name): idx for idx, name in enumerate(header)}
+
+    @staticmethod
+    def _row_value_by_keys(row: list[str], idx_map: dict[str, int], *keys: str) -> str | None:
+        for key in keys:
+            norm = _normalize_header(key)
+            if norm in idx_map:
+                idx = idx_map[norm]
+                if 0 <= idx < len(row):
+                    return row[idx]
+        return None
+
     def _load_puffer_series(self, hours: int = 24, bin_minutes: int = 15) -> list[tuple[datetime, float]]:
         path = self._data_path("Heizungstemperaturen.csv")
         if not os.path.exists(path):
@@ -461,6 +507,15 @@ class BufferStorageView(tk.Frame):
         lines = self._read_lines_safe(path)
         if len(lines) < 2:
             return []
+        header = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            if line.lower().startswith("zeit"):
+                header = next(csv.reader([line]))
+                break
+        idx_map = self._header_indices(header) if header else {}
         rows = []
         for line in lines[-800:]:
             line = line.strip()
@@ -471,7 +526,16 @@ class BufferStorageView(tk.Frame):
                 ts = datetime.fromisoformat(row[0])
                 if ts < cutoff:
                     continue
-                mid = float(row[4])
+                val = self._row_value_by_keys(
+                    row,
+                    idx_map,
+                    "Pufferspeicher Mitte",
+                    "Puffer_Mitte",
+                    "Puffer Mitte",
+                )
+                if val is None:
+                    continue
+                mid = float(val)
                 ts_bin = ts - timedelta(minutes=ts.minute % bin_minutes, seconds=ts.second, microseconds=ts.microsecond)
                 rows.append((ts_bin, mid))
             except Exception:

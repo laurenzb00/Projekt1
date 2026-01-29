@@ -11,19 +11,19 @@ logger = logging.getLogger(__name__)
 # Mapping aller PP-Indizes zu ihren korrekten Namen
 PP_INDEX_MAPPING = {
     0: "Betriebsmodus",              # z.B. "TEILLAST"
-    1: "Kesseltemperatur",
-    2: "Kesselrücklauf",
-    3: "Pufferspeicher_Mitte",      # Annahme: Mittelwert, ggf. anpassen
-    4: "Außentemperatur",
-    5: "Pufferladung",              # in %
-    6: "Puffer_Oben",
-    7: "Warmwassertemperatur",
-    8: "Puffer_Unten",
+    1: "Wert_1",
+    2: "Kesseltemperatur",
+    3: "Außentemperatur",
+    6: "Pufferspeicher_Mitte",
+    7: "Puffer_Unten",
+    13: "Warmwassertemperatur",
+    45: "Puffer_Oben",
+    8: "Kesselrücklauf",
     9: "Rauchgastemperatur",        # Abgastemperatur des Kessels
     10: "Wert_10",                  # Unbekannt, Platzhalter
     11: "Rauchgasauslastung",       # in %
     12: "CO2_Gehalt",               # CO2 in %
-    13: "Differenzial_13",          # Oft 0 = Schwellwert
+    13: "Warmwassertemperatur",
     14: "Hysterese_14",             # -20.00 = typische Regelabweichung
     15: "Differenzial_15",          # 0 = Schwellwert
     16: "Hysterese_16",             # -20.00 = typische Regelabweichung
@@ -55,7 +55,7 @@ PP_INDEX_MAPPING = {
     42: "Modus_Status",             # z.B. "Normal"
     43: "Brenner_Status",           # KRITISCH: "HEIZEN" oder "AUS"
     44: "Brenner_Status_2",         # Duplikat
-    45: "Brenner_Status_3",         # Duplikat
+    45: "Puffer_Oben",
     46: "Relais_10_Status",         # "AUS"
     47: "Relais_11_Status",         # "AUS"
     48: "Relais_12_Status",         # "AUS"
@@ -108,10 +108,34 @@ def abrufen_und_speichern():
             
             # Extrahiere ALLE verfügbaren Daten
             daten_heizung = _extrahiere_alle_daten(values, zeitstempel)
+
+            def _get_field(name: str, *alts: str):
+                if not daten_heizung:
+                    return ""
+                if name in daten_heizung:
+                    return daten_heizung.get(name)
+                for alt in alts:
+                    if alt in daten_heizung:
+                        return daten_heizung.get(alt)
+                return ""
+
+            # Kurz-Zuordnung basierend auf PP_INDEX_MAPPING
+            daten_kurz = {
+                "Zeitstempel": zeitstempel,
+                "Kesseltemperatur": _get_field("Kesseltemperatur"),
+                "Außentemperatur": _get_field("Außentemperatur"),
+                "Pufferspeicher Oben": _get_field("Puffer_Oben", "Pufferspeicher Oben"),
+                "Pufferspeicher Mitte": _get_field("Pufferspeicher_Mitte", "Pufferspeicher Mitte"),
+                "Pufferspeicher Unten": _get_field("Puffer_Unten", "Pufferspeicher Unten"),
+                "Warmwasser": _get_field("Warmwassertemperatur", "Warmwasser"),
+            }
             
             # Speichere in Heizungstemperaturen.csv
             if daten_heizung:
+                daten_heizung.update(daten_kurz)
                 _speichere_heizungsdaten(daten_heizung)
+            else:
+                _speichere_heizungsdaten(daten_kurz)
             
             # Speichere Pufferanlage-Daten separat (strukturiert)
             daten_puffer = _extrahiere_pufferdaten(values, zeitstempel)
@@ -156,9 +180,9 @@ def _extrahiere_pufferdaten(values, zeitstempel):
     
     try:
         # Berechne Durchschnittstemp und Stratifikation
-        temp_oben = _safe_float(values[4])
-        temp_mitte = _safe_float(values[5])
-        temp_unten = _safe_float(values[6])
+        temp_oben = _safe_float(values[45]) if len(values) > 45 else None
+        temp_mitte = _safe_float(values[6]) if len(values) > 6 else None
+        temp_unten = _safe_float(values[7]) if len(values) > 7 else None
         
         temps = [temp_oben, temp_mitte, temp_unten]
         temps_valid = [t for t in temps if t is not None]
@@ -220,12 +244,36 @@ def _speichere_heizungsdaten(daten):
     csv_datei = "Heizungstemperaturen.csv"
     datei_existiert = os.path.exists(csv_datei)
 
+    def _get(*keys):
+        for key in keys:
+            if key in daten:
+                return daten.get(key)
+        return ""
+
     try:
         with open(csv_datei, "a", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
             if not datei_existiert:
-                writer.writerow(daten.keys())
-            writer.writerow(daten.values())
+                writer.writerow([
+                    "Zeitstempel",
+                    "Kesseltemperatur",
+                    "Außentemperatur",
+                    "Pufferspeicher Oben",
+                    "Pufferspeicher Mitte",
+                    "Pufferspeicher Unten",
+                    "Warmwasser",
+                ])
+            aussen = _get("Außentemperatur", "Aussentemperatur")
+            puffer_oben = _get("Puffer_Oben", "Pufferspeicher Oben", "Puffer Oben")
+            writer.writerow([
+                _get("Zeitstempel"),
+                _get("Kesseltemperatur"),
+                aussen,
+                puffer_oben,
+                _get("Pufferspeicher_Mitte", "Puffer_Mitte", "Pufferspeicher Mitte", "Puffer Mitte"),
+                _get("Puffer_Unten", "Pufferspeicher Unten", "Puffer Unten"),
+                _get("Warmwassertemperatur", "Warmwasser"),
+            ])
         logger.debug(f"Heizungsdaten gespeichert: {daten.get('Zeitstempel')}")
     except Exception as e:
         logger.error(f"Fehler beim Speichern von Heizungsdaten: {e}")

@@ -40,13 +40,13 @@ def abrufen_und_speichern():
                 if not datei_existiert or os.stat(csv_datei).st_size == 0:
                     writer.writerow(daten.keys())  # Schreibe die Spaltenüberschriften
                 writer.writerow(daten.values())  # Schreibe die Werte
-    except Exception as e:
-        print(f"Fehler beim Abrufen und Speichern der Wechselrichter-Daten: {e}")
+    except Exception:
+        pass  # Fehler beim Abrufen und Speichern werden ignoriert
 
 def run():
     while True:
         abrufen_und_speichern()
-        time.sleep(1)
+        time.sleep(60)
 
 # Nur ausführen, wenn die Datei direkt gestartet wird
 if __name__ == "__main__":

@@ -62,6 +62,135 @@ def _read_last_data_line(path: str, max_bytes: int = 65536) -> str | None:
             continue
         return line
     return None
+
+
+def _normalize_header(name: str) -> str:
+    return (
+        name.strip()
+        .lower()
+        .replace("ä", "ae")
+        .replace("ö", "oe")
+        .replace("ü", "ue")
+        .replace("ß", "ss")
+        .replace(" ", "")
+        .replace("_", "")
+    )
+
+
+def _read_csv_header(path: str) -> list[str]:
+    try:
+        with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                return next(csv.reader([line]))
+    except Exception:
+        return []
+    return []
+
+
+def _read_last_row_dict(path: str) -> dict[str, str]:
+    header = _read_csv_header(path)
+    if not header:
+        return {}
+    last_line = _read_last_data_line(path)
+    if not last_line:
+        return {}
+    try:
+        row = next(csv.reader([last_line]))
+    except Exception:
+        return {}
+    if len(row) < len(header):
+        row += [""] * (len(header) - len(row))
+    return dict(zip(header, row))
+
+
+def _get_row_value(row_dict: dict[str, str], *keys: str) -> str | None:
+    if not row_dict:
+        return None
+    norm_map = {_normalize_header(k): k for k in row_dict.keys()}
+    for key in keys:
+        norm = _normalize_header(key)
+        if norm in norm_map:
+            return row_dict.get(norm_map[norm])
+    return None
+
+
+def _safe_float(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _parse_bmk_row(row: list[str]) -> dict[str, str]:
+    """Parse a BMK CSV row that contains the full PP data (Betriebsmodus as col 1)."""
+    if not row or len(row) < 10:
+        return {}
+    if _safe_float(row[1]) is not None:
+        return {}
+    values = row[1:]
+    return {
+        "Betriebsmodus": values[0] if len(values) > 0 else "",
+        "Kesseltemperatur": values[2] if len(values) > 2 else "",
+        "Außentemperatur": values[3] if len(values) > 3 else "",
+        "Pufferspeicher Oben": values[5] if len(values) > 5 else "",
+        "Pufferspeicher Mitte": values[6] if len(values) > 6 else "",
+        "Pufferspeicher Unten": values[7] if len(values) > 7 else "",
+        "Warmwasser": values[13] if len(values) > 13 else "",
+    }
+
+
+def _parse_short_bmk_row(row: list[str]) -> dict[str, str]:
+    """Parse a short 7-column BMK row (no Betriebsmodus)."""
+    if not row or len(row) < 7:
+        return {}
+    return {
+        "Kesseltemperatur": row[1],
+        "Außentemperatur": row[2],
+        "Pufferspeicher Oben": row[3],
+        "Pufferspeicher Mitte": row[4],
+        "Pufferspeicher Unten": row[5],
+        "Warmwasser": row[6],
+    }
+
+
+def _is_plausible_bmk(values: dict[str, str]) -> bool:
+    out_temp = _safe_float(values.get("Außentemperatur"))
+    p_top = _safe_float(values.get("Pufferspeicher Oben"))
+    p_mid = _safe_float(values.get("Pufferspeicher Mitte"))
+    p_bot = _safe_float(values.get("Pufferspeicher Unten"))
+    warm = _safe_float(values.get("Warmwasser"))
+
+    if out_temp is None or not (-40 <= out_temp <= 50):
+        return False
+    for v in [p_top, p_mid, p_bot, warm]:
+        if v is None or not (10 <= v <= 95):
+            return False
+    return True
+
+
+def _get_last_valid_bmk_values(path: str, max_lines: int = 200) -> dict[str, str]:
+    lines = _read_lines_safe(path)
+    if not lines:
+        return {}
+    for line in reversed(lines[-max_lines:]):
+        line = line.strip()
+        if not line or line.lower().startswith("zeit"):
+            continue
+        try:
+            row = next(csv.reader([line]))
+        except Exception:
+            continue
+        parsed = _parse_bmk_row(row)
+        if not parsed:
+            parsed = _parse_short_bmk_row(row)
+        if parsed and _is_plausible_bmk(parsed):
+            return parsed
+    return {}
 try:
     from historical_tab import HistoricalTab
 except ImportError:
@@ -250,8 +379,146 @@ class MainApp:
         if self._debug_log:
             print(f"[LAYOUT] Marked stable at {time.time() - self._start_time:.3f}s")
 
+
+        # Add Status Tab
+        self.status_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
+        self.notebook.add(self.status_tab, text=emoji("🟢 Status", "Status"))
+        self._init_status_tab()
+
+        # Add PV Status Tab
+        self.pv_status_tab = tk.Frame(self.notebook, bg=COLOR_ROOT)
+        self.notebook.add(self.pv_status_tab, text=emoji("🔆 PV Status", "PV Status"))
+        self._init_pv_status_tab()
+
         # Add other tabs
         self._add_other_tabs()
+    def _init_status_tab(self):
+        frame = self.status_tab
+        self.status_brenner = tk.StringVar(value="--")
+        self.status_betriebsmodus = tk.StringVar(value="--")
+        self.status_puffer = tk.StringVar(value="--")
+        self.status_ww = tk.StringVar(value="--")
+        self.status_kessel = tk.StringVar(value="--")
+        self.status_empfehlung = tk.StringVar(value="--")
+        self.status_letzte_aktiv = tk.StringVar(value="--")
+        self.status_betriebsstunden = tk.StringVar(value="--")
+        row = 0
+        tk.Label(frame, text="Brenner", font=("Segoe UI", 16), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
+        tk.Label(frame, textvariable=self.status_brenner, font=("Segoe UI", 16, "bold"), fg="#f59e0b", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Betriebsmodus", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_betriebsmodus, font=("Segoe UI", 14), fg="#38bdf8", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Pufferladung", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_puffer, font=("Segoe UI", 14), fg="#10b981", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Warmwasser", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_ww, font=("Segoe UI", 14), fg="#fbbf24", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Kessel", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_kessel, font=("Segoe UI", 14), fg="#a3e635", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Empfehlung", font=("Segoe UI", 14), fg="white", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.status_empfehlung, font=("Segoe UI", 14), fg="#f87171", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Letzte Aktivität", font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
+        tk.Label(frame, textvariable=self.status_letzte_aktiv, font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Betriebsstunden", font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
+        tk.Label(frame, textvariable=self.status_betriebsstunden, font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        self._update_status_tab()
+
+    def _update_status_tab(self):
+        bmk_csv = _data_path("Heizungstemperaturen.csv")
+        if os.path.exists(bmk_csv):
+            try:
+                row_dict = _read_last_row_dict(bmk_csv)
+                last_line = _read_last_data_line(bmk_csv)
+                row = next(csv.reader([last_line])) if last_line else []
+
+                parsed = _get_last_valid_bmk_values(bmk_csv) or _parse_bmk_row(row) or _parse_short_bmk_row(row)
+
+                brenner = _get_row_value(row_dict, "Brenner_Status", "Brennerstatus")
+                betriebsmodus = parsed.get("Betriebsmodus") or _get_row_value(row_dict, "Betriebsmodus")
+                puffer = parsed.get("Pufferspeicher Oben") or _get_row_value(
+                    row_dict,
+                    "Pufferspeicher Oben",
+                    "Puffer_Oben",
+                    "Puffer Oben",
+                )
+                warmwasser = parsed.get("Warmwasser") or _get_row_value(row_dict, "Warmwasser", "Warmwassertemperatur")
+                kessel = parsed.get("Kesseltemperatur") or _get_row_value(row_dict, "Kesseltemperatur")
+                zeit = _get_row_value(row_dict, "Zeitstempel", "Zeit")
+
+                self.status_brenner.set(brenner if brenner is not None else (row[1] if len(row) > 1 else "--"))
+                self.status_betriebsmodus.set(betriebsmodus if betriebsmodus is not None else (row[1] if len(row) > 1 else "--"))
+                self.status_puffer.set(puffer if puffer is not None else "--")
+                self.status_ww.set(warmwasser if warmwasser is not None else "--")
+                self.status_kessel.set(kessel if kessel is not None else "--")
+                try:
+                    puffer_val = _safe_float(puffer)
+                    self.status_empfehlung.set("OK" if puffer_val and puffer_val > 30 else "Nachladen")
+                except Exception:
+                    self.status_empfehlung.set("--")
+                self.status_letzte_aktiv.set(zeit if zeit is not None else (row[0] if len(row) > 0 else "--"))
+                self.status_betriebsstunden.set("--")
+            except Exception:
+                pass
+        self.root.after(60000, self._update_status_tab)
+
+    def _init_pv_status_tab(self):
+        frame = self.pv_status_tab
+        self.pv_status_pv = tk.StringVar(value="-- kW")
+        self.pv_status_batt = tk.StringVar(value="-- %")
+        self.pv_status_grid = tk.StringVar(value="-- kW")
+        self.pv_status_recommend = tk.StringVar(value="--")
+        self.pv_status_time = tk.StringVar(value="--")
+        row = 0
+        tk.Label(frame, text="PV-Leistung", font=("Segoe UI", 16), fg="#0ea5e9", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
+        tk.Label(frame, textvariable=self.pv_status_pv, font=("Segoe UI", 16, "bold"), fg="#0ea5e9", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Batterie", font=("Segoe UI", 14), fg="#10b981", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.pv_status_batt, font=("Segoe UI", 14), fg="#10b981", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Netzbezug", font=("Segoe UI", 14), fg="#ef4444", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=4)
+        tk.Label(frame, textvariable=self.pv_status_grid, font=("Segoe UI", 14), fg="#ef4444", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Empfehlung", font=("Segoe UI", 16, "bold"), fg="#f87171", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=16)
+        tk.Label(frame, textvariable=self.pv_status_recommend, font=("Segoe UI", 16, "bold"), fg="#f87171", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        row += 1
+        tk.Label(frame, text="Letztes Update", font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=0, sticky="w", padx=20, pady=8)
+        tk.Label(frame, textvariable=self.pv_status_time, font=("Segoe UI", 12), fg="#a3a3a3", bg=COLOR_ROOT).grid(row=row, column=1, sticky="w")
+        self._update_pv_status_tab()
+
+    def _update_pv_status_tab(self):
+        fronius_csv = _data_path("FroniusDaten.csv")
+        if os.path.exists(fronius_csv):
+            try:
+                last_line = _read_last_data_line(fronius_csv)
+                if last_line:
+                    row = next(csv.reader([last_line]))
+                    self.pv_status_pv.set(f"{row[1]} kW" if len(row) > 1 else "-- kW")
+                    self.pv_status_batt.set(f"{row[5]} %" if len(row) > 5 else "-- %")
+                    self.pv_status_grid.set(f"{row[2]} kW" if len(row) > 2 else "-- kW")
+                    try:
+                        pv = float(row[1]) if len(row) > 1 else None
+                        batt = float(row[5]) if len(row) > 5 else None
+                        grid = float(row[2]) if len(row) > 2 else None
+                        if pv is not None and pv < 0.2:
+                            rec = "Wenig PV – Netzbezug möglich."
+                        elif batt is not None and batt < 20:
+                            rec = "Batterie fast leer."
+                        elif grid is not None and grid > 0.5:
+                            rec = "Hoher Netzbezug."
+                        else:
+                            rec = "Alles ok."
+                    except:
+                        rec = "--"
+                    self.pv_status_recommend.set(rec)
+                    self.pv_status_time.set(str(row[0]) if len(row) > 0 else "--")
+            except Exception:
+                pass
+        self.root.after(60000, self._update_pv_status_tab)
 
         # State
         self._tick = 0
@@ -678,14 +945,34 @@ class MainApp:
         # BMK Daten (letzter Eintrag)
         if os.path.exists(bmk_csv):
             try:
+                row_dict = _read_last_row_dict(bmk_csv)
                 last_line = _read_last_data_line(bmk_csv)
-                if last_line:
-                    row = next(csv.reader([last_line]))
-                    if len(row) >= 7:
-                        self._last_data["out_temp"] = float(row[2])
-                        self._last_data["puffer_top"] = float(row[3])
-                        self._last_data["puffer_mid"] = float(row[4])
-                        self._last_data["puffer_bot"] = float(row[5])
+                row = next(csv.reader([last_line])) if last_line else []
+                parsed = _get_last_valid_bmk_values(bmk_csv) or _parse_bmk_row(row) or _parse_short_bmk_row(row)
+
+                out_val = _safe_float(parsed.get("Außentemperatur")) if parsed else None
+                top_val = _safe_float(parsed.get("Pufferspeicher Oben")) if parsed else None
+                mid_val = _safe_float(parsed.get("Pufferspeicher Mitte")) if parsed else None
+                bot_val = _safe_float(parsed.get("Pufferspeicher Unten")) if parsed else None
+
+                if out_val is None and row_dict:
+                    out_val = _safe_float(_get_row_value(row_dict, "Außentemperatur", "Aussentemperatur", "OutdoorTemp", "OutTemp"))
+                if top_val is None and row_dict:
+                    top_val = _safe_float(_get_row_value(row_dict, "Pufferspeicher Oben", "Puffer_Oben", "Puffer Oben"))
+                if mid_val is None and row_dict:
+                    mid_val = _safe_float(_get_row_value(row_dict, "Pufferspeicher Mitte", "Puffer_Mitte", "Puffer Mitte"))
+                if bot_val is None and row_dict:
+                    bot_val = _safe_float(_get_row_value(row_dict, "Pufferspeicher Unten", "Puffer_Unten", "Puffer Unten"))
+
+                if out_val is not None:
+                    self._last_data["out_temp"] = out_val
+                if top_val is not None:
+                    self._last_data["puffer_top"] = top_val
+
+                if mid_val is not None:
+                    self._last_data["puffer_mid"] = mid_val
+                if bot_val is not None:
+                    self._last_data["puffer_bot"] = bot_val
             except Exception as e:
                 logging.debug(f"BMK CSV Fehler: {e}")
 

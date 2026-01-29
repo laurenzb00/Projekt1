@@ -47,6 +47,7 @@ console = logging.StreamHandler()
 console.setLevel(logging.INFO)
 console.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logging.getLogger().addHandler(console)
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 shutdown_event = threading.Event()
 
@@ -85,9 +86,7 @@ def main():
     root.protocol("WM_DELETE_WINDOW", on_close)
     root.mainloop()
 
+            # Debug prints and placeholder code removed for production cleanup
+
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        logging.info("Programm mit STRG+C beendet.")
-        shutdown_event.set()
+    main()

@@ -20,6 +20,9 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from PIL import Image, ImageTk, ImageDraw
 
+# Only show warnings and errors in terminal
+logging.basicConfig(level=logging.WARNING)
+
 # --- FARBEN aus ui/styles ---
 from ui.styles import (
     COLOR_ROOT,
@@ -53,6 +56,7 @@ class SpotifyTab:
         self.device_ids = []
         self.current_device_id = None
         self.image_queue = queue.Queue()
+        self._ui_queue = queue.Queue()
 
         self._vol_after = None
         self._user_adjusting = False
@@ -80,6 +84,7 @@ class SpotifyTab:
         self.notebook.add(self.tab_frame, text=emoji(" 🎵 Spotify ", "Spotify"))
 
         self._build_prelogin_ui()
+        self.root.after(50, self._process_ui_queue)
         threading.Thread(target=self._oauth_init_thread, daemon=True).start()
 
     def stop(self):
@@ -88,6 +93,32 @@ class SpotifyTab:
     def _clear_tab(self):
         for w in self.tab_frame.winfo_children():
             w.destroy()
+
+    def _ui_call(self, func, *args):
+        """Thread-safe UI dispatcher. Call from any thread."""
+        try:
+            if threading.current_thread() is threading.main_thread():
+                func(*args)
+            else:
+                self._ui_queue.put((func, args))
+        except Exception:
+            pass
+
+    def _process_ui_queue(self):
+        if not self.alive:
+            return
+        try:
+            while not self._ui_queue.empty():
+                func, args = self._ui_queue.get_nowait()
+                try:
+                    func(*args)
+                except Exception:
+                    pass
+        finally:
+            try:
+                self.root.after(50, self._process_ui_queue)
+            except Exception:
+                pass
 
     def _create_card(self, parent, title=""):
         """Erstellt moderne Karte mit Glass-Look"""
@@ -448,23 +479,23 @@ class SpotifyTab:
                 # Configure spotipy with increased timeout
                 self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 self.ready = True
-                self.root.after(0, self._build_ui)
-                self.status_text_var.set("Verbunden")
-                self.root.after(0, self.update_spotify)
+                self._ui_call(self._build_ui)
+                self._ui_call(self.status_text_var.set, "Verbunden")
+                self._ui_call(self.update_spotify)
                 return
-            self.status_text_var.set("Login erforderlich")
+            self._ui_call(self.status_text_var.set, "Login erforderlich")
         except Exception as e:
-            self.root.after(0, self._build_prelogin_ui, str(e))
+            self._ui_call(self._build_prelogin_ui, str(e))
 
     def _open_login_in_browser(self):
         if not self.oauth: return
         try:
             url = self.oauth.get_authorize_url()
             webbrowser.open_new(url)
-            self.status_text_var.set("Browser geöffnet...")
+            self._ui_call(self.status_text_var.set, "Browser geöffnet...")
             threading.Thread(target=self._wait_for_token_thread, daemon=True).start()
         except Exception as e:
-            self.status_text_var.set(f"Fehler: {e}")
+            self._ui_call(self.status_text_var.set, f"Fehler: {e}")
 
     def _wait_for_token_thread(self):
         try:
@@ -474,11 +505,11 @@ class SpotifyTab:
                 # Configure spotipy with increased timeout
                 self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 self.ready = True
-                self.root.after(0, self._build_ui)
-                self.status_text_var.set("Verbunden")
-                self.root.after(0, self.update_spotify)
+                self._ui_call(self._build_ui)
+                self._ui_call(self.status_text_var.set, "Verbunden")
+                self._ui_call(self.update_spotify)
         except Exception as e:
-            self.root.after(0, self._build_prelogin_ui, str(e))
+            self._ui_call(self._build_prelogin_ui, str(e))
 
     # ========== DEVICE MANAGEMENT ==========
     def _update_devices(self):
