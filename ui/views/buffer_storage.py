@@ -69,12 +69,6 @@ class BufferStorageView(tk.Frame):
         
         # Only reconfigure container height, don't recreate matplotlib figure
         self.configure(height=self.height)
-        """Create matplotlib figure and canvas - only called once at init."""
-        elapsed = time.time() - self._start_time
-        print(f"[BUFFER] _create_figure() at {elapsed:.3f}s: {fig_width}x{fig_height}")
-        
-        if hasattr(self, "canvas_widget") and self.canvas_widget.winfo_exists():
-            print(f"[BUFFER] WARNING: Destroying existing canvas at {elapsed:.3f}s")
         # Log but DON'T recreate the entire plot
         print(f"[BUFFER] Height changed from {old_height} to {self.height}, NOT recreating figure")
         
@@ -203,6 +197,11 @@ class BufferStorageView(tk.Frame):
 
     def update_temperatures(self, top: float, mid: float, bottom: float, kessel_c: float | None = None):
         """Update temperature display - uses draw_idle() to avoid blocking."""
+        if not self.winfo_exists():
+            return
+        if not hasattr(self, "canvas_widget") or not self.canvas_widget.winfo_exists():
+            return
+
         temps = (top, mid, bottom)
         if self._last_temps == temps:
             return
@@ -252,10 +251,10 @@ class BufferStorageView(tk.Frame):
         # only updating when temperatures actually change (see check at top)
         print(f"[BUFFER] Calling canvas.draw_idle() at {time.time() - self._start_time:.3f}s")
         
-        # Flush any pending draws before new one to reduce flicker
+        # Redraw safely if widget still exists
         try:
-            self.canvas.flush_events()
-            self.canvas.draw_idle()
+            if self.canvas_widget.winfo_exists():
+                self.canvas.draw_idle()
         except Exception as e:
             print(f"[BUFFER] Canvas draw error: {e}")
 
@@ -285,6 +284,10 @@ class BufferStorageView(tk.Frame):
     def _update_sparkline(self):
         if (datetime.now().timestamp() - self._last_spark_update) < 60:
             return
+        if not hasattr(self, "spark_canvas"):
+            return
+        if not self.spark_canvas.get_tk_widget().winfo_exists():
+            return
         self._last_spark_update = datetime.now().timestamp()
         
         pv_series = self._load_pv_series(hours=24, bin_minutes=15)
@@ -293,7 +296,13 @@ class BufferStorageView(tk.Frame):
         self.spark_ax.clear()
         
         # Create second y-axis for temperature
-        ax2 = self.spark_ax.twinx()
+        if hasattr(self, "spark_ax2"):
+            try:
+                self.spark_ax2.remove()
+            except Exception:
+                pass
+        self.spark_ax2 = self.spark_ax.twinx()
+        ax2 = self.spark_ax2
         
         # Plot PV production (left axis) - yellow/green
         if pv_series:
