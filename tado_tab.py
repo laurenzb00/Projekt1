@@ -97,6 +97,14 @@ class TadoTab:
         except Exception:
             pass
 
+    def _get_nested(self, data: dict, *keys, default=None):
+        cur = data
+        for key in keys:
+            if not isinstance(cur, dict) or key not in cur:
+                return default
+            cur = cur[key]
+        return cur
+
     def _loop(self):
         # 1. Login
         try:
@@ -146,12 +154,38 @@ class TadoTab:
         while self.alive:
             try:
                 state = self.api.get_zone_state(self.zone_id)
+
+                if not getattr(self, "_state_logged", False):
+                    print("[TADO] zone_state keys:", list(state.keys()))
+                    print("[TADO] sensorDataPoints keys:", list(state.get("sensorDataPoints", {}).keys()))
+                    print("[TADO] activityDataPoints keys:", list(state.get("activityDataPoints", {}).keys()))
+                    print("[TADO] setting keys:", list(state.get("setting", {}).keys()))
+                    self._state_logged = True
                 
                 # Daten parsen
-                temp = state['sensorDataPoints']['insideTemperature']['celsius']
-                hum = state['sensorDataPoints']['humidity']['percentage']
-                power = state['activityDataPoints']['heatingPower']['percentage']
-                target = state['setting']['temperature']['celsius'] if state['setting']['power'] == 'ON' else 0
+                temp = self._get_nested(state, "sensorDataPoints", "insideTemperature", "celsius")
+                if temp is None:
+                    temp = self._get_nested(state, "sensorDataPoints", "insideTemperature", "value")
+                if temp is None:
+                    temp = 0.0
+
+                hum = self._get_nested(state, "sensorDataPoints", "humidity", "percentage")
+                if hum is None:
+                    hum = self._get_nested(state, "sensorDataPoints", "humidity", "value")
+                if hum is None:
+                    hum = 0.0
+
+                power = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
+                if power is None:
+                    power = 0.0
+
+                setting = state.get("setting", {})
+                if setting.get("power") == "ON":
+                    target = self._get_nested(setting, "temperature", "celsius")
+                    if target is None:
+                        target = 0
+                else:
+                    target = 0
                 
                 # GUI Update
                 self._ui_set(self.var_temp_ist, f"{temp:.1f} °C")

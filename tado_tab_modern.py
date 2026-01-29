@@ -127,6 +127,14 @@ class TadoTab:
         except Exception:
             pass
 
+    def _get_nested(self, data: dict, *keys, default=None):
+        cur = data
+        for key in keys:
+            if not isinstance(cur, dict) or key not in cur:
+                return default
+            cur = cur[key]
+        return cur
+
     def _change_temp(self, delta: int):
         """Ändere Zieltemperatur um delta Grad."""
         try:
@@ -219,30 +227,59 @@ class TadoTab:
         while self.alive:
             try:
                 state = self.api.get_zone_state(self.zone_id)
+
+                if not getattr(self, "_state_logged", False):
+                    print("[TADO] zone_state keys:", list(state.keys()))
+                    print("[TADO] sensorDataPoints keys:", list(state.get("sensorDataPoints", {}).keys()))
+                    print("[TADO] activityDataPoints keys:", list(state.get("activityDataPoints", {}).keys()))
+                    print("[TADO] setting keys:", list(state.get("setting", {}).keys()))
+                    print("[TADO] overlay keys:", list(state.get("overlay", {}).keys()))
+                    self._state_logged = True
                 
                 # Temperatur
-                current = state.get('sensorDataPoints', {}).get('insideTemperature', {}).get('celsius', 0)
+                current = self._get_nested(state, "sensorDataPoints", "insideTemperature", "celsius")
+                if current is None:
+                    current = self._get_nested(state, "sensorDataPoints", "insideTemperature", "value")
+                if current is None:
+                    current = self._get_nested(state, "insideTemperature", "celsius")
+                if current is None:
+                    current = self._get_nested(state, "setting", "temperature", "celsius")
+                if current is None:
+                    current = 0.0
                 self._ui_set(self.var_temp_ist, f"{current:.1f} °C")
                 
                 # Feuchtigkeit
-                humidity = state.get('sensorDataPoints', {}).get('humidity', {}).get('percentage', 0)
+                humidity = self._get_nested(state, "sensorDataPoints", "humidity", "percentage")
+                if humidity is None:
+                    humidity = self._get_nested(state, "sensorDataPoints", "humidity", "value")
+                if humidity is None:
+                    humidity = 0.0
                 self._ui_set(self.var_humidity, f"{humidity:.0f} %")
                 
                 # Zieltemperatur
                 overlay = state.get('overlay')
-                if overlay:
-                    target = overlay.get('setting', {}).get('temperature', {}).get('celsius', 20)
+                setting = (overlay or {}).get("setting") or state.get("setting", {})
+                if setting:
+                    target = self._get_nested(setting, "temperature", "celsius")
+                    if target is None:
+                        target = 20
                     self._ui_set(self.var_temp_soll, f"{target:.0f} °C")
                     
-                    power = overlay.get('setting', {}).get('power', 'OFF')
+                    power = setting.get('power', 'OFF')
                     if power == 'ON':
-                        self.var_power.set(75)
+                        power_pct = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
+                        if power_pct is None:
+                            power_pct = 75
+                        self.var_power.set(int(power_pct))
                         self._ui_set(self.var_status, "Heizung aktiv")
                     else:
                         self.var_power.set(0)
                         self._ui_set(self.var_status, "Heizung aus")
                 else:
-                    self.var_power.set(0)
+                    power_pct = self._get_nested(state, "activityDataPoints", "heatingPower", "percentage")
+                    if power_pct is None:
+                        power_pct = 0
+                    self.var_power.set(int(power_pct))
                     self._ui_set(self.var_status, "Automatik")
                     
             except Exception:
