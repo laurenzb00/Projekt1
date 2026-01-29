@@ -77,7 +77,7 @@ class CalendarTab:
         self.scrollbar.pack(side="right", fill="y")
 
         # Start Update Loop
-        threading.Thread(target=self._loop, daemon=True).start()
+        self.root.after(0, lambda: threading.Thread(target=self._loop, daemon=True).start())
 
     def stop(self):
         self.alive = False

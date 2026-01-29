@@ -42,7 +42,7 @@ class SystemTab:
         self.notebook.add(self.tab_frame, text=emoji("⚙️ System", "System"))
         
         self._build_ui()
-        threading.Thread(target=self._loop, daemon=True).start()
+        self.root.after(0, lambda: threading.Thread(target=self._loop, daemon=True).start())
 
     def stop(self):
         self.alive = False

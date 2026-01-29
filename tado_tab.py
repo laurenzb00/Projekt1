@@ -46,7 +46,7 @@ class TadoTab:
         self._build_ui()
         
         # Start Thread
-        threading.Thread(target=self._loop, daemon=True).start()
+        self.root.after(0, lambda: threading.Thread(target=self._loop, daemon=True).start())
 
     def _build_ui(self):
         # Header
