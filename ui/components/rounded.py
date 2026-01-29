@@ -42,6 +42,11 @@ class RoundedFrame(tk.Frame):
         w = max(1, event.width)
         h = max(1, event.height)
         r = min(self._radius, w // 2, h // 2)
+        if hasattr(self, "_last_size"):
+            last_w, last_h = self._last_size
+            if abs(w - last_w) < 2 and abs(h - last_h) < 2:
+                return
+        self._last_size = (w, h)
         self.canvas.delete("rounded_bg")
         # Border
         if self._border:

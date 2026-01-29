@@ -39,6 +39,8 @@ class ErtragTab:
         self.ax.set_facecolor(COLOR_CARD)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.card.content())
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self._last_canvas_size = None
+        self.canvas.get_tk_widget().bind("<Configure>", self._on_canvas_resize)
 
         stats_frame = ttk.Frame(self.card.content())
         stats_frame.pack(fill=tk.X, pady=(8, 0))
@@ -125,6 +127,8 @@ class ErtragTab:
     def _update_plot(self):
         if not self.alive:
             return
+        if not self.canvas.get_tk_widget().winfo_exists():
+            return
 
         data = self._load_pv_daily(365)
         key = (len(data), data[-1]) if data else ("empty",)
@@ -161,8 +165,26 @@ class ErtragTab:
             self.var_last.set("Letzter Tag: -- kWh")
 
         self.fig.autofmt_xdate()
-        self.canvas.draw_idle()
+        try:
+            if self.canvas.get_tk_widget().winfo_exists():
+                self.canvas.draw_idle()
+        except Exception:
+            pass
         self.root.after(5 * 60 * 1000, self._update_plot)
+
+    def _on_canvas_resize(self, event):
+        w = max(1, event.width)
+        h = max(1, event.height)
+        if self._last_canvas_size:
+            last_w, last_h = self._last_canvas_size
+            if abs(w - last_w) < 6 and abs(h - last_h) < 6:
+                return
+        self._last_canvas_size = (w, h)
+        try:
+            self.fig.set_size_inches(w / 100.0, h / 100.0, forward=False)
+            self.canvas.draw_idle()
+        except Exception:
+            pass
 
     @staticmethod
     def _data_path(filename: str) -> str:

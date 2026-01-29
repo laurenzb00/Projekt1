@@ -89,6 +89,7 @@ class MainApp:
         self._start_time = time.time()
         self._configure_debounce_id = None
         self._last_size = (0, 0)
+        self._resize_enabled = False
         self.root = root
         self.root.title("Smart Home Dashboard")
         
@@ -324,10 +325,14 @@ class MainApp:
         if self.is_fullscreen:
             self.is_fullscreen = False
             self._apply_windowed()
+            self._resize_enabled = True
+            self.root.after(200, lambda: self._handle_resize(self.root.winfo_width(), self.root.winfo_height()))
             self.status.update_status("Fenster-Modus")
         else:
             self.is_fullscreen = True
             self._apply_fullscreen(target_w, target_h, 0)
+            self._resize_enabled = True
+            self.root.after(200, lambda: self._handle_resize(self.root.winfo_width(), self.root.winfo_height()))
             self.status.update_status("Fullscreen")
 
     def _mark_layout_stable(self):
@@ -335,15 +340,14 @@ class MainApp:
         elapsed = time.time() - self._start_time
         print(f"[LAYOUT] Marked stable at {elapsed:.3f}s")
         self._layout_stable = True
-# Ignore Configure events during initial layout (first 200ms)
-        elapsed = time.time() - self._start_time
-        if not hasattr(self, '_layout_stable') or not self._layout_stable:
-            print(f"[CONFIGURE] Root at {elapsed:.3f}s: {event.width}x{event.height} (IGNORED - layout not stable)")
-            return
         
     def _on_root_configure(self, event):
         """Debug: Log Configure events and debounce resize handling."""
         if event.widget != self.root:
+            return
+        if not getattr(self, "_layout_stable", False):
+            return
+        if not self._resize_enabled:
             return
         
         elapsed = time.time() - self._start_time
@@ -397,17 +401,23 @@ class MainApp:
             if hasattr(self, "energy_view"):
                 print(f"[RESIZE] Resizing energy_view to height {view_h}")
                 # DON'T use full resize - just update canvas size
-                self.energy_view.canvas.config(height=view_h)
-                self.energy_view.height = view_h
+                current_energy_h = self.energy_view.canvas.winfo_height()
+                if abs(current_energy_h - view_h) >= 2:
+                    self.energy_view.canvas.config(height=view_h)
+                    self.energy_view.height = view_h
                 
             if hasattr(self, "buffer_view"):
                 print(f"[RESIZE] Resizing buffer_view to height {view_h}")
                 # DON'T recreate figure - just resize container
-                self.buffer_view.configure(height=view_h)
-                self.buffer_view.height = view_h
+                current_buffer_h = self.buffer_view.winfo_height()
+                if abs(current_buffer_h - view_h) >= 2:
+                    self.buffer_view.configure(height=view_h)
+                    self.buffer_view.height = view_h
+            self._resize_enabled = False
                 
         except Exception as e:
             print(f"[RESIZE] Exception: {e}")
+            self._resize_enabled = False
 
     def _apply_runtime_scaling(self):
         """DEPRECATED: Old runtime scaling - now handled by _handle_resize."""

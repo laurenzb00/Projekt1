@@ -73,6 +73,8 @@ class HistoricalTab:
         self.ax.set_facecolor(COLOR_CARD)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.card.content())
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self._last_canvas_size = None
+        self.canvas.get_tk_widget().bind("<Configure>", self._on_canvas_resize)
 
         self._last_key = None
         self._update_plot()
@@ -122,6 +124,8 @@ class HistoricalTab:
     def _update_plot(self):
         if not self.alive:
             return
+        if not self.canvas.get_tk_widget().winfo_exists():
+            return
 
         rows = self._load_temps()
         key = (len(rows), rows[-1]) if rows else ("empty",)
@@ -163,9 +167,27 @@ class HistoricalTab:
                 self.var_out.set("-- °C")
 
             self.fig.autofmt_xdate()
-            self.canvas.draw_idle()
+            try:
+                if self.canvas.get_tk_widget().winfo_exists():
+                    self.canvas.draw_idle()
+            except Exception:
+                pass
 
         self.root.after(5 * 60 * 1000, self._update_plot)
+
+    def _on_canvas_resize(self, event):
+        w = max(1, event.width)
+        h = max(1, event.height)
+        if self._last_canvas_size:
+            last_w, last_h = self._last_canvas_size
+            if abs(w - last_w) < 6 and abs(h - last_h) < 6:
+                return
+        self._last_canvas_size = (w, h)
+        try:
+            self.fig.set_size_inches(w / 100.0, h / 100.0, forward=False)
+            self.canvas.draw_idle()
+        except Exception:
+            pass
 
     @staticmethod
     def _data_path(filename: str) -> str:
