@@ -105,6 +105,25 @@ class TadoTab:
             cur = cur[key]
         return cur
 
+    def _state_to_dict(self, state):
+        if isinstance(state, dict):
+            return state
+        for attr in ("to_dict", "dict"):
+            fn = getattr(state, attr, None)
+            if callable(fn):
+                try:
+                    return fn()
+                except Exception:
+                    pass
+        try:
+            return dict(state)
+        except Exception:
+            pass
+        try:
+            return vars(state)
+        except Exception:
+            return {}
+
     def _loop(self):
         # 1. Login
         try:
@@ -154,6 +173,7 @@ class TadoTab:
         while self.alive:
             try:
                 state = self.api.get_zone_state(self.zone_id)
+                state = self._state_to_dict(state)
 
                 if not getattr(self, "_state_logged", False):
                     print("[TADO] zone_state keys:", list(state.keys()))
