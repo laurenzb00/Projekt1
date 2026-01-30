@@ -589,14 +589,17 @@ class SpotifyTab:
             self._ui_call(self._build_prelogin_ui, str(e))
 
     def _open_login_in_browser(self):
-        if not self.oauth: return
-        try:
-            url = self.oauth.get_authorize_url()
-            webbrowser.open_new(url)
-            self._ui_call(self.status_text_var.set, "Browser geöffnet...")
-            threading.Thread(target=self._wait_for_token_thread, daemon=True).start()
-        except Exception as e:
-            self._ui_call(self.status_text_var.set, f"Fehler: {e}")
+        if not self.oauth:
+            return
+        def browser_and_token():
+            try:
+                url = self.oauth.get_authorize_url()
+                webbrowser.open_new(url)
+                self._ui_call(self.status_text_var.set, "Browser geöffnet...")
+                self._wait_for_token_thread()
+            except Exception as e:
+                self._ui_call(self.status_text_var.set, f"Fehler: {e}")
+        threading.Thread(target=browser_and_token, daemon=True).start()
 
     def _wait_for_token_thread(self):
         try:
