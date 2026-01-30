@@ -88,8 +88,6 @@ class SpotifyTab:
         self.notebook.add(self.tab_frame, text=emoji(" 🎵 Spotify ", "Spotify"))
 
         self._build_prelogin_ui()
-        self.root.after(50, self._process_ui_queue)
-        threading.Thread(target=self._oauth_init_thread, daemon=True).start()
 
     def stop(self):
         self.alive = False
