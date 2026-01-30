@@ -328,7 +328,8 @@ class MainApp:
         # Buffer Card (30%) - reduced size and padding
         self.buffer_card = Card(self.body, padding=6)
         self.buffer_card.grid(row=0, column=1, sticky="nsew", padx=(4, 0), pady=0)
-        self.buffer_card.add_title("Pufferspeicher", icon="🔥")
+        # Update title to 'Kesseltemperatur' with appropriate icon
+        self.buffer_card.add_title("Kesseltemperatur", icon="🔥")
         # LAYOUT FIX: Start with minimal height, will resize after layout settles
         self.buffer_view = BufferStorageView(self.buffer_card.content(), height=180)
         self.buffer_view.pack(fill=tk.BOTH, expand=True)
@@ -750,11 +751,15 @@ class MainApp:
 
         # Buffer every 6s
         if self._tick % 4 == 0:
+            # Show Kesseltemperatur as the main value in the mini diagram
+            kessel = self._last_data.get("kesseltemperatur")
+            # Fallback to warmwasser if kesseltemperatur is not available
+            boiler = kessel if kessel is not None else self._last_data.get("warmwasser", 65.0)
             self.buffer_view.update_temperatures(
                 self._last_data["puffer_top"],
                 self._last_data["puffer_mid"],
                 self._last_data["puffer_bot"],
-                self._last_data.get("warmwasser", 65.0),  # Boiler temperature jetzt Warmwasser
+                boiler,
             )
 
         # Data freshness every 15s
