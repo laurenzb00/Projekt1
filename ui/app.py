@@ -200,27 +200,28 @@ try:
 except ImportError:
     ErtragTab = None
 
-# Import Modern Tab Modules
+
+# Importiere NUR das neue SpotifyDashboard
 try:
-    from spotify_tab_modern import SpotifyTab
+    from spotify_dashboard_modern import SpotifyDashboard
 except ImportError:
-    SpotifyTab = None
-    
+    SpotifyDashboard = None
+
 try:
     from tado_tab_modern import TadoTab
 except ImportError:
     TadoTab = None
-    
+
 try:
     from hue_tab_modern import HueTab
 except ImportError:
     HueTab = None
-    
+
 try:
     from system_tab_modern import SystemTab
 except ImportError:
     SystemTab = None
-    
+
 try:
     from calendar_tab_modern import CalendarTab
 except ImportError:
@@ -462,9 +463,10 @@ class MainApp:
         self._loop()
 
     def _add_other_tabs(self):
-        """Integriert Spotify, Tado, Hue, System und Calendar Tabs."""
-        if SpotifyTab:
-            self.spotify_tab = SpotifyTab(self.root, self.notebook)
+        """Integriert NUR das neue SpotifyDashboard, sowie Tado, Hue, System und Calendar Tabs."""
+        if SpotifyDashboard:
+            # Neues Spotify-Dashboard als eigenes Fenster öffnen
+            self.spotify_dashboard = SpotifyDashboard()
         if TadoTab:
             self.tado_tab = TadoTab(self.root, self.notebook)
             if self._debug_log:
