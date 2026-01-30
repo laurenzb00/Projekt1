@@ -39,16 +39,23 @@ def ensure_emoji_font():
 ensure_emoji_font()
 
 # --- Logging ---
+
+# Set root logger and all libraries to WARNING (only show warnings/errors)
 logging.basicConfig(
     filename="datenerfassung.log",
-    level=logging.INFO,
+    level=logging.WARNING,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 console = logging.StreamHandler()
-console.setLevel(logging.INFO)
+console.setLevel(logging.WARNING)
 console.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logging.getLogger().addHandler(console)
-logging.getLogger("matplotlib").setLevel(logging.WARNING)
+
+# Set all noisy libraries to WARNING
+for noisy in [
+    "matplotlib", "phue", "spotipy", "urllib3", "requests", "PyTado", "PyTado.zone", "PyTado.device"
+]:
+    logging.getLogger(noisy).setLevel(logging.WARNING)
 
 shutdown_event = threading.Event()
 
