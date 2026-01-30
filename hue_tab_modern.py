@@ -156,14 +156,13 @@ class HueTab:
             time.sleep(20)
             self.root.after(0, self._refresh_lights_ui)
 
-    def _refresh_lights_ui(self):
-        """Baut das Grid neu"""
-        for widget in self.scroll_frame.winfo_children():
-            widget.destroy()
-            
+    def _refresh_lights_ui(self, update_only=False):
+        """Aktualisiert nur die Light-Cards, nicht das ganze Grid, wenn update_only=True."""
         try:
             self.lights_cache = self.bridge.get_light_objects()
             if not self.lights_cache:
+                for widget in self.scroll_frame.winfo_children():
+                    widget.destroy()
                 tk.Label(
                     self.scroll_frame,
                     text="Keine Lampen gefunden.",
@@ -174,19 +173,52 @@ class HueTab:
 
             sorted_lights = sorted(self.lights_cache, key=lambda x: x.name)
 
-            # Grid Layout (3 Spalten)
+            if update_only:
+                for i, light in enumerate(sorted_lights):
+                    row, col = divmod(i, 3)
+                    self._update_light_card(light, row, col)
+                return
+
+            # Sonst: komplettes Grid neu bauen
+            for widget in self.scroll_frame.winfo_children():
+                widget.destroy()
             row = 0
             col = 0
-            
             for light in sorted_lights:
                 self._create_light_card(light, row, col)
                 col += 1
                 if col > 2:
                     col = 0
                     row += 1
-                    
         except Exception as e:
             self._ui_set(self.status_var, f"Fehler: {e}")
+
+    def _update_light_card(self, light, row, col):
+        """Aktualisiert eine bestehende Light-Card im Grid (Status, Farbe, Helligkeit)."""
+        try:
+            for widget in self.scroll_frame.grid_slaves(row=row, column=col):
+                card = widget
+                # Header: Icon und Name
+                for child in card.winfo_children():
+                    if isinstance(child, tk.Frame):
+                        for sub in child.winfo_children():
+                            if isinstance(sub, tk.Label) and "💡" in sub.cget("text"):
+                                icon_color = "#fbbf24" if light.on else COLOR_SUBTEXT
+                                sub.config(fg=icon_color)
+                            if isinstance(sub, tk.Label) and sub.cget("text") == light.name:
+                                sub.config(fg="white")
+                # Borderfarbe
+                card.config(highlightbackground=COLOR_SUCCESS if light.on else COLOR_ACCENT)
+                # Content: Toggle-Button
+                for child in card.winfo_children():
+                    if isinstance(child, tk.Frame):
+                        for sub in child.winfo_children():
+                            if isinstance(sub, tk.Button):
+                                btn_txt = (emoji("💡 An", "Anschalten") if not light.on else emoji("🔌 Aus", "Ausschalten"))
+                                btn_bg = COLOR_SUCCESS if not light.on else COLOR_ACCENT
+                                sub.config(text=btn_txt, bg=btn_bg, activebackground=btn_bg)
+        except Exception:
+            pass
 
     def _create_light_card(self, light, row, col):
         """Erstellt moderne Lichtkarte"""
@@ -279,8 +311,15 @@ class HueTab:
             bright_frame = tk.Frame(content, bg=COLOR_CARD_BG)
             bright_frame.pack(fill=tk.X, pady=(0, 10))
             
-            tk.Label(
-                bright_frame, text="Helligkeit",
+            # === Toggle Button (Touch-optimiert, klarer) ===
+            btn_txt = (emoji("💡 An", "Anschalten") if not is_on else emoji("🔌 Aus", "Ausschalten"))
+            btn_bg = COLOR_SUCCESS if not is_on else COLOR_ACCENT
+            btn_fg = "white"
+            btn_font = ("Segoe UI", 16, "bold")
+            btn_height = 2
+            btn_padx = 0
+            btn_pady = 8
+
                 font=("Segoe UI", 9),
                 fg=COLOR_SUBTEXT, bg=COLOR_CARD_BG
             ).pack(side=tk.LEFT)
@@ -297,9 +336,11 @@ class HueTab:
                     light.brightness = int(float(val))
                     percent = int((float(val)/254)*100)
                     bri_label.config(text=f"{percent}%")
+                height=btn_height,
+                padx=btn_padx, pady=btn_pady,
                 except: pass
             
-            def on_slide(val):
+            toggle_btn.pack(fill=tk.X, pady=(0, 18))
                 threading.Thread(target=slide_worker, args=(val,), daemon=True).start()
 
             slider = ttk.Scale(

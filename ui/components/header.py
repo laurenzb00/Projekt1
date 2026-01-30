@@ -59,8 +59,7 @@ class HeaderBar(tk.Frame):
         self.btn_a.pack(side=tk.LEFT, padx=2)
         self.btn_b = ttk.Button(btn_row, text="Aus", style="Card.TButton", width=7, command=on_toggle_b)
         self.btn_b.pack(side=tk.LEFT, padx=2)
-        self.exit_btn = ttk.Button(btn_row, text="Exit", style="Card.TButton", width=7, command=on_exit)
-        self.exit_btn.pack(side=tk.LEFT, padx=2)
+        # Exit-Button entfernt, nur noch unten
 
     def update_header(self, date_text: str, weekday: str, time_text: str, out_temp: str):
         self.date_label.config(text=date_text)

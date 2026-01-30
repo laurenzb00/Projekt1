@@ -74,7 +74,7 @@ def run_wechselrichter():
                 # data_queue.put(('wechselrichter', data))
             except Exception as e:
                 logging.error(f"Wechselrichter-Thread Fehler: {e}")
-            time.sleep(60)
+            time.sleep(10)
     except Exception as e:
         logging.error(f"Wechselrichter-Thread Fehler: {e}")
 
@@ -88,7 +88,7 @@ def run_bmkdaten():
                 # data_queue.put(('bmkdaten', data))
             except Exception as e:
                 logging.error(f"BMKDATEN-Thread Fehler: {e}")
-            time.sleep(60)
+            time.sleep(10)
     except Exception as e:
         logging.error(f"BMKDATEN-Thread Fehler: {e}")
 
