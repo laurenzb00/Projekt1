@@ -227,6 +227,14 @@ class SpotifyTab:
             justify="center"
         ).pack(pady=15)
         
+        # Login-URL erzeugen
+        login_url = None
+        if self.oauth:
+            try:
+                login_url = self.oauth.get_authorize_url()
+            except Exception:
+                login_url = None
+
         # Login Button (modern)
         btn = tk.Button(
             info,
@@ -240,7 +248,32 @@ class SpotifyTab:
             command=self._open_login_in_browser
         )
         btn.pack(pady=10)
-        
+
+        # Login-Link anzeigen
+        if login_url:
+            link_label = tk.Entry(info, width=60, font=("Segoe UI", 10), fg="#2563eb", bg=COLOR_CARD_BG, borderwidth=0, relief=tk.FLAT)
+            link_label.insert(0, login_url)
+            link_label.config(state="readonly")
+            link_label.pack(pady=(5, 0))
+
+            def copy_link():
+                self.root.clipboard_clear()
+                self.root.clipboard_append(login_url)
+                self.root.update()
+                self.status_text_var.set("Link kopiert!")
+
+            copy_btn = tk.Button(
+                info,
+                text=emoji("📋 Link kopieren", "Link kopieren"),
+                font=("Segoe UI", 10),
+                bg="#2563eb", fg="white",
+                activebackground="#1e40af",
+                relief=tk.FLAT,
+                cursor="hand2",
+                command=copy_link
+            )
+            copy_btn.pack(pady=(2, 10))
+
         tk.Label(
             info, text="Nach dem Login bleibt der Token gespeichert.",
             font=("Segoe UI", 9),
