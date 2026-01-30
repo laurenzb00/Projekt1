@@ -89,35 +89,6 @@ class SpotifyTab:
 
     def stop(self):
         self.alive = False
-
-            self.device_panel_open = False
-            self.active_device = None
-            self.devices = []
-            self.current_track = None
-            self.playlists = []
-            self.selected_playlist = None
-            self.tracks = []
-            self.is_playing = False
-            self.progress = 0
-            self.progress_max = 100
-            pass
-            self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
-            self.notebook.add(self.tab_frame, text=emoji("🎵 Spotify", "Spotify"))
-            self._build_layout()
-
-        def _build_layout(self):
-            # --- GRID SETUP ---
-            self.tab_frame.grid_rowconfigure(0, minsize=56)   # Header
-            self.tab_frame.grid_rowconfigure(1, weight=1)      # Content
-            self.tab_frame.grid_rowconfigure(2, minsize=140)   # Player-Bar
-            self.tab_frame.grid_columnconfigure(0, minsize=130) # Sidebar
-            self.tab_frame.grid_columnconfigure(1, weight=1)
-    def _process_ui_queue(self):
-            # --- HEADER ---
-            header = tk.Frame(self.tab_frame, bg=COLOR_CARD, height=56)
-            header.grid(row=0, column=0, columnspan=2, sticky="nsew")
-            header.grid_propagate(False)
-            tk.Label(header, text=emoji("🎵 Spotify", "Spotify"), font=("Segoe UI", 22, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD).pack(side=tk.LEFT, padx=24)
             self.header_center = tk.Label(header, text="Jetzt läuft", font=("Segoe UI", 16, "bold"), fg="white", bg=COLOR_CARD)
             self.header_center.pack(side=tk.LEFT, expand=True)
         if not self.alive:
