@@ -576,17 +576,17 @@ class SpotifyTab:
                 # Configure spotipy with increased timeout
                 self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 self.ready = True
-                self._ui_call(self._build_ui)
-                self._ui_call(self.status_text_var.set, "Verbunden")
-                self._ui_call(self.update_spotify)
+                self.root.after(0, self._build_ui)
+                self.root.after(0, lambda: self.status_text_var.set("Verbunden"))
+                self.root.after(0, self.update_spotify)
                 return
             # OAuth ist jetzt initialisiert, UI mit Link neu bauen
             import logging
             logging.warning("SpotifyTab: OAuth initialisiert, baue Login-UI mit Link.")
-            self._ui_call(self.status_text_var.set, "Login-Link bereit")
-            self._ui_call(self._build_prelogin_ui)
+            self.root.after(0, lambda: self.status_text_var.set("Login-Link bereit"))
+            self.root.after(0, self._build_prelogin_ui)
         except Exception as e:
-            self._ui_call(self._build_prelogin_ui, str(e))
+            self.root.after(0, lambda err=e: self._build_prelogin_ui(str(err)))
 
     def _open_login_in_browser(self):
         if not self.oauth:
@@ -611,17 +611,17 @@ class SpotifyTab:
                 token_info = self.oauth.get_access_token(as_dict=True)
             except Exception as e:
                 # Fallback: Manuelle Code-Eingabe anbieten
-                self._ui_call(self._build_manual_code_ui)
+                self.root.after(0, self._build_manual_code_ui)
                 return
             if token_info and token_info.get("access_token"):
                 import spotipy
                 self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 self.ready = True
-                self._ui_call(self._build_ui)
-                self._ui_call(self.status_text_var.set, "Verbunden")
-                self._ui_call(self.update_spotify)
+                self.root.after(0, self._build_ui)
+                self.root.after(0, lambda: self.status_text_var.set("Verbunden"))
+                self.root.after(0, self.update_spotify)
         except Exception as e:
-            self._ui_call(self._build_prelogin_ui, str(e))
+            self.root.after(0, lambda err=e: self._build_prelogin_ui(str(err)))
 
     def _build_manual_code_ui(self):
         self._clear_tab()
