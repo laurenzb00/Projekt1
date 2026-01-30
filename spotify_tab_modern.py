@@ -567,7 +567,7 @@ class SpotifyTab:
                 redirect_uri="http://127.0.0.1:8888/callback",
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
                 cache_path=cache_path,
-                open_browser=False,
+                open_browser=True,  # Browser wird jetzt automatisch geöffnet
                 show_dialog=False,
                 requests_timeout=10,  # Increase timeout to 10 seconds
             )
