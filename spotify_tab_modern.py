@@ -601,7 +601,7 @@ class SpotifyTab:
                 self.root.after(0, lambda: self.status_text_var.set("Browser geöffnet..."))
                 self._wait_for_token_thread()
             except Exception as e:
-                self.root.after(0, lambda: self.status_text_var.set(f"Fehler: {e}"))
+                self.root.after(0, lambda err=e: self.status_text_var.set(f"Fehler: {err}"))
         threading.Thread(target=browser_and_token, daemon=True).start()
 
     def _wait_for_token_thread(self):
