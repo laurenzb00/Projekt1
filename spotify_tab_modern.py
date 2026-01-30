@@ -579,7 +579,8 @@ class SpotifyTab:
                 self._ui_call(self.status_text_var.set, "Verbunden")
                 self._ui_call(self.update_spotify)
                 return
-            self._ui_call(self.status_text_var.set, "Login erforderlich")
+            # OAuth ist jetzt initialisiert, UI mit Link neu bauen
+            self._ui_call(self._build_prelogin_ui)
         except Exception as e:
             self._ui_call(self._build_prelogin_ui, str(e))
 
