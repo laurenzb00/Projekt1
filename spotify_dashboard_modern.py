@@ -41,17 +41,29 @@ class SpotifyDashboard(ctk.CTk):
         # Sektion 2: Playback Controls & Lautstärke
         self.controls_frame = ctk.CTkFrame(self.container, fg_color=BG_CONTAINER, corner_radius=20)
         self.controls_frame.place(x=400, y=20, width=380, height=440)
-        # Playback Buttons
-        self.prev_btn = ctk.CTkButton(self.controls_frame, text="⏮", width=60, height=60, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=30, font=("Arial", 28), command=self.prev_track)
-        self.prev_btn.place(x=30, y=60)
-        self.play_btn = ctk.CTkButton(self.controls_frame, text="▶", width=80, height=80, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=40, font=("Arial", 36, "bold"), command=self.toggle_play_pause)
-        self.play_btn.place(x=150, y=40)
-        self.next_btn = ctk.CTkButton(self.controls_frame, text="⏭", width=60, height=60, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=30, font=("Arial", 28), command=self.skip_track)
-        self.next_btn.place(x=290, y=60)
+        # Playback Buttons exakt wie im Screenshot
+        btn_size = 60
+        play_size = 70
+        btn_radius = 10
+        # Prev
+        self.prev_btn = ctk.CTkButton(self.controls_frame, text="⏮", width=btn_size, height=btn_size, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=btn_radius, font=("Arial", 24), command=self.prev_track)
+        self.prev_btn.place(x=40, y=60)
+        # Play
+        self.play_btn = ctk.CTkButton(self.controls_frame, text="▶", width=play_size, height=play_size, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=btn_radius, font=("Arial", 28, "bold"), command=self.toggle_play_pause)
+        self.play_btn.place(x=155, y=55)
+        # Next
+        self.next_btn = ctk.CTkButton(self.controls_frame, text="⏭", width=btn_size, height=btn_size, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=btn_radius, font=("Arial", 24), command=self.skip_track)
+        self.next_btn.place(x=270, y=60)
         # Lautstärke Slider
         self.volume_var = ctk.DoubleVar(value=50)
-        self.volume_slider = ctk.CTkSlider(self.controls_frame, from_=0, to=100, variable=self.volume_var, width=300, height=15, fg_color=LIGHT_GRAY, progress_color=WHITE, button_color=WHITE, button_hover_color=LIGHT_GRAY, command=self.set_volume)
-        self.volume_slider.place(x=40, y=180)
+        self.volume_slider = ctk.CTkSlider(self.controls_frame, from_=0, to=100, variable=self.volume_var, width=260, height=12, fg_color=LIGHT_GRAY, progress_color=WHITE, button_color=WHITE, button_hover_color=LIGHT_GRAY, command=self.set_volume)
+        self.volume_slider.place(x=60, y=160)
+
+        # Shuffle/Repeat Buttons (klein, unterhalb)
+        self.shuffle_btn = ctk.CTkButton(self.controls_frame, text="⏪ Shuffle", width=120, height=36, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=8, font=("Arial", 14), command=lambda: None)
+        self.shuffle_btn.place(x=40, y=210)
+        self.repeat_btn = ctk.CTkButton(self.controls_frame, text="⏩ Repeat", width=120, height=36, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=8, font=("Arial", 14), command=lambda: None)
+        self.repeat_btn.place(x=220, y=210)
 
         # Sektion 3: Geräteauswahl
         self.devices_frame = ctk.CTkFrame(self.container, fg_color=BG_CONTAINER, corner_radius=20)
@@ -59,7 +71,7 @@ class SpotifyDashboard(ctk.CTk):
         self.devices_label = ctk.CTkLabel(self.devices_frame, text="Geräte", font=("Arial", 18, "bold"), text_color=WHITE)
         self.devices_label.place(x=10, y=10)
         self.devices_list_frame = ctk.CTkScrollableFrame(self.devices_frame, fg_color=BG_CONTAINER, corner_radius=0, width=140, height=370)
-        self.devices_list_frame.place(x=10, y=50)
+        self.devices_list_frame.place(x=0, y=50)
         self.device_buttons = []
 
     def update_track_info(self, title, artist, cover_url=None):
@@ -112,8 +124,16 @@ class SpotifyDashboard(ctk.CTk):
         self.device_buttons = []
         for dev in devices:
             border = ACTIVE_BORDER if dev.get('is_active') else INACTIVE_BORDER
-            btn = ctk.CTkButton(self.devices_list_frame, text=dev['name'], width=130, height=50, fg_color=DARK_GRAY, text_color=WHITE, corner_radius=10, font=("Arial", 16), border_width=2, border_color=border)
-            btn.pack(pady=6)
+            btn = ctk.CTkButton(
+                self.devices_list_frame,
+                text=dev['name'],
+                width=260, height=50,
+                fg_color=DARK_GRAY, text_color=WHITE,
+                corner_radius=10, font=("Arial", 16),
+                border_width=2, border_color=border,
+                anchor="w"
+            )
+            btn.pack(pady=6, padx=2)
             self.device_buttons.append(btn)
 
 if __name__ == "__main__":
