@@ -1,4 +1,5 @@
 import threading
+import queue
 import logging
 import time
 import tkinter as tk
@@ -51,20 +52,39 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 shutdown_event = threading.Event()
 
+
+# Thread-safe queue for data updates
+data_queue = queue.Queue()
+
 def run_wechselrichter():
     try:
         while not shutdown_event.is_set():
-            Wechselrichter.run()
+            # Instead of running Wechselrichter.run() directly, get the data and put it in the queue
+            try:
+                Wechselrichter.abrufen_und_speichern()
+                # If you want to pass data to the GUI, you could put it in the queue here
+                # data = ...
+                # data_queue.put(('wechselrichter', data))
+            except Exception as e:
+                logging.error(f"Wechselrichter-Thread Fehler: {e}")
+            time.sleep(60)
     except Exception as e:
         logging.error(f"Wechselrichter-Thread Fehler: {e}")
 
 def run_bmkdaten():
     try:
         while not shutdown_event.is_set():
-            BMKDATEN.abrufen_und_speichern()
+            try:
+                BMKDATEN.abrufen_und_speichern()
+                # If you want to pass data to the GUI, you could put it in the queue here
+                # data = ...
+                # data_queue.put(('bmkdaten', data))
+            except Exception as e:
+                logging.error(f"BMKDATEN-Thread Fehler: {e}")
             time.sleep(60)
     except Exception as e:
         logging.error(f"BMKDATEN-Thread Fehler: {e}")
+
 
 def main():
     threads = [
@@ -84,6 +104,22 @@ def main():
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)
+
+    # Poll the queue for data updates and schedule GUI updates in the main thread
+    def poll_queue():
+        try:
+            while True:
+                item = data_queue.get_nowait()
+                # Example: handle data from threads (extend as needed)
+                # if item[0] == 'wechselrichter':
+                #     app.handle_wechselrichter_data(item[1])
+                # elif item[0] == 'bmkdaten':
+                #     app.handle_bmkdaten_data(item[1])
+        except queue.Empty:
+            pass
+        root.after(500, poll_queue)
+
+    poll_queue()
     root.mainloop()
 
             # Debug prints and placeholder code removed for production cleanup
