@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from ui.styles import COLOR_CARD, COLOR_BORDER, COLOR_HEADER, COLOR_TEXT, COLOR_SUBTEXT, COLOR_WARNING
+from ui.styles import COLOR_CARD, COLOR_BORDER, COLOR_HEADER, COLOR_TEXT, COLOR_SUBTEXT, COLOR_WARNING, COLOR_DANGER
 from ui.components.rounded import RoundedFrame
 
 
