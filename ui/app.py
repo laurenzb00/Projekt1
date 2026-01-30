@@ -545,7 +545,7 @@ class MainApp:
         self.root.geometry(f"{w}x{h}+{x}+{y}")
 
     def toggle_fullscreen(self):
-        # Instead of windowed mode, minimize to taskbar
+        # Statt Fullscreen: Sicher minimieren (ohne overrideredirect)
         try:
             try:
                 self.root.attributes("-fullscreen", False)
@@ -555,8 +555,8 @@ class MainApp:
             self.root.update_idletasks()
             self.root.iconify()
             self.status.update_status("Minimiert")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[MINIMIZE] Fehler: {e}")
 
     def _on_root_map(self, event):
         """Restore fullscreen after window is brought back from taskbar."""
@@ -567,7 +567,13 @@ class MainApp:
         target_w = min(sw, 1024)
         target_h = min(sh, 600)
         self.is_fullscreen = True
+        # Erst overrideredirect aktivieren, dann Fullscreen
         self.root.overrideredirect(True)
+        self.root.update_idletasks()
+        try:
+            self.root.attributes("-fullscreen", True)
+        except Exception:
+            pass
         self._apply_fullscreen(target_w, target_h, 0)
         self._resize_enabled = True
         self.root.after(200, lambda: self._handle_resize(self.root.winfo_width(), self.root.winfo_height()))
