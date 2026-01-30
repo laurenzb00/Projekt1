@@ -580,6 +580,9 @@ class SpotifyTab:
                 self._ui_call(self.update_spotify)
                 return
             # OAuth ist jetzt initialisiert, UI mit Link neu bauen
+            import logging
+            logging.warning("SpotifyTab: OAuth initialisiert, baue Login-UI mit Link.")
+            self._ui_call(self.status_text_var.set, "Login-Link bereit")
             self._ui_call(self._build_prelogin_ui)
         except Exception as e:
             self._ui_call(self._build_prelogin_ui, str(e))
