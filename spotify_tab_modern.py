@@ -89,61 +89,77 @@ class SpotifyTab:
 
     def stop(self):
         self.alive = False
-            self.btn_prev.place(x=btn_x, y=btn_y)
-            self.btn_play = tk.Button(self.player_bar, text=emoji("⏯", "Play/Pause"), font=("Segoe UI", 32, "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=4, height=2, command=self._on_play_pause)
-            self.btn_play.place(x=btn_x+90, y=btn_y-6)
-            self.btn_next = tk.Button(self.player_bar, text=emoji("⏭", "Next"), font=("Segoe UI", 28), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=3, height=2, command=self._on_next)
-            self.btn_next.place(x=btn_x+210, y=btn_y)
-        finally:
-            # Geräteauswahl-Button
-            self.device_btn = tk.Button(self.player_bar, text=emoji("🔊 Gerät: Wohnzimmer ▾", "Gerät"), font=("Segoe UI", 16, "bold"), bg=COLOR_CARD, fg=COLOR_PRIMARY, activebackground=COLOR_ACCENT, relief=tk.RAISED, width=18, height=2, command=self._toggle_device_panel)
-            self.device_btn.place(x=900, y=22)
-            try:
-            # Inline-Gerätepanel (zunächst versteckt)
-            self.device_panel = tk.Frame(self.player_bar, bg=COLOR_CARD, bd=2, relief=tk.RIDGE)
-            self.device_panel.place(x=700, y=0, width=320, height=140)
+
+    def _build_player_bar(self):
+        # Album-Cover
+        self.cover_img = tk.Label(self.player_bar, width=96, height=96, bg=COLOR_CARD)
+        self.cover_img.place(x=16, y=22)
+        # Songinfos
+        self.song_title = tk.Label(self.player_bar, text="Songtitel", font=("Segoe UI", 20, "bold"), fg="white", bg=COLOR_CARD, anchor="w")
+        self.song_title.place(x=128, y=22)
+        self.song_artist = tk.Label(self.player_bar, text="Interpret", font=("Segoe UI", 14), fg=COLOR_SUBTEXT, bg=COLOR_CARD, anchor="w")
+        self.song_artist.place(x=128, y=56)
+        # Fortschrittsbalken
+        self.progress_var = tk.DoubleVar(value=0)
+        self.progress_bar = ttk.Scale(self.player_bar, from_=0, to=100, variable=self.progress_var, orient="horizontal", length=520, bootstyle="info")
+        self.progress_bar.place(x=128, y=96, height=18)
+        # Player-Buttons
+        btn_y = 100
+        btn_x = 700
+        self.btn_prev = tk.Button(self.player_bar, text=emoji("⏮", "Prev"), font=("Segoe UI", 28), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=3, height=2, command=self._on_prev)
+        self.btn_prev.place(x=btn_x, y=btn_y)
+        self.btn_play = tk.Button(self.player_bar, text=emoji("⏯", "Play/Pause"), font=("Segoe UI", 32, "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=4, height=2, command=self._on_play_pause)
+        self.btn_play.place(x=btn_x+90, y=btn_y-6)
+        self.btn_next = tk.Button(self.player_bar, text=emoji("⏭", "Next"), font=("Segoe UI", 28), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=3, height=2, command=self._on_next)
+        self.btn_next.place(x=btn_x+210, y=btn_y)
+        # Geräteauswahl-Button
+        self.device_btn = tk.Button(self.player_bar, text=emoji("🔊 Gerät: Wohnzimmer ▾", "Gerät"), font=("Segoe UI", 16, "bold"), bg=COLOR_CARD, fg=COLOR_PRIMARY, activebackground=COLOR_ACCENT, relief=tk.RAISED, width=18, height=2, command=self._toggle_device_panel)
+        self.device_btn.place(x=900, y=22)
+        # Inline-Gerätepanel (zunächst versteckt)
+        self.device_panel = tk.Frame(self.player_bar, bg=COLOR_CARD, bd=2, relief=tk.RIDGE)
+        self.device_panel.place(x=700, y=0, width=320, height=140)
+        self.device_panel.lower()
+        self.device_panel_visible = False
+        self._build_device_panel()
+
+    def _build_device_panel(self):
+        for w in self.device_panel.winfo_children():
+            w.destroy()
+        tk.Label(self.device_panel, text="Gerät auswählen", font=("Segoe UI", 16, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD).pack(pady=(10, 8))
+        # Dummy-Geräteliste
+        for i, name in enumerate(["Wohnzimmer", "Küche", "Bad"]):
+            row = tk.Frame(self.device_panel, bg=COLOR_CARD, height=60)
+            row.pack(fill=tk.X, padx=12, pady=2)
+            icon = tk.Label(row, text=emoji("🔊", "Gerät"), font=("Segoe UI", 20), bg=COLOR_CARD)
+            icon.pack(side=tk.LEFT, padx=8)
+            tk.Label(row, text=name, font=("Segoe UI", 14), fg="white", bg=COLOR_CARD).pack(side=tk.LEFT, padx=8)
+            if i == 0:
+                tk.Label(row, text="✅", font=("Segoe UI", 18), fg=COLOR_SUCCESS, bg=COLOR_CARD).pack(side=tk.RIGHT, padx=8)
+            row.bind("<Button-1>", lambda e, n=name: self._select_device(n))
+        close_btn = tk.Button(self.device_panel, text="Schließen", font=("Segoe UI", 14, "bold"), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, height=2, command=self._toggle_device_panel)
+        close_btn.pack(fill=tk.X, padx=12, pady=(10, 8))
+
+    def _toggle_device_panel(self):
+        if self.device_panel_visible:
             self.device_panel.lower()
             self.device_panel_visible = False
-            self._build_device_panel()
-                self.root.after(50, self._process_ui_queue)
-        def _build_device_panel(self):
-            for w in self.device_panel.winfo_children():
-                w.destroy()
-            tk.Label(self.device_panel, text="Gerät auswählen", font=("Segoe UI", 16, "bold"), fg=COLOR_PRIMARY, bg=COLOR_CARD).pack(pady=(10, 8))
-            # Dummy-Geräteliste
-            for i, name in enumerate(["Wohnzimmer", "Küche", "Bad"]):
-                row = tk.Frame(self.device_panel, bg=COLOR_CARD, height=60)
-                row.pack(fill=tk.X, padx=12, pady=2)
-                icon = tk.Label(row, text=emoji("🔊", "Gerät"), font=("Segoe UI", 20), bg=COLOR_CARD)
-                icon.pack(side=tk.LEFT, padx=8)
-                tk.Label(row, text=name, font=("Segoe UI", 14), fg="white", bg=COLOR_CARD).pack(side=tk.LEFT, padx=8)
-                if i == 0:
-                    tk.Label(row, text="✅", font=("Segoe UI", 18), fg=COLOR_SUCCESS, bg=COLOR_CARD).pack(side=tk.RIGHT, padx=8)
-                row.bind("<Button-1>", lambda e, n=name: self._select_device(n))
-            close_btn = tk.Button(self.device_panel, text="Schließen", font=("Segoe UI", 14, "bold"), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, height=2, command=self._toggle_device_panel)
-            close_btn.pack(fill=tk.X, padx=12, pady=(10, 8))
-            except Exception:
-        def _toggle_device_panel(self):
-            if self.device_panel_visible:
-                self.device_panel.lower()
-                self.device_panel_visible = False
-            else:
-                self.device_panel.lift()
-                self.device_panel_visible = True
-                pass
-        def _select_device(self, name):
-            # Hier: Gerät wechseln, Panel schließen
-            self.device_btn.config(text=emoji(f"🔊 Gerät: {name} ▾", "Gerät"))
-            self._toggle_device_panel()
+        else:
+            self.device_panel.lift()
+            self.device_panel_visible = True
 
-        # --- Dummy-Callbacks ---
-        def _on_home(self): pass
-        def _on_playlists(self): pass
-        def _on_favorites(self): pass
-        def _on_downloads(self): pass
-        def _on_prev(self): pass
-        def _on_play_pause(self): pass
-        def _on_next(self): pass
+    def _select_device(self, name):
+        # Hier: Gerät wechseln, Panel schließen
+        self.device_btn.config(text=emoji(f"🔊 Gerät: {name} ▾", "Gerät"))
+        self._toggle_device_panel()
+
+    # --- Dummy-Callbacks ---
+    def _on_home(self): pass
+    def _on_playlists(self): pass
+    def _on_favorites(self): pass
+    def _on_downloads(self): pass
+    def _on_prev(self): pass
+    def _on_play_pause(self): pass
+    def _on_next(self): pass
     def _create_card(self, parent, title=""):
         """Erstellt moderne Karte mit Glass-Look"""
         outer = tk.Frame(parent, bg="#0a0f1a")
