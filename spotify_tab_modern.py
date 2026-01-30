@@ -89,26 +89,6 @@ class SpotifyTab:
 
     def stop(self):
         self.alive = False
-            self.header_center = tk.Label(header, text="Jetzt läuft", font=("Segoe UI", 16, "bold"), fg="white", bg=COLOR_CARD)
-            self.header_center.pack(side=tk.LEFT, expand=True)
-        if not self.alive:
-            # --- SIDEBAR ---
-            sidebar = tk.Frame(self.tab_frame, bg=COLOR_CARD, width=130)
-            sidebar.grid(row=1, column=0, rowspan=2, sticky="nsew")
-            sidebar.grid_propagate(False)
-            self._build_sidebar(sidebar)
-            return
-            # --- MAIN CONTENT ---
-            self.content = tk.Frame(self.tab_frame, bg=COLOR_ROOT)
-            self.content.grid(row=1, column=1, sticky="nsew")
-            self._build_main_content()
-        try:
-            # --- PLAYER BAR ---
-            self.player_bar = tk.Frame(self.tab_frame, bg=COLOR_CARD, height=140)
-            self.player_bar.grid(row=2, column=1, sticky="nsew")
-            self.player_bar.grid_propagate(False)
-            self._build_player_bar()
-            while not self._ui_queue.empty():
         def _build_sidebar(self, parent):
             btns = [
                 ("🏠", self._on_home),
