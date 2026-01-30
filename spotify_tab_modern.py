@@ -89,50 +89,6 @@ class SpotifyTab:
 
     def stop(self):
         self.alive = False
-        def _build_sidebar(self, parent):
-            btns = [
-                ("🏠", self._on_home),
-                ("🎵", self._on_playlists),
-                ("★", self._on_favorites),
-                ("⬇", self._on_downloads),
-            ]
-            for i, (icon, cmd) in enumerate(btns):
-                b = tk.Button(parent, text=icon, font=("Segoe UI", 36), bg=COLOR_CARD, fg=COLOR_PRIMARY, activebackground=COLOR_ACCENT, relief=tk.FLAT, command=cmd, width=3, height=2, bd=0, highlightthickness=0)
-                b.pack(fill=tk.X, pady=(18 if i==0 else 8, 0), padx=16)
-                func, args = self._ui_queue.get_nowait()
-        def _build_main_content(self):
-            # Dummy: Playlist-Ansicht mit Tracks
-            self.track_list = []
-            for i in range(7):
-                f = tk.Frame(self.content, bg=COLOR_CARD, height=60)
-                f.pack(fill=tk.X, padx=24, pady=8)
-                f.pack_propagate(False)
-                tk.Label(f, text=f"Track {i+1}", font=("Segoe UI", 16, "bold"), fg="white", bg=COLOR_CARD, anchor="w").pack(side=tk.TOP, anchor="w", padx=16, pady=(6,0))
-                tk.Label(f, text="Interpret", font=("Segoe UI", 12), fg=COLOR_SUBTEXT, bg=COLOR_CARD, anchor="w").pack(side=tk.TOP, anchor="w", padx=16)
-                play_btn = tk.Button(f, text=emoji("▶", "Play"), font=("Segoe UI", 18, "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=3, height=1)
-                play_btn.pack(side=tk.RIGHT, padx=16, pady=8)
-                self.track_list.append(f)
-                try:
-        def _build_player_bar(self):
-            # Album-Cover
-            self.cover_img = tk.Label(self.player_bar, width=96, height=96, bg=COLOR_CARD)
-            self.cover_img.place(x=16, y=22)
-                    func(*args)
-            # Songinfos
-            self.song_title = tk.Label(self.player_bar, text="Songtitel", font=("Segoe UI", 20, "bold"), fg="white", bg=COLOR_CARD, anchor="w")
-            self.song_title.place(x=128, y=22)
-            self.song_artist = tk.Label(self.player_bar, text="Interpret", font=("Segoe UI", 14), fg=COLOR_SUBTEXT, bg=COLOR_CARD, anchor="w")
-            self.song_artist.place(x=128, y=56)
-                except Exception:
-            # Fortschrittsbalken
-            self.progress_var = tk.DoubleVar(value=0)
-            self.progress_bar = ttk.Scale(self.player_bar, from_=0, to=100, variable=self.progress_var, orient="horizontal", length=520, bootstyle="info")
-            self.progress_bar.place(x=128, y=96, height=18)
-                    pass
-            # Player-Buttons
-            btn_y = 100
-            btn_x = 700
-            self.btn_prev = tk.Button(self.player_bar, text=emoji("⏮", "Prev"), font=("Segoe UI", 28), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=3, height=2, command=self._on_prev)
             self.btn_prev.place(x=btn_x, y=btn_y)
             self.btn_play = tk.Button(self.player_bar, text=emoji("⏯", "Play/Pause"), font=("Segoe UI", 32, "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=4, height=2, command=self._on_play_pause)
             self.btn_play.place(x=btn_x+90, y=btn_y-6)
