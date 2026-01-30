@@ -422,34 +422,42 @@ class SpotifyTab:
         ctrl.pack(pady=20)
         
         # Button Style Helper
-        def create_control_btn(parent, text, cmd, width=12, primary=False):
-            bg = COLOR_PRIMARY if primary else COLOR_ACCENT
-            active_bg = "#0284c7" if primary else "#2d3a5f"
-            return tk.Button(
-                parent, text=text,
-                font=("Segoe UI", 18, "bold"),
-                bg=bg, fg="white",
-                activebackground=active_bg,
-                relief=tk.FLAT,
-                cursor="hand2",
-                width=width,
-                height=2,
-                padx=16, pady=12,
-                command=cmd
+        from ui.components.rounded_button import RoundedButton
+        def create_control_btn(parent, text, cmd, width=12, primary=False, color=None):
+            # Spotify green for play, gray for others
+            if color:
+                bg = color
+            elif primary:
+                bg = "#1ed760"  # Spotify green
+            else:
+                bg = COLOR_ACCENT
+            active_bg = "#169c46" if primary else "#2d3a5f"
+            fg = "#191414" if primary else "white"
+            return RoundedButton(
+                parent,
+                text=text,
+                command=cmd,
+                bg=bg,
+                fg=fg,
+                active_bg=active_bg,
+                active_fg=fg,
+                radius=18,
+                padding=(18, 10),
+                font_size=18
             )
         
         # Button Row (Touch-optimiert, große Buttons)
         btn_row = tk.Frame(ctrl, bg=COLOR_CARD_BG)
         btn_row.pack(pady=18)
-        create_control_btn(btn_row, emoji("⏮", "Prev"), self.prev_track, 6).pack(side=tk.LEFT, padx=18)
+        create_control_btn(btn_row, emoji("⏮", "Prev"), self.prev_track, 6, False, color="#535353").pack(side=tk.LEFT, padx=18)
         create_control_btn(btn_row, emoji("▶ / ⏸", "Play/Pause"), self.play_pause, 16, True).pack(side=tk.LEFT, padx=18)
-        create_control_btn(btn_row, emoji("⏭", "Next"), self.next_track, 6).pack(side=tk.LEFT, padx=18)
+        create_control_btn(btn_row, emoji("⏭", "Next"), self.next_track, 6, False, color="#535353").pack(side=tk.LEFT, padx=18)
         
         # Secondary Controls (Touch-optimiert)
         btn_row2 = tk.Frame(ctrl, bg=COLOR_CARD_BG)
         btn_row2.pack(pady=14)
-        create_control_btn(btn_row2, emoji("🔀 Shuffle", "Shuffle"), self.set_shuffle, 12).pack(side=tk.LEFT, padx=12)
-        create_control_btn(btn_row2, emoji("🔁 Repeat", "Repeat"), self.set_repeat, 12).pack(side=tk.LEFT, padx=12)
+        create_control_btn(btn_row2, emoji("🔀 Shuffle", "Shuffle"), self.set_shuffle, 12, False, color="#232323").pack(side=tk.LEFT, padx=12)
+        create_control_btn(btn_row2, emoji("🔁 Repeat", "Repeat"), self.set_repeat, 12, False, color="#232323").pack(side=tk.LEFT, padx=12)
         
         # === 2. LAUTSTÄRKE ===
         outer2, card2 = self._create_card(right_container, "Lautstärke")
@@ -459,11 +467,11 @@ class SpotifyTab:
         vol_inner.pack(fill="x", padx=20, pady=15)
         
         # Mute Button (Touch-optimiert)
-        mute_btn = create_control_btn(vol_inner, emoji("🔇", "Mute"), self.toggle_mute, 6)
+        mute_btn = create_control_btn(vol_inner, emoji("🔇", "Mute"), self.toggle_mute, 6, False, color="#232323")
         mute_btn.pack(side=tk.LEFT, padx=(0, 20))
 
         # Lautstärke Minus Button
-        vol_minus = create_control_btn(vol_inner, "-", lambda: self._on_volume_btn(-5), 4)
+        vol_minus = create_control_btn(vol_inner, "-", lambda: self._on_volume_btn(-5), 4, False, color="#232323")
         vol_minus.pack(side=tk.LEFT, padx=(0, 8))
 
         # Slider (Touch-optimiert, dicker)
@@ -479,7 +487,7 @@ class SpotifyTab:
         vol_slider.pack(side=tk.LEFT, fill="x", expand=True, padx=10, ipadx=20)
 
         # Lautstärke Plus Button
-        vol_plus = create_control_btn(vol_inner, "+", lambda: self._on_volume_btn(5), 4)
+        vol_plus = create_control_btn(vol_inner, "+", lambda: self._on_volume_btn(5), 4, False, color="#232323")
         vol_plus.pack(side=tk.LEFT, padx=(8, 0))
 
         # Volume Label (größer)
@@ -509,7 +517,7 @@ class SpotifyTab:
         self.device_box.pack(side=tk.LEFT, fill="x", expand=True, padx=(0, 18), ipadx=12, ipady=8)
         self.device_box.bind("<<ComboboxSelected>>", self.set_device)
 
-        create_control_btn(dev_inner, "✓ Setzen", self.set_device, 10).pack(side=tk.RIGHT, padx=(12, 0))
+        create_control_btn(dev_inner, "✓ Setzen", self.set_device, 10, True).pack(side=tk.RIGHT, padx=(12, 0))
         
         # === 4. SUCHE ===
         outer4, card4 = self._create_card(right_container, "Suche")

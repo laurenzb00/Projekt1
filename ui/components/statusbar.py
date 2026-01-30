@@ -35,11 +35,12 @@ class StatusBar(tk.Frame):
         self.spark_canvas = tk.Canvas(self.center_frame, width=110, height=16, bg=COLOR_CARD, highlightthickness=0)
         self.spark_canvas.pack(side=tk.LEFT, padx=(0, 6))
 
-        self.window_btn = ttk.Button(inner, text="⊡", style="Card.TButton", command=on_toggle_fullscreen, width=4)
+        from ui.components.rounded_button import RoundedButton
+        self.window_btn = RoundedButton(inner, text="⊡", command=on_toggle_fullscreen, bg=COLOR_BORDER, fg=COLOR_TEXT, radius=16, padding=(16, 8), font_size=12)
         self.window_btn.grid(row=0, column=2, sticky="e", padx=(8, 8), pady=4)
 
         # Großer Exit-Button für Touch
-        self.exit_btn = ttk.Button(inner, text="⏻ Beenden", style="Danger.TButton", command=on_exit, width=12)
+        self.exit_btn = RoundedButton(inner, text="⏻ Beenden", command=on_exit, bg=COLOR_DANGER, fg="#fff", radius=16, padding=(20, 10), font_size=12)
         self.exit_btn.grid(row=0, column=3, sticky="e", padx=(8, 16), pady=4)
 
     def update_status(self, text: str):

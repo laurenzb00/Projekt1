@@ -55,9 +55,10 @@ class HeaderBar(tk.Frame):
 
         btn_row = tk.Frame(center, bg=COLOR_CARD)
         btn_row.grid(row=0, column=1, sticky="e", padx=(6, 0))
-        self.btn_a = ttk.Button(btn_row, text="An", style="Card.TButton", width=7, command=on_toggle_a)
+        from ui.components.rounded_button import RoundedButton
+        self.btn_a = RoundedButton(btn_row, text="An", command=on_toggle_a, bg=COLOR_PRIMARY, fg="#fff", radius=14, padding=(14, 8), font_size=12)
         self.btn_a.pack(side=tk.LEFT, padx=2)
-        self.btn_b = ttk.Button(btn_row, text="Aus", style="Card.TButton", width=7, command=on_toggle_b)
+        self.btn_b = RoundedButton(btn_row, text="Aus", command=on_toggle_b, bg=COLOR_BORDER, fg=COLOR_TEXT, radius=14, padding=(14, 8), font_size=12)
         self.btn_b.pack(side=tk.LEFT, padx=2)
         # Exit-Button entfernt, nur noch unten
 
