@@ -42,6 +42,9 @@ COLOR_CARD_BG = COLOR_CARD
 COLOR_ACCENT = COLOR_BORDER
 
 class SpotifyTab:
+        def _clear_tab(self):
+            for w in self.tab_frame.winfo_children():
+                w.destroy()
     """
     Moderner Spotify-Player mit Album-Art und Glass-Design
     """
