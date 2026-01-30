@@ -320,27 +320,28 @@ class HueTab:
             btn_padx = 0
             btn_pady = 8
 
+            tk.Label(
+                bright_frame,
+                text="Helligkeit",
                 font=("Segoe UI", 9),
                 fg=COLOR_SUBTEXT, bg=COLOR_CARD_BG
             ).pack(side=tk.LEFT)
-            
+
             bri_label = tk.Label(
                 bright_frame, text=f"{int((bri/254)*100)}%",
                 font=("Segoe UI", 9, "bold"),
                 fg="white", bg=COLOR_CARD_BG
             )
             bri_label.pack(side=tk.RIGHT)
-            
+
             def slide_worker(val):
                 try:
                     light.brightness = int(float(val))
                     percent = int((float(val)/254)*100)
                     bri_label.config(text=f"{percent}%")
-                height=btn_height,
-                padx=btn_padx, pady=btn_pady,
                 except: pass
-            
-            toggle_btn.pack(fill=tk.X, pady=(0, 18))
+
+            def on_slide(val):
                 threading.Thread(target=slide_worker, args=(val,), daemon=True).start()
 
             slider = ttk.Scale(
