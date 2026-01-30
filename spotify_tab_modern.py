@@ -567,9 +567,9 @@ class SpotifyTab:
                 redirect_uri="http://127.0.0.1:8888/callback",
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
                 cache_path=cache_path,
-                open_browser=True,  # Browser wird jetzt automatisch geöffnet
-                show_dialog=False,
-                requests_timeout=10,  # Increase timeout to 10 seconds
+                open_browser=True,
+                show_dialog=True,  # Dialog immer zeigen, damit manuelle Eingabe möglich ist
+                requests_timeout=10,
             )
             token_info = self.oauth.get_cached_token()
             if token_info:
@@ -598,18 +598,23 @@ class SpotifyTab:
                     webbrowser.get("chromium-browser").open_new(url)
                 except Exception:
                     webbrowser.open_new(url)
-                self._ui_call(self.status_text_var.set, "Browser geöffnet...")
+                self.root.after(0, lambda: self.status_text_var.set("Browser geöffnet..."))
                 self._wait_for_token_thread()
             except Exception as e:
-                self._ui_call(self.status_text_var.set, f"Fehler: {e}")
+                self.root.after(0, lambda: self.status_text_var.set(f"Fehler: {e}"))
         threading.Thread(target=browser_and_token, daemon=True).start()
 
     def _wait_for_token_thread(self):
         try:
-            token_info = self.oauth.get_access_token(as_dict=True)
+            token_info = None
+            try:
+                token_info = self.oauth.get_access_token(as_dict=True)
+            except Exception as e:
+                # Fallback: Manuelle Code-Eingabe anbieten
+                self._ui_call(self._build_manual_code_ui)
+                return
             if token_info and token_info.get("access_token"):
                 import spotipy
-                # Configure spotipy with increased timeout
                 self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 self.ready = True
                 self._ui_call(self._build_ui)
@@ -617,6 +622,37 @@ class SpotifyTab:
                 self._ui_call(self.update_spotify)
         except Exception as e:
             self._ui_call(self._build_prelogin_ui, str(e))
+
+    def _build_manual_code_ui(self):
+        self._clear_tab()
+        wrapper = tk.Frame(self.tab_frame, bg=COLOR_DARK_BG)
+        wrapper.pack(fill="both", expand=True)
+        tk.Label(wrapper, text="Spotify Login - Manuelle Code-Eingabe", font=("Segoe UI", 18, "bold"), fg="white", bg=COLOR_DARK_BG).pack(pady=20)
+        tk.Label(wrapper, text="Bitte öffne den Link im Browser, logge dich ein und kopiere den Code hierher:", font=("Segoe UI", 12), fg=COLOR_TEXT, bg=COLOR_DARK_BG).pack(pady=10)
+        url = self.oauth.get_authorize_url()
+        url_entry = tk.Entry(wrapper, width=80, font=("Segoe UI", 10), fg="#2563eb", bg=COLOR_CARD_BG, borderwidth=0, relief=tk.FLAT)
+        url_entry.insert(0, url)
+        url_entry.config(state="readonly")
+        url_entry.pack(pady=(5, 0))
+        code_var = tk.StringVar()
+        code_entry = tk.Entry(wrapper, textvariable=code_var, width=60, font=("Segoe UI", 12))
+        code_entry.pack(pady=20)
+        def submit_code():
+            code = code_var.get().strip()
+            if not code:
+                return
+            try:
+                token_info = self.oauth.get_access_token(code, as_dict=True)
+                if token_info and token_info.get("access_token"):
+                    import spotipy
+                    self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
+                    self.ready = True
+                    self._build_ui()
+                    self.status_text_var.set("Verbunden")
+                    self.update_spotify()
+            except Exception as e:
+                self.status_text_var.set(f"Fehler: {e}")
+        tk.Button(wrapper, text="Code einreichen", font=("Segoe UI", 12, "bold"), bg=COLOR_SUCCESS, fg="white", command=submit_code).pack(pady=10)
 
     # ========== DEVICE MANAGEMENT ==========
     def _update_devices(self):
