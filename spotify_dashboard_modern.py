@@ -10,13 +10,11 @@ DARK_GRAY = "#404040"
 ACTIVE_BORDER = WHITE
 INACTIVE_BORDER = BG_CONTAINER
 
-class SpotifyDashboard(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.geometry("1024x524")
-        self.resizable(False, False)
-        self.configure(bg=BG_MAIN)
-        self.title("Spotify Dashboard Modern")
+class SpotifyDashboard(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent, fg_color=BG_MAIN)
+        self.configure(width=1024, height=524)
+        self.pack_propagate(False)
         self.init_ui()
 
     def init_ui(self):
@@ -137,8 +135,11 @@ class SpotifyDashboard(ctk.CTk):
             self.device_buttons.append(btn)
 
 if __name__ == "__main__":
-    app = SpotifyDashboard()
-    app.mainloop()
+    root = ctk.CTk()
+    root.geometry("1024x524")
+    dashboard = SpotifyDashboard(root)
+    dashboard.pack(fill="both", expand=True)
+    root.mainloop()
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
