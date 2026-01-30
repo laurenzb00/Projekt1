@@ -594,7 +594,10 @@ class SpotifyTab:
         def browser_and_token():
             try:
                 url = self.oauth.get_authorize_url()
-                webbrowser.open_new(url)
+                try:
+                    webbrowser.get("chromium-browser").open_new(url)
+                except Exception:
+                    webbrowser.open_new(url)
                 self._ui_call(self.status_text_var.set, "Browser geöffnet...")
                 self._wait_for_token_thread()
             except Exception as e:
