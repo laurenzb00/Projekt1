@@ -8,7 +8,7 @@ class StatusBar(tk.Frame):
     """32px Statusbar mit Zeitstempel, Fenster- und Exit-Button."""
 
     def __init__(self, parent: tk.Widget, on_exit=None, on_toggle_fullscreen=None):
-        super().__init__(parent, height=32, bg=COLOR_HEADER)
+        super().__init__(parent, height=20, bg=COLOR_HEADER)
         self.pack_propagate(False)
 
         rounded = RoundedFrame(self, bg=COLOR_CARD, border=None, radius=18, padding=0)

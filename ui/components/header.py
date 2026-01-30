@@ -16,7 +16,7 @@ class HeaderBar(tk.Frame):
     """Schlanker Header mit Datum, Uhrzeit, Toggles und Exit."""
 
     def __init__(self, parent: tk.Widget, on_toggle_a=None, on_toggle_b=None, on_exit=None):
-        super().__init__(parent, height=60, bg=COLOR_HEADER)
+        super().__init__(parent, height=36, bg=COLOR_HEADER)
         self.pack_propagate(False)
 
         # Rounded container

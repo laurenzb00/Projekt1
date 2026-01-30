@@ -463,10 +463,10 @@ class MainApp:
         self._loop()
 
     def _add_other_tabs(self):
-        """Integriert NUR das neue SpotifyDashboard, sowie Tado, Hue, System und Calendar Tabs."""
+        """Integriert das neue SpotifyDashboard als Tab, sowie Tado, Hue, System und Calendar Tabs."""
         if SpotifyDashboard:
-            # Neues Spotify-Dashboard als eigenes Fenster öffnen
-            self.spotify_dashboard = SpotifyDashboard()
+            self.spotify_tab = SpotifyDashboard(self.notebook)
+            self.notebook.add(self.spotify_tab, text="Spotify")
         if TadoTab:
             self.tado_tab = TadoTab(self.root, self.notebook)
             if self._debug_log:
