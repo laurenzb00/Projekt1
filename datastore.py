@@ -23,11 +23,10 @@ class DataStore:
     def _init_db(self):
         """Initialisiere Datenbank mit Tabellen."""
         self.conn = sqlite3.connect(self.db_path)
-        # Pi 5 Optimierungen: WAL + größerer Cache + Memory-Map
+        # Pi 5 Optimierungen: WAL + moderater Cache
         self.conn.execute("PRAGMA journal_mode=WAL")
-        self.conn.execute("PRAGMA cache_size=-64000")  # 64MB Cache für Pi 5
-        self.conn.execute("PRAGMA mmap_size=268435456")  # 256MB Memory-Map
-        self.conn.execute("PRAGMA page_size=4096")
+        self.conn.execute("PRAGMA cache_size=-32000")  # 32MB Cache (sicherer)
+        self.conn.execute("PRAGMA mmap_size=67108864")  # 64MB Memory-Map (reduziert)
         self.conn.execute("PRAGMA temp_store=MEMORY")
         cursor = self.conn.cursor()
         

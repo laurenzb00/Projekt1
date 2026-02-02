@@ -876,8 +876,8 @@ class MainApp:
         if self._tick % 5 == 0:
             self._update_freshness_and_sparkline()
 
-        # Pi 5 can handle faster updates: 1s main loop
-        self.root.after(1000, self._loop)
+        # Pi 5: 2s main loop (balanced performance)
+        self.root.after(2000, self._loop)
 
     def _update_freshness_and_sparkline(self):
         last_ts = self._get_last_timestamp()

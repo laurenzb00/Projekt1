@@ -108,13 +108,13 @@ class BufferStorageView(tk.Frame):
             if DEBUG_LOG:
                 print(f"[BUFFER] WARNING: Destroying existing canvas at {elapsed:.3f}s")
             self.canvas_widget.destroy()
-        self.fig = Figure(figsize=(fig_width, fig_height), dpi=120)  # Pi 5: Higher DPI
+        self.fig = Figure(figsize=(fig_width, fig_height), dpi=100)  # Pi 5: Stable DPI
         self.fig.patch.set_alpha(0)
         self.ax = self.fig.add_subplot(111)
         self.ax.set_facecolor("none")
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
         self.canvas_widget = self.canvas.get_tk_widget()
-        self.canvas_widget.configure(width=int(fig_width * 120), height=int(fig_height * 120))  # Pi 5: 120 DPI
+        self.canvas_widget.configure(width=int(fig_width * 100), height=int(fig_height * 100))
         self.canvas_widget.pack(fill=tk.BOTH, expand=True)
 
     def _setup_plot(self):
@@ -296,7 +296,7 @@ class BufferStorageView(tk.Frame):
         return vals.reshape(h, 1)
 
     def _create_sparkline(self):
-        self.spark_fig = Figure(figsize=(3.4, 0.9), dpi=120)  # Pi 5: Higher DPI
+        self.spark_fig = Figure(figsize=(3.4, 0.9), dpi=100)  # Pi 5: Stable DPI
         self.spark_fig.patch.set_alpha(0)
         self.spark_ax = self.spark_fig.add_subplot(111)
         self.spark_ax.set_facecolor("none")
