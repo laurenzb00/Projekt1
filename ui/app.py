@@ -209,12 +209,12 @@ except ImportError:
     ErtragTab = None
 
 
-# Importiere NUR das neue SpotifyDashboard
+# Spotify Tab mit integriertem OAuth
 try:
-    from spotify_dashboard_modern import SpotifyDashboard
+    from spotify_tab_modern import SpotifyTab
 except Exception as e:
     print(f"[SPOTIFY-IMPORT-ERROR] {e}")
-    SpotifyDashboard = None
+    SpotifyTab = None
 
 try:
     from tado_tab_modern import TadoTab
@@ -473,15 +473,15 @@ class MainApp:
         self._loop()
 
     def _add_other_tabs(self):
-        """Integriert das neue SpotifyDashboard als Tab, sowie Tado, Hue, System und Calendar Tabs."""
-        if SpotifyDashboard:
+        """Integriert den SpotifyTab (modern, mit OAuth) sowie Tado, Hue, System und Calendar Tabs."""
+        if SpotifyTab:
             try:
-                print("[SPOTIFY] SpotifyDashboard wird als Tab hinzugefügt!")
-                self.spotify_tab = SpotifyDashboard(self.notebook)
-                self.notebook.add(self.spotify_tab, text="🎵 Spotify Modern")
+                print("[SPOTIFY] SpotifyTab wird als Tab hinzugefügt!")
+                # SpotifyTab fügt sich selbst dem Notebook hinzu
+                self.spotify_tab = SpotifyTab(self.root, self.notebook)
                 print("[SPOTIFY] ✓ Tab erfolgreich hinzugefügt")
             except Exception as e:
-                print(f"[ERROR] SpotifyDashboard initialization failed: {e}")
+                print(f"[ERROR] SpotifyTab initialization failed: {e}")
                 import traceback
                 traceback.print_exc()
                 self.spotify_tab = None
