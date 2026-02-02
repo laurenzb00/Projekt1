@@ -27,7 +27,7 @@ COLOR_ACCENT = "#191414"
 class SpotifyDashboard(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg=BG_MAIN)
-        self.pack_propagate(False)
+        # Don't use pack_propagate(False) - let it expand naturally
         
         # State
         self.sp = None

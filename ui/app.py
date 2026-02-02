@@ -478,10 +478,12 @@ class MainApp:
             try:
                 print("[SPOTIFY] SpotifyDashboard wird als Tab hinzugefügt!")
                 self.spotify_tab = SpotifyDashboard(self.notebook)
-                self.spotify_tab.pack_propagate(False)
                 self.notebook.add(self.spotify_tab, text="🎵 Spotify Modern")
+                print("[SPOTIFY] ✓ Tab erfolgreich hinzugefügt")
             except Exception as e:
                 print(f"[ERROR] SpotifyDashboard initialization failed: {e}")
+                import traceback
+                traceback.print_exc()
                 self.spotify_tab = None
         
         if TadoTab:
