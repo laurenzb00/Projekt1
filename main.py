@@ -116,6 +116,20 @@ def main():
     # UI starten (geschieht parallel zu Datensammlung)
     print("[STARTUP] 🎨 Initialisiere UI...")
     root = tk.Tk()
+    # Auto-detect DPI-based scaling; can be overridden via UI_SCALING env.
+    try:
+        env_scale = os.getenv("UI_SCALING")
+        if env_scale:
+            scaling = float(env_scale)
+        else:
+            dpi = float(root.winfo_fpixels("1i"))  # pixels per inch
+            scaling = dpi / 96.0  # normalize to 96 DPI baseline
+            scaling = max(0.9, min(1.6, scaling))  # clamp reasonable range
+        root.tk.call("tk", "scaling", scaling)
+        # Export effective scaling so other modules (e.g., Spotify tab) can align sizes.
+        os.environ["UI_SCALING_EFFECTIVE"] = str(scaling)
+    except Exception:
+        pass
     root.title("Smart Energy Dashboard Pro")
     app = MainApp(root)
     

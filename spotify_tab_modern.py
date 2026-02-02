@@ -34,6 +34,15 @@ from ui.styles import (
     COLOR_SUBTEXT,
     emoji,
 )
+
+# UI Scaling helper (matches optional UI_SCALING in main.py)
+try:
+    _UI_SCALE = float(os.getenv("UI_SCALING", "1.0"))
+except Exception:
+    _UI_SCALE = 1.0
+
+def _s(val: float) -> int:
+    return int(round(val * _UI_SCALE))
 from ui.components.card import Card
 
 # Aliases für alte Code-Kompatibilität
@@ -96,32 +105,32 @@ class SpotifyTab:
 
     def _build_player_bar(self):
         # Album-Cover
-        self.cover_img = tk.Label(self.player_bar, width=96, height=96, bg=COLOR_CARD)
-        self.cover_img.place(x=16, y=22)
+        self.cover_img = tk.Label(self.player_bar, width=_s(96), height=_s(96), bg=COLOR_CARD)
+        self.cover_img.place(x=_s(16), y=_s(22))
         # Songinfos
-        self.song_title = tk.Label(self.player_bar, text="Songtitel", font=("Segoe UI", 20, "bold"), fg="white", bg=COLOR_CARD, anchor="w")
-        self.song_title.place(x=128, y=22)
-        self.song_artist = tk.Label(self.player_bar, text="Interpret", font=("Segoe UI", 14), fg=COLOR_SUBTEXT, bg=COLOR_CARD, anchor="w")
-        self.song_artist.place(x=128, y=56)
+        self.song_title = tk.Label(self.player_bar, text="Songtitel", font=("Segoe UI", _s(20), "bold"), fg="white", bg=COLOR_CARD, anchor="w")
+        self.song_title.place(x=_s(128), y=_s(22))
+        self.song_artist = tk.Label(self.player_bar, text="Interpret", font=("Segoe UI", _s(14)), fg=COLOR_SUBTEXT, bg=COLOR_CARD, anchor="w")
+        self.song_artist.place(x=_s(128), y=_s(56))
         # Fortschrittsbalken
         self.progress_var = tk.DoubleVar(value=0)
-        self.progress_bar = ttk.Scale(self.player_bar, from_=0, to=100, variable=self.progress_var, orient="horizontal", length=520, bootstyle="info")
-        self.progress_bar.place(x=128, y=96, height=18)
+        self.progress_bar = ttk.Scale(self.player_bar, from_=0, to=100, variable=self.progress_var, orient="horizontal", length=_s(520), bootstyle="info")
+        self.progress_bar.place(x=_s(128), y=_s(96), height=_s(18))
         # Player-Buttons
-        btn_y = 100
-        btn_x = 700
-        self.btn_prev = tk.Button(self.player_bar, text=emoji("⏮", "Prev"), font=("Segoe UI", 28), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=3, height=2, command=self._on_prev)
+        btn_y = _s(100)
+        btn_x = _s(700)
+        self.btn_prev = tk.Button(self.player_bar, text=emoji("⏮", "Prev"), font=("Segoe UI", _s(28)), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=_s(3), height=_s(2), command=self._on_prev)
         self.btn_prev.place(x=btn_x, y=btn_y)
-        self.btn_play = tk.Button(self.player_bar, text=emoji("⏯", "Play/Pause"), font=("Segoe UI", 32, "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=4, height=2, command=self._on_play_pause)
-        self.btn_play.place(x=btn_x+90, y=btn_y-6)
-        self.btn_next = tk.Button(self.player_bar, text=emoji("⏭", "Next"), font=("Segoe UI", 28), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=3, height=2, command=self._on_next)
-        self.btn_next.place(x=btn_x+210, y=btn_y)
+        self.btn_play = tk.Button(self.player_bar, text=emoji("⏯", "Play/Pause"), font=("Segoe UI", _s(32), "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=_s(4), height=_s(2), command=self._on_play_pause)
+        self.btn_play.place(x=btn_x+_s(90), y=btn_y-_s(6))
+        self.btn_next = tk.Button(self.player_bar, text=emoji("⏭", "Next"), font=("Segoe UI", _s(28)), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=_s(3), height=_s(2), command=self._on_next)
+        self.btn_next.place(x=btn_x+_s(210), y=btn_y)
         # Geräteauswahl-Button
-        self.device_btn = tk.Button(self.player_bar, text=emoji("🔊 Gerät: Wohnzimmer ▾", "Gerät"), font=("Segoe UI", 16, "bold"), bg=COLOR_CARD, fg=COLOR_PRIMARY, activebackground=COLOR_ACCENT, relief=tk.RAISED, width=18, height=2, command=self._toggle_device_panel)
-        self.device_btn.place(x=900, y=22)
+        self.device_btn = tk.Button(self.player_bar, text=emoji("🔊 Gerät: Wohnzimmer ▾", "Gerät"), font=("Segoe UI", _s(16), "bold"), bg=COLOR_CARD, fg=COLOR_PRIMARY, activebackground=COLOR_ACCENT, relief=tk.RAISED, width=_s(18), height=_s(2), command=self._toggle_device_panel)
+        self.device_btn.place(x=_s(900), y=_s(22))
         # Inline-Gerätepanel (zunächst versteckt)
         self.device_panel = tk.Frame(self.player_bar, bg=COLOR_CARD, bd=2, relief=tk.RIDGE)
-        self.device_panel.place(x=700, y=0, width=320, height=140)
+        self.device_panel.place(x=_s(700), y=_s(0), width=_s(320), height=_s(140))
         self.device_panel.lower()
         self.device_panel_visible = False
         self._build_device_panel()
@@ -235,6 +244,13 @@ class SpotifyTab:
             try:
                 login_url = self.oauth.get_authorize_url()
                 self._login_url = login_url
+                # Schreibe Login-URL zusätzlich ins Terminal und in /tmp, falls Kopieren im UI nicht klappt
+                try:
+                    print(f"[SPOTIFY] Login URL: {login_url}")
+                    with open("/tmp/spotify_login_url.txt", "w", encoding="utf-8") as f:
+                        f.write(login_url)
+                except Exception:
+                    pass
             except Exception:
                 login_url = None
 
