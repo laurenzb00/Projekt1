@@ -983,20 +983,20 @@ class MainApp:
                     if csv_ts and record_ts and record_ts < csv_ts:
                         record = None  # erzwinge CSV unten
                     else:
-                    pv_kw = record['pv']
-                    grid_kw = record['grid']
-                    batt_kw = record['batt']
-                    soc = record['soc']
-                    
-                    # Calculate load from balance
-                    load_kw = pv_kw + batt_kw - grid_kw
-                    
-                    self._last_data["pv"] = pv_kw * 1000  # kW -> W
-                    self._last_data["grid"] = grid_kw * 1000
-                    self._last_data["batt"] = -batt_kw * 1000
-                    self._last_data["load"] = load_kw * 1000
-                    self._last_data["soc"] = soc
-                    
+                        pv_kw = record['pv']
+                        grid_kw = record['grid']
+                        batt_kw = record['batt']
+                        soc = record['soc']
+
+                        # Calculate load from balance
+                        load_kw = pv_kw + batt_kw - grid_kw
+
+                        self._last_data["pv"] = pv_kw * 1000  # kW -> W
+                        self._last_data["grid"] = grid_kw * 1000
+                        self._last_data["batt"] = -batt_kw * 1000
+                        self._last_data["load"] = load_kw * 1000
+                        self._last_data["soc"] = soc
+
                         # Skip CSV fallback if DataStore worked
                         bmk_csv_exists = True
             except Exception as e:
