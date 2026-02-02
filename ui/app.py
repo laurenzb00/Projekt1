@@ -454,7 +454,7 @@ class MainApp:
                     self.pv_status_time.set(str(row[0]) if len(row) > 0 else "--")
             except Exception:
                 pass
-        self.root.after(60000, self._update_pv_status_tab)  # Update every 60s instead of 120s
+        self.root.after(30000, self._update_pv_status_tab)  # Pi 5: Update every 30s
 
         # State
         self._tick = 0
@@ -876,8 +876,8 @@ class MainApp:
         if self._tick % 5 == 0:
             self._update_freshness_and_sparkline()
 
-        # Increased loop interval to 2s for better responsiveness while keeping CPU low
-        self.root.after(2000, self._loop)
+        # Pi 5 can handle faster updates: 1s main loop
+        self.root.after(1000, self._loop)
 
     def _update_freshness_and_sparkline(self):
         last_ts = self._get_last_timestamp()

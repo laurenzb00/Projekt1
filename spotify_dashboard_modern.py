@@ -200,10 +200,12 @@ class SpotifyDashboard(tk.Frame):
         try:
             from spotipy.oauth2 import SpotifyOAuth
             cache_path = os.path.join(os.getcwd(), ".cache-spotify")
+            
+            # Nutze Port 8889 statt 8888 (8888 oft belegt)
             return SpotifyOAuth(
                 client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
                 client_secret=os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5"),
-                redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8888/callback"),
+                redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8889/callback"),
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state user-read-private",
                 cache_path=cache_path,
                 open_browser=True,
@@ -233,9 +235,10 @@ class SpotifyDashboard(tk.Frame):
                     self.after(0, self._refresh_status)
                 else:
                     self.after(0, lambda: self.set_status("❌ Login fehlgeschlagen"))
-            except Exception as e:
-                print(f"[SPOTIFY] Connect Error: {e}")
-                self.after(0, lambda: self.set_status(f"❌ {str(e)[:30]}"))
+            except Exception as ex:
+                print(f"[SPOTIFY] Connect Error: {ex}")
+                error_msg = str(ex)[:30]
+                self.after(0, lambda msg=error_msg: self.set_status(f"❌ {msg}"))
         
         threading.Thread(target=worker, daemon=True).start()
     

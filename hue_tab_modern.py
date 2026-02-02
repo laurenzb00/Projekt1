@@ -183,8 +183,8 @@ class HueTab:
                         retry_count = 0
                         continue
                 else:
-                    # Bridge verbunden - refresh content alle 15s (war 30s)
-                    time.sleep(15)
+                    # Pi 5: Bridge verbunden - refresh alle 8s (schnellere Updates)
+                    time.sleep(8)
                     self._refresh_content()
                     
             except Exception as e:
