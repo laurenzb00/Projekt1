@@ -1,4 +1,6 @@
 import tkinter as tk
+import os
+import threading
 from PIL import Image, ImageTk, ImageDraw
 
 # --- Farbpalette ---
@@ -15,7 +17,9 @@ class SpotifyDashboard(tk.Frame):
         super().__init__(parent, bg=BG_MAIN)
         self.configure(width=1024, height=524)
         self.pack_propagate(False)
+        self.status_var = tk.StringVar(value="Spotify: nicht verbunden")
         self.init_ui()
+        self._start_spotify_status_check()
 
     def init_ui(self):
         # Hauptcontainer
@@ -71,6 +75,46 @@ class SpotifyDashboard(tk.Frame):
         self.devices_list_frame = tk.Frame(self.devices_frame, bg=BG_CONTAINER)
         self.devices_list_frame.place(x=0, y=50, width=140, height=370)
         self.device_buttons = []
+
+        # Statusanzeige (unten)
+        self.status_label = tk.Label(
+            self.container,
+            textvariable=self.status_var,
+            font=("Arial", 12, "bold"),
+            fg=LIGHT_GRAY,
+            bg=BG_CONTAINER
+        )
+        self.status_label.place(x=20, y=455)
+
+    def set_status(self, text: str):
+        self.status_var.set(text)
+
+    def _start_spotify_status_check(self):
+        def worker():
+            try:
+                import spotipy
+                from spotipy.oauth2 import SpotifyOAuth
+
+                cache_path = os.path.join(os.path.abspath(os.getcwd()), ".cache-spotify")
+                oauth = SpotifyOAuth(
+                    client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
+                    client_secret=os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5"),
+                    redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8888/callback"),
+                    scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
+                    cache_path=cache_path,
+                    open_browser=False,
+                    show_dialog=False,
+                )
+
+                token_info = oauth.get_cached_token()
+                if token_info and token_info.get("access_token"):
+                    self.after(0, lambda: self.set_status("Spotify: verbunden"))
+                else:
+                    self.after(0, lambda: self.set_status("Spotify: nicht verbunden (spotifylogin.py ausführen)"))
+            except Exception as e:
+                self.after(0, lambda: self.set_status(f"Spotify: Fehler ({e})"))
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def update_track_info(self, title, artist, cover_url=None):
         self.track_title.configure(text=title)

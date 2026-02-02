@@ -128,7 +128,9 @@ class HistoricalTab:
             return
 
         rows = self._load_temps()
-        key = (len(rows), rows[-1]) if rows else ("empty",)
+        key = (len(rows), rows[-1] if rows else None) if rows else ("empty",)
+        
+        # Nur redraw wenn sich Daten wirklich geändert haben
         if key != self._last_key:
             self._last_key = key
             self.ax.clear()
@@ -136,19 +138,19 @@ class HistoricalTab:
 
             if rows:
                 ts, top, mid, bot, boiler, outside = zip(*rows)
-                self.ax.plot(ts, top, color=COLOR_PRIMARY, label="Puffer oben", linewidth=1.6)
-                self.ax.plot(ts, mid, color=COLOR_INFO, label="Puffer mitte", linewidth=1.2)
-                self.ax.plot(ts, bot, color=COLOR_SUBTEXT, label="Puffer unten", linewidth=1.2)
-                self.ax.plot(ts, boiler, color=COLOR_WARNING, label="Boiler", linewidth=1.4)
-                self.ax.plot(ts, outside, color=COLOR_DANGER, label="Außen", linewidth=1.2)
-                self.ax.set_ylabel("°C", color=COLOR_TEXT, fontsize=10)
-                # Y-Achse kann ins Minus gehen für Außentemperatur
+                # Moderneres Design mit besseren Farben und Liniendicken
+                self.ax.plot(ts, top, color=COLOR_PRIMARY, label="Puffer oben", linewidth=2.0, alpha=0.8)
+                self.ax.plot(ts, mid, color=COLOR_INFO, label="Puffer mitte", linewidth=1.5, alpha=0.7)
+                self.ax.plot(ts, bot, color=COLOR_SUBTEXT, label="Puffer unten", linewidth=1.5, alpha=0.6)
+                self.ax.plot(ts, boiler, color=COLOR_WARNING, label="Boiler", linewidth=2.0, alpha=0.8)
+                self.ax.plot(ts, outside, color=COLOR_DANGER, label="Außen", linewidth=1.8, alpha=0.8, linestyle='--')
+                self.ax.set_ylabel("°C", color=COLOR_TEXT, fontsize=10, fontweight='bold')
                 self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
                 self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
                 self.ax.xaxis.set_major_locator(MaxNLocator(nbins=6, integer=False))
                 self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m"))
-                self.ax.grid(True, color=COLOR_BORDER, alpha=0.3, linewidth=0.8)
-                self.ax.legend(facecolor=COLOR_CARD, edgecolor=COLOR_BORDER, labelcolor=COLOR_TEXT, fontsize=8)
+                self.ax.grid(True, color=COLOR_BORDER, alpha=0.2, linewidth=0.5)
+                self.ax.legend(facecolor=COLOR_CARD, edgecolor=COLOR_BORDER, labelcolor=COLOR_TEXT, fontsize=8, loc='upper left')
 
                 # Current values
                 self.var_top.set(f"{top[-1]:.1f} °C")
@@ -157,7 +159,8 @@ class HistoricalTab:
                 self.var_boiler.set(f"{boiler[-1]:.1f} °C")
                 self.var_out.set(f"{outside[-1]:.1f} °C")
             else:
-                self.ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", transform=self.ax.transAxes)
+                self.ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", 
+                            fontsize=12, transform=self.ax.transAxes)
                 self.ax.set_xticks([])
                 self.ax.set_yticks([])
                 self.var_top.set("-- °C")
@@ -167,12 +170,14 @@ class HistoricalTab:
                 self.var_out.set("-- °C")
 
             self.fig.autofmt_xdate()
+            self.fig.tight_layout(pad=0.8)
             try:
                 if self.canvas.get_tk_widget().winfo_exists():
                     self.canvas.draw_idle()
             except Exception:
                 pass
 
+        # Nächster Update in 5 Minuten
         self.root.after(5 * 60 * 1000, self._update_plot)
 
     def _on_canvas_resize(self, event):

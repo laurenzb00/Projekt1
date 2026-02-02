@@ -130,11 +130,16 @@ class ErtragTab:
         if not self.canvas.get_tk_widget().winfo_exists():
             return
 
-        data = self._load_pv_daily(365)
-        key = (len(data), data[-1]) if data else ("empty",)
+        # Lade monatliche Daten statt täglich (viel weniger Datenpunkte!)
+        data = self._load_pv_monthly(24)  # Letzte 24 Monate
+        key = (len(data), data[-1] if data else None) if data else ("empty",)
+        
+        # Nur redraw wenn sich Daten wirklich geändert haben
         if key == self._last_key:
+            # Keine Änderung - nur neu einplanen, nicht redraw
             self.root.after(5 * 60 * 1000, self._update_plot)
             return
+        
         self._last_key = key
 
         self.ax.clear()
@@ -142,34 +147,42 @@ class ErtragTab:
 
         if data:
             ts, vals = zip(*data)
-            self.ax.plot(ts, vals, color=COLOR_PRIMARY, linewidth=2.0, marker='o', markersize=4)
-            self.ax.fill_between(ts, vals, color=COLOR_PRIMARY, alpha=0.12)
-            self.ax.set_ylabel("Ertrag (kWh)", color=COLOR_TEXT, fontsize=10)
+            # Line-Chart mit Fill für monatliche Daten - viel lesbarer!
+            self.ax.plot(ts, vals, color=COLOR_PRIMARY, linewidth=2.5, marker='o', markersize=6,
+                        markeredgecolor=COLOR_PRIMARY, markerfacecolor='white', markeredgewidth=1.5)
+            self.ax.fill_between(ts, vals, color=COLOR_PRIMARY, alpha=0.15)
+            self.ax.set_ylabel("Ertrag (kWh/Monat)", color=COLOR_TEXT, fontsize=10, fontweight='bold')
             self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
             self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
-            self.ax.xaxis.set_major_locator(mdates.MonthLocator())
-            self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%b"))
-            self.ax.grid(True, color=COLOR_BORDER, alpha=0.3, linewidth=0.8)
+            self.ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
+            self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%b\n%Y"))
+            self.ax.grid(True, color=COLOR_BORDER, alpha=0.2, linewidth=0.5, axis="y")
 
             total = sum(vals)
             avg = total / max(1, len(vals))
-            self.var_sum.set(f"Summe: {total:.1f} kWh")
-            self.var_avg.set(f"Schnitt/Tag: {avg:.2f} kWh")
-            self.var_last.set(f"Letzter Tag: {vals[-1]:.2f} kWh")
+            max_val = max(vals) if vals else 0
+            self.var_sum.set(f"Summe (24Mo): {total:.1f} kWh")
+            self.var_avg.set(f"Ø Monat: {avg:.1f} kWh")
+            self.var_last.set(f"Max: {max_val:.1f} kWh")
         else:
-            self.ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", transform=self.ax.transAxes)
+            self.ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", 
+                        fontsize=12, transform=self.ax.transAxes)
             self.ax.set_xticks([])
             self.ax.set_yticks([])
             self.var_sum.set("Summe: -- kWh")
-            self.var_avg.set("Schnitt/Tag: -- kWh")
-            self.var_last.set("Letzter Tag: -- kWh")
+            self.var_avg.set("Ø Tag: -- kWh")
+            self.var_last.set("Max: -- kWh")
 
         self.fig.autofmt_xdate()
+        self.fig.tight_layout(pad=0.8)
+        
         try:
             if self.canvas.get_tk_widget().winfo_exists():
                 self.canvas.draw_idle()
         except Exception:
             pass
+        
+        # Nächster Update in 5 Minuten
         self.root.after(5 * 60 * 1000, self._update_plot)
 
     def _on_canvas_resize(self, event):
