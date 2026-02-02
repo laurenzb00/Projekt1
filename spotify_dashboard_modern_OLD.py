@@ -110,7 +110,7 @@ class SpotifyDashboard(tk.Frame):
             return SpotifyOAuth(
                 client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
                 client_secret=os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5"),
-                redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8888/callback"),
+                redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8889/callback"),
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
                 cache_path=cache_path,
                 open_browser=True,

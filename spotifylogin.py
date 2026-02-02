@@ -13,7 +13,7 @@ def main():
     # >>> Trage deine Keys ein (oder nutze Umgebungsvariablen) <<<
     CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705")
     CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5")
-    REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8888/callback")
+    REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8889/callback")
 
     SCOPE = "user-read-currently-playing user-modify-playback-state user-read-playback-state"
     CACHE_PATH = os.path.join(os.path.abspath(os.getcwd()), ".cache-spotify")

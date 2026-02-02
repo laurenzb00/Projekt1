@@ -169,7 +169,7 @@ class SpotifyTab:
             self.oauth = SpotifyOAuth(
                 client_id="8cff12b3245a4e4088d5751360f62705",
                 client_secret="af9ecfa466504d7795416a3f2c66f5c5",
-                redirect_uri="http://127.0.0.1:8888/callback",
+                redirect_uri="http://127.0.0.1:8889/callback",
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
                 cache_path=cache_path,
                 open_browser=False,
