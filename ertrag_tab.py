@@ -130,8 +130,8 @@ class ErtragTab:
         if not self.canvas.get_tk_widget().winfo_exists():
             return
 
-        # Lade monatliche Daten statt täglich (viel weniger Datenpunkte!)
-        data = self._load_pv_monthly(24)  # Letzte 24 Monate
+        # Tägliche Daten behalten, aber lesbarer darstellen
+        data = self._load_pv_daily(365)
         key = (len(data), data[-1] if data else None) if data else ("empty",)
         
         # Nur redraw wenn sich Daten wirklich geändert haben
@@ -147,22 +147,28 @@ class ErtragTab:
 
         if data:
             ts, vals = zip(*data)
-            # Line-Chart mit Fill für monatliche Daten - viel lesbarer!
-            self.ax.plot(ts, vals, color=COLOR_PRIMARY, linewidth=2.5, marker='o', markersize=6,
-                        markeredgecolor=COLOR_PRIMARY, markerfacecolor='white', markeredgewidth=1.5)
-            self.ax.fill_between(ts, vals, color=COLOR_PRIMARY, alpha=0.15)
-            self.ax.set_ylabel("Ertrag (kWh/Monat)", color=COLOR_TEXT, fontsize=10, fontweight='bold')
+            # Dünne Tageslinie ohne Marker (viel ruhiger)
+            self.ax.plot(ts, vals, color=COLOR_PRIMARY, linewidth=1.4, alpha=0.55)
+            # 7-Tage gleitender Durchschnitt (Hauptlinie)
+            if len(vals) >= 7:
+                import numpy as np
+                avg_vals = np.convolve(vals, np.ones(7) / 7, mode="valid")
+                avg_ts = ts[6:]
+                self.ax.plot(avg_ts, avg_vals, color=COLOR_PRIMARY, linewidth=2.6, alpha=0.95)
+                self.ax.fill_between(avg_ts, avg_vals, color=COLOR_PRIMARY, alpha=0.12)
+            self.ax.set_ylabel("Ertrag (kWh/Tag)", color=COLOR_TEXT, fontsize=10, fontweight='bold')
             self.ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=9)
             self.ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=8)
-            self.ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
-            self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%b\n%Y"))
+            # Nur Monats-Ticks anzeigen, damit es lesbar bleibt
+            self.ax.xaxis.set_major_locator(mdates.MonthLocator())
+            self.ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %y"))
             self.ax.grid(True, color=COLOR_BORDER, alpha=0.2, linewidth=0.5, axis="y")
 
             total = sum(vals)
             avg = total / max(1, len(vals))
             max_val = max(vals) if vals else 0
-            self.var_sum.set(f"Summe (24Mo): {total:.1f} kWh")
-            self.var_avg.set(f"Ø Monat: {avg:.1f} kWh")
+            self.var_sum.set(f"Summe: {total:.1f} kWh")
+            self.var_avg.set(f"Ø Tag: {avg:.2f} kWh")
             self.var_last.set(f"Max: {max_val:.1f} kWh")
         else:
             self.ax.text(0.5, 0.5, "Keine Daten", color=COLOR_SUBTEXT, ha="center", va="center", 

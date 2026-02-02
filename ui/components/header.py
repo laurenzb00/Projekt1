@@ -53,23 +53,23 @@ class HeaderBar(tk.Frame):
         self.out_temp_label.pack(anchor="ne")
         tk.Label(right, text="Außen", font=("Segoe UI", 9), fg=COLOR_SUBTEXT, bg=COLOR_CARD).pack(anchor="ne", pady=(0, 4))
 
-        btn_row = tk.Frame(center, bg=COLOR_CARD, height=32)
-        btn_row.grid(row=0, column=1, sticky="e", padx=(6, 0), pady=0)
+        btn_row = tk.Frame(center, bg=COLOR_CARD, height=36)
+        btn_row.grid(row=0, column=1, sticky="n", padx=(8, 8), pady=0)
         btn_row.grid_propagate(False)
         from ui.components.rounded_button import RoundedButton
         # Buttons exakt auf Zeilenhöhe, modern, zentriert
         self.btn_a = RoundedButton(
             btn_row, text="An", command=on_toggle_a,
             bg=COLOR_PRIMARY, fg="#fff",
-            radius=12, padding=(10, 3), font_size=11, width=48, height=26
+            radius=12, padding=(12, 4), font_size=12, width=60, height=30
         )
-        self.btn_a.pack(side=tk.LEFT, padx=2, pady=0)
+        self.btn_a.pack(side=tk.LEFT, padx=4, pady=0)
         self.btn_b = RoundedButton(
             btn_row, text="Aus", command=on_toggle_b,
             bg=COLOR_BORDER, fg=COLOR_TEXT,
-            radius=12, padding=(10, 3), font_size=11, width=48, height=26
+            radius=12, padding=(12, 4), font_size=12, width=60, height=30
         )
-        self.btn_b.pack(side=tk.LEFT, padx=2, pady=0)
+        self.btn_b.pack(side=tk.LEFT, padx=4, pady=0)
         # Exit-Button entfernt, nur noch unten
 
     def update_header(self, date_text: str, weekday: str, time_text: str, out_temp: str):

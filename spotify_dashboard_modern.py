@@ -67,6 +67,16 @@ class SpotifyDashboard(tk.Frame):
         self.repeat_btn = tk.Button(self.controls_frame, text="⏩ Repeat", width=15, height=2, bg=DARK_GRAY, fg=WHITE, font=("Arial", 14), command=lambda: None, relief=tk.FLAT, activebackground=LIGHT_GRAY)
         self.repeat_btn.place(x=220, y=210, width=120, height=36)
 
+        # Spotify Connect / Refresh
+        self.connect_btn = tk.Button(self.controls_frame, text="Verbinden", bg=DARK_GRAY, fg=WHITE,
+                         font=("Arial", 12, "bold"), relief=tk.FLAT, activebackground=LIGHT_GRAY,
+                         command=self._connect_spotify)
+        self.connect_btn.place(x=40, y=265, width=120, height=32)
+        self.refresh_btn = tk.Button(self.controls_frame, text="Aktualisieren", bg=DARK_GRAY, fg=WHITE,
+                         font=("Arial", 12), relief=tk.FLAT, activebackground=LIGHT_GRAY,
+                         command=self._refresh_spotify)
+        self.refresh_btn.place(x=220, y=265, width=120, height=32)
+
         # Sektion 3: Geräteauswahl
         self.devices_frame = tk.Frame(self.container, bg=BG_CONTAINER)
         self.devices_frame.place(x=800, y=20, width=160, height=440)
@@ -89,7 +99,16 @@ class SpotifyDashboard(tk.Frame):
     def set_status(self, text: str):
         self.status_var.set(text)
 
-    def _start_spotify_status_check(self):
+    def _connect_spotify(self):
+        # Explicit connect attempt
+        self.set_status("Spotify: verbinde...")
+        self._start_spotify_status_check(force_refresh=True)
+
+    def _refresh_spotify(self):
+        # Refresh playback info if possible
+        self._start_spotify_status_check(force_refresh=True)
+
+    def _start_spotify_status_check(self, force_refresh: bool = False):
         def worker():
             try:
                 import spotipy
@@ -108,7 +127,24 @@ class SpotifyDashboard(tk.Frame):
 
                 token_info = oauth.get_cached_token()
                 if token_info and token_info.get("access_token"):
+                    sp = spotipy.Spotify(auth_manager=oauth, requests_timeout=10)
                     self.after(0, lambda: self.set_status("Spotify: verbunden"))
+                    if force_refresh:
+                        try:
+                            playback = sp.current_playback()
+                            if playback and playback.get("item"):
+                                item = playback["item"]
+                                title = item.get("name") or "Unbekannt"
+                                artist = ", ".join(a.get("name") for a in item.get("artists", [])) or ""
+                                cover = None
+                                images = item.get("album", {}).get("images", [])
+                                if images:
+                                    cover = images[0].get("url")
+                                self.after(0, lambda: self.update_track_info(title, artist, cover))
+                            else:
+                                self.after(0, lambda: self.set_status("Spotify: verbunden (keine Wiedergabe)") )
+                        except Exception:
+                            self.after(0, lambda: self.set_status("Spotify: verbunden (keine Daten)") )
                 else:
                     self.after(0, lambda: self.set_status("Spotify: nicht verbunden (spotifylogin.py ausführen)"))
             except Exception as e:

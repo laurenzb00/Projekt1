@@ -286,7 +286,10 @@ class EnergyFlowView(tk.Frame):
 
         # Render rotated text along arrow direction
         angle = -1 * (180 / math.pi) * (0 if length == 0 else math.atan2(vy, vx))
-        # Flip text 180° if needed (for grid import so text is readable)
+        # Auto-flip if upside down (keep labels readable)
+        if abs(angle) > 90:
+            angle += 180
+        # Optional extra flip
         if flip_text:
             angle += 180
         value_text, unit_text = self._format_power_parts(abs(watts))

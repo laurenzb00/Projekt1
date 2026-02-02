@@ -450,6 +450,10 @@ class BufferStorageView(tk.Frame):
                     idx_map,
                     "Außentemperatur",
                     "Aussentemperatur",
+                    "Außentemp",
+                    "Aussentemp",
+                    "Aussen",
+                    "Außen",
                     "OutdoorTemp",
                     "OutTemp",
                 )
