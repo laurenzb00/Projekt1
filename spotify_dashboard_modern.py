@@ -198,13 +198,28 @@ class SpotifyDashboard(tk.Frame):
         """Erstelle OAuth Instanz - für Headless (Pi) oder Desktop."""
         try:
             from spotipy.oauth2 import SpotifyOAuth
+            import socket
             cache_path = os.path.join(os.getcwd(), ".cache-spotify")
             
-            # open_browser=False für Pi (headless), open_browser=True wäre unnötig
+            # Erkenne die echte IP-Adresse des Pi (nicht localhost!)
+            # Falls SPOTIFY_REDIRECT_URI gesetzt, verwende diese
+            redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
+            if not redirect_uri:
+                # Auto-detect: Versuche Pi's IP zu finden
+                try:
+                    hostname = socket.gethostname()
+                    pi_ip = socket.gethostbyname(hostname)
+                    redirect_uri = f"http://{pi_ip}:8889/callback"
+                    print(f"[SPOTIFY] Erkannte Pi-IP: {pi_ip}")
+                except Exception:
+                    # Fallback auf localhost (funktioniert nur lokal)
+                    redirect_uri = "http://127.0.0.1:8889/callback"
+                    print("[SPOTIFY] Nutze localhost (funktioniert nur auf Pi selbst)")
+            
             return SpotifyOAuth(
                 client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
                 client_secret=os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5"),
-                redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8889/callback"),
+                redirect_uri=redirect_uri,
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state user-read-private",
                 cache_path=cache_path,
                 open_browser=False,  # Pi ist headless - zeige manuellen Link
