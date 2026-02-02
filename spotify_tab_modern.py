@@ -703,6 +703,39 @@ class SpotifyTab:
             if not self.device_var.get() and names: self.device_var.set(names[0])
         except: pass
 
+    def _ensure_playback_device(self):
+        if not self.sp:
+            return None
+        try:
+            devices = self.sp.devices().get("devices", [])
+        except Exception:
+            self.status_text_var.set("Geräteabfrage fehlgeschlagen")
+            return None
+
+        active = next((d for d in devices if d.get("is_active")), None)
+        if active:
+            self.current_device_id = active.get("id")
+            self.device_var.set(f"{active.get('name','?')} ({active.get('type','?')})")
+            return self.current_device_id
+
+        if not devices:
+            self.status_text_var.set("Kein aktives Spotify-Gerät. Öffne Spotify auf einem Gerät.")
+            return None
+
+        target = devices[0]
+        tid = target.get("id")
+        if tid:
+            try:
+                self.sp.transfer_playback(tid, force_play=False)
+            except Exception:
+                pass
+            self.current_device_id = tid
+            self.device_var.set(f"{target.get('name','?')} ({target.get('type','?')})")
+            return tid
+
+        self.status_text_var.set("Kein aktives Spotify-Gerät. Öffne Spotify auf einem Gerät.")
+        return None
+
     def set_device(self, event=None):
         idx = self.device_box.current()
         if 0 <= idx < len(self.device_ids):
@@ -836,6 +869,8 @@ class SpotifyTab:
 
     # ========== PLAYBACK CONTROLS ==========
     def play_pause(self):
+        if not self._ensure_playback_device():
+            return
         try:
             pb = self.sp.current_playback()
             if pb and pb.get('is_playing'):
@@ -846,22 +881,32 @@ class SpotifyTab:
             print(f"Play/Pause Fehler: {e}")
 
     def next_track(self):
+        if not self._ensure_playback_device():
+            return
         try: self.sp.next_track()
         except: pass
 
     def prev_track(self):
+        if not self._ensure_playback_device():
+            return
         try: self.sp.previous_track()
         except: pass
 
     def set_shuffle(self):
+        if not self._ensure_playback_device():
+            return
         try: self.sp.shuffle(True)
         except: pass
 
     def set_repeat(self):
+        if not self._ensure_playback_device():
+            return
         try: self.sp.repeat("context")
         except: pass
     
     def toggle_mute(self):
+        if not self._ensure_playback_device():
+            return
         try:
             current = self.volume_var.get()
             if current > 0:
@@ -877,6 +922,8 @@ class SpotifyTab:
         self._vol_after = self.root.after(300, lambda: self._send_vol(int(float(val))))
         
     def _send_vol(self, v):
+        if not self._ensure_playback_device():
+            return
         try: self.sp.volume(v)
         except: pass
 

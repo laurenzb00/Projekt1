@@ -16,13 +16,8 @@ from ui.styles import (
     COLOR_DANGER,
 )
 
-# UI scaling (aligns with main.py export UI_SCALING_EFFECTIVE)
-try:
-    _UI_SCALE = float(os.getenv("UI_SCALING_EFFECTIVE") or os.getenv("UI_SCALING", "1.0"))
-except Exception:
-    _UI_SCALE = 1.0
-# Energiefluss skalieren sanfter, damit Nodes nicht überlappen
-_EF_SCALE = min(_UI_SCALE, 1.05)
+# Feste Größe ohne UI-Scaling: alles bleibt konstant
+_EF_SCALE = 1.0
 
 def _s(val: float) -> int:
     return int(round(val * _EF_SCALE))
@@ -33,7 +28,7 @@ DEBUG_LOG = os.getenv("DASH_DEBUG", "0") == "1"
 class EnergyFlowView(tk.Frame):
     """PIL-basierter, flimmerfreier Energiefluss. Ein Canvas-Image pro Update."""
 
-    def __init__(self, parent: tk.Widget, width: int = 620, height: int = 360):
+    def __init__(self, parent: tk.Widget, width: int = 420, height: int = 400):
         super().__init__(parent, bg=COLOR_CARD)
         self._start_time = time.time()
         self.canvas = tk.Canvas(self, width=width, height=height, highlightthickness=0, bg=COLOR_CARD)
