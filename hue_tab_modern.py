@@ -45,6 +45,7 @@ class HueTab:
         self.alive = True
         self.bridge = None
         self.lights_cache = []
+        self.scenes_cache = []
         self.color_picker_windows = {}
         
         self.status_var = tk.StringVar(value="Initialisiere...")
@@ -142,7 +143,7 @@ class HueTab:
                 self.bridge = Bridge(HUE_BRIDGE_IP)
                 self.bridge.connect()
                 self._ui_set(self.status_var, "✓ Verbunden")
-                self.root.after(0, self._refresh_lights_ui)
+                self.root.after(0, self._refresh_scenes_ui)
                 break
             except PhueRegistrationException:
                 self._ui_set(self.status_var, "⚠ BITTE KNOPF AUF BRIDGE DRÜCKEN!")
@@ -154,7 +155,112 @@ class HueTab:
         # Background refresh (alle 20s)
         while self.alive and self.bridge:
             time.sleep(20)
-            self.root.after(0, self._refresh_lights_ui)
+            self.root.after(0, self._refresh_scenes_ui)
+
+    def _refresh_scenes_ui(self):
+        """Zeigt Szenen statt einzelner Lampen."""
+        try:
+            scenes = self.bridge.get_scene()
+            groups = self.bridge.get_group()
+            group_names = {gid: g.get("name") for gid, g in groups.items()}
+
+            if not scenes:
+                for widget in self.scroll_frame.winfo_children():
+                    widget.destroy()
+                tk.Label(
+                    self.scroll_frame,
+                    text="Keine Szenen gefunden.",
+                    font=("Segoe UI", 12),
+                    fg=COLOR_SUBTEXT, bg=COLOR_DARK_BG
+                ).grid(row=0, column=0, columnspan=3, pady=40)
+                return
+
+            scene_list = []
+            for scene_id, scene in scenes.items():
+                name = scene.get("name", "Unbenannt")
+                group_id = scene.get("group")
+                group_name = group_names.get(group_id, "Alle")
+                scene_list.append((group_name, name, scene_id))
+
+            scene_list.sort(key=lambda x: (x[0], x[1]))
+
+            for widget in self.scroll_frame.winfo_children():
+                widget.destroy()
+
+            row = 0
+            col = 0
+            for group_name, scene_name, scene_id in scene_list:
+                self._create_scene_card(group_name, scene_name, scene_id, row, col)
+                col += 1
+                if col > 2:
+                    col = 0
+                    row += 1
+        except Exception as e:
+            self._ui_set(self.status_var, f"Fehler: {e}")
+
+    def _create_scene_card(self, group_name: str, scene_name: str, scene_id: str, row: int, col: int):
+        """Erstellt Scene-Karte."""
+        outer = tk.Frame(self.scroll_frame, bg="#0a0f1a")
+        outer.grid(row=row, column=col, sticky="nsew", padx=8, pady=8)
+
+        card = tk.Frame(
+            outer,
+            bg=COLOR_CARD_BG,
+            relief=tk.FLAT,
+            highlightbackground=COLOR_BORDER,
+            highlightthickness=2
+        )
+        card.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+
+        header = tk.Frame(card, bg="#142038", height=45)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+
+        tk.Label(
+            header, text=emoji("✨", "S"),
+            font=("Segoe UI", 18),
+            fg=COLOR_PRIMARY, bg="#142038"
+        ).pack(side=tk.LEFT, padx=(12, 8))
+
+        tk.Label(
+            header, text=f"{group_name}",
+            font=("Segoe UI", 10, "bold"),
+            fg=COLOR_SUBTEXT, bg="#142038",
+            anchor="w"
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
+        content = tk.Frame(card, bg=COLOR_CARD_BG)
+        content.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+
+        tk.Label(
+            content, text=scene_name,
+            font=("Segoe UI", 12, "bold"),
+            fg="white", bg=COLOR_CARD_BG
+        ).pack(anchor="w", pady=(0, 10))
+
+        def activate_scene():
+            def worker():
+                try:
+                    # run_scene expects group name and scene name
+                    self.bridge.run_scene(group_name, scene_name)
+                except Exception:
+                    try:
+                        # fallback: run by id
+                        self.bridge.activate_scene(scene_id)
+                    except Exception:
+                        pass
+            threading.Thread(target=worker, daemon=True).start()
+
+        tk.Button(
+            content,
+            text=emoji("▶ Szene aktivieren", "Szene"),
+            font=("Segoe UI", 10, "bold"),
+            bg=COLOR_PRIMARY, fg="white",
+            activebackground=COLOR_PRIMARY,
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=activate_scene
+        ).pack(fill=tk.X)
 
     def _refresh_lights_ui(self, update_only=False):
         """Aktualisiert nur die Light-Cards, nicht das ganze Grid, wenn update_only=True."""

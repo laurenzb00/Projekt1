@@ -83,35 +83,63 @@ class HistoricalTab:
         self.alive = False
 
     def _load_temps(self):
-        path = self._data_path("Heizungstemperaturen.csv")
-        if not os.path.exists(path):
-            return []
-        rows = []
-        all_rows = []
-        cutoff = datetime.now() - timedelta(days=4)
+        paths = [
+            self._data_path("Heizungstemperaturen.csv"),
+            self._data_path("Heizungstemperaturen_cleaned.csv"),
+        ]
+        for path in paths:
+            if not os.path.exists(path):
+                continue
+            rows = []
+            all_rows = []
+            cutoff = datetime.now() - timedelta(days=4)
+            try:
+                with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        try:
+                            ts_raw = row.get("Zeit") or row.get("Zeitstempel") or ""
+                            ts = datetime.fromisoformat(ts_raw)
+                            top = self._safe_float(
+                                row.get("Pufferspeicher Oben") or row.get("Puffer_Top") or row.get("PufferTop") or row.get("puffer_top")
+                            )
+                            mid = self._safe_float(
+                                row.get("Pufferspeicher Mitte") or row.get("Puffer_Mitte") or row.get("PufferMid") or row.get("puffer_mid")
+                            )
+                            bot = self._safe_float(
+                                row.get("Pufferspeicher Unten") or row.get("Puffer_Bottom") or row.get("PufferBot") or row.get("puffer_bot")
+                            )
+                            boiler = self._safe_float(
+                                row.get("Kesseltemperatur") or row.get("Boiler") or row.get("Kessel")
+                            )
+                            outside = self._safe_float(
+                                row.get("Außentemperatur") or row.get("Aussentemperatur") or row.get("Außentemp") or row.get("Aussentemp") or row.get("Aussen") or row.get("Außen") or row.get("out_temp")
+                            )
+                            if None in (top, mid, bot, boiler, outside):
+                                continue
+                            all_rows.append((ts, top, mid, bot, boiler, outside))
+                            if ts >= cutoff:
+                                rows.append((ts, top, mid, bot, boiler, outside))
+                        except Exception:
+                            continue
+            except Exception:
+                continue
+            rows.sort(key=lambda r: r[0])
+            if rows:
+                return rows
+            all_rows.sort(key=lambda r: r[0])
+            if all_rows:
+                return all_rows[-500:]
+        return []
+
+    @staticmethod
+    def _safe_float(value) -> float | None:
+        if value is None:
+            return None
         try:
-            with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    try:
-                        ts = datetime.fromisoformat(row.get("Zeit", row.get("Zeitstempel", "")))
-                        top = float(row.get("Pufferspeicher Oben", row.get("Puffer_Top", row.get("PufferTop", row.get("puffer_top", 0)))))
-                        mid = float(row.get("Pufferspeicher Mitte", row.get("Puffer_Mitte", row.get("PufferMid", row.get("puffer_mid", 0)))))
-                        bot = float(row.get("Pufferspeicher Unten", row.get("Puffer_Bottom", row.get("PufferBot", row.get("puffer_bot", 0)))))
-                        boiler = float(row.get("Kesseltemperatur", row.get("Boiler", row.get("Kessel", 0))))
-                        outside = float(row.get("Außentemperatur", row.get("Aussentemperatur", row.get("Aussen", row.get("out_temp", 0)))))
-                        all_rows.append((ts, top, mid, bot, boiler, outside))
-                        if ts >= cutoff:
-                            rows.append((ts, top, mid, bot, boiler, outside))
-                    except Exception:
-                        continue
+            return float(str(value).replace(",", "."))
         except Exception:
-            return []
-        rows.sort(key=lambda r: r[0])
-        if rows:
-            return rows
-        all_rows.sort(key=lambda r: r[0])
-        return all_rows[-500:]
+            return None
 
     def _style_axes(self):
         self.ax.set_facecolor(COLOR_CARD)

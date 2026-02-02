@@ -1,7 +1,9 @@
 import tkinter as tk
 import os
 import threading
+import webbrowser
 from PIL import Image, ImageTk, ImageDraw
+from spotify_dashboard_login_helper import build_login_popup
 
 # --- Farbpalette ---
 BG_MAIN = "#1E1E1E"
@@ -99,10 +101,35 @@ class SpotifyDashboard(tk.Frame):
     def set_status(self, text: str):
         self.status_var.set(text)
 
+    def _ensure_oauth(self):
+        try:
+            from spotipy.oauth2 import SpotifyOAuth
+            cache_path = os.path.join(os.path.abspath(os.getcwd()), ".cache-spotify")
+            return SpotifyOAuth(
+                client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
+                client_secret=os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5"),
+                redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8888/callback"),
+                scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
+                cache_path=cache_path,
+                open_browser=False,
+                show_dialog=False,
+            )
+        except Exception:
+            return None
+
     def _connect_spotify(self):
-        # Explicit connect attempt
         self.set_status("Spotify: verbinde...")
-        self._start_spotify_status_check(force_refresh=True)
+        oauth = self._ensure_oauth()
+        if oauth is None:
+            self.set_status("Spotify: OAuth Fehler")
+            return
+        try:
+            url = oauth.get_authorize_url()
+            webbrowser.open_new(url)
+            build_login_popup(self, oauth, lambda: self._start_spotify_status_check(force_refresh=True))
+            self.set_status("Spotify: Login geöffnet")
+        except Exception:
+            self.set_status("Spotify: Login konnte nicht geöffnet werden")
 
     def _refresh_spotify(self):
         # Refresh playback info if possible
