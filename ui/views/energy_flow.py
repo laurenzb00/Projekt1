@@ -33,6 +33,7 @@ class EnergyFlowView(tk.Frame):
         self._start_time = time.time()
         self.canvas = tk.Canvas(self, width=width, height=height, highlightthickness=0, bg=COLOR_CARD)
         self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.canvas.bind("<Configure>", self._on_canvas_resize)
 
         self.width = width
         self.height = height
@@ -55,6 +56,28 @@ class EnergyFlowView(tk.Frame):
         
         # Performance optimization: track last values to skip rendering when unchanged
         self._last_flows = None
+
+    def _on_canvas_resize(self, event):
+        """Re-render background and last frame when the canvas grows."""
+        new_w = max(240, int(event.width))
+        new_h = max(200, int(event.height))
+        if abs(new_w - self.width) < 6 and abs(new_h - self.height) < 6:
+            return
+
+        self.width = new_w
+        self.height = new_h
+        self.nodes = self._define_nodes()
+        self._base_img = self._render_background()
+        self.canvas.config(width=new_w, height=new_h)
+
+        if self._last_flows:
+            pv, load, grid, batt, soc = self._last_flows
+            frame = self.render_frame(pv, load, grid, batt, soc)
+        else:
+            frame = self._base_img
+
+        self._tk_img = ImageTk.PhotoImage(frame)
+        self.canvas.itemconfig(self._canvas_img, image=self._tk_img)
 
     def resize(self, width: int, height: int):
         """FIXED: Only update canvas size and dimensions, don't recreate background."""
