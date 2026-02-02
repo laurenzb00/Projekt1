@@ -609,14 +609,9 @@ class SpotifyTab:
             try:
                 url = self.oauth.get_authorize_url()
                 self._login_url = url
-                try:
-                    webbrowser.open_new(url)
-                except Exception:
-                    try:
-                        webbrowser.get("xdg-open").open_new(url)
-                    except Exception:
-                        pass
-                self.root.after(0, lambda: self.status_text_var.set("Browser geöffnet – Redirect-URL einfügen"))
+                # Kein Auto-Browser mehr: Link wird angezeigt, Nutzer öffnet manuell im eigenen Browser
+                status = "Link im Browser öffnen und Redirect-URL einfügen"
+                self.root.after(0, lambda s=status: self.status_text_var.set(s))
                 self.root.after(0, self._build_manual_code_ui)
             except Exception as e:
                 self.root.after(0, lambda err=e: self.status_text_var.set(f"Fehler: {err}"))
