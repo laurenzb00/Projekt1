@@ -95,16 +95,28 @@ def run_bmkdaten():
 
 
 def main():
+    print("[STARTUP] 🚀 Starte Smart Home Dashboard...")
+    start_time = time.time()
+    
+    # Starte Datensammler parallel
     threads = [
-        threading.Thread(target=run_wechselrichter, daemon=True),
-        threading.Thread(target=run_bmkdaten, daemon=True),
+        threading.Thread(target=run_wechselrichter, daemon=True, name="Wechselrichter"),
+        threading.Thread(target=run_bmkdaten, daemon=True, name="BMKDATEN"),
     ]
+    
+    print("[STARTUP] 📊 Starte Datensammler (parallel)...")
     for t in threads:
         t.start()
-
+        print(f"[STARTUP]   ✓ {t.name} Thread gestartet")
+    
+    # UI starten (geschieht parallel zu Datensammlung)
+    print("[STARTUP] 🎨 Initialisiere UI...")
     root = tk.Tk()
     root.title("Smart Energy Dashboard Pro")
     app = MainApp(root)
+    
+    elapsed = time.time() - start_time
+    print(f"[STARTUP] ✅ Dashboard bereit in {elapsed:.1f}s")
 
     def on_close():
         logging.info("Programm wird beendet…")

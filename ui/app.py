@@ -27,6 +27,14 @@ from ui.components.rounded import RoundedFrame
 from ui.views.energy_flow import EnergyFlowView
 from ui.views.buffer_storage import BufferStorageView
 
+# SQLite DataStore for fast queries
+try:
+    from datastore import DataStore
+    USE_DATASTORE = True
+except ImportError:
+    USE_DATASTORE = False
+    print("[DB] DataStore nicht verfügbar - nutze CSV fallback")
+
 _UI_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_ROOT = os.path.dirname(_UI_DIR)
 
@@ -246,6 +254,11 @@ class MainApp:
         self._resize_enabled = False
         self.root = root
         self.root.title("Smart Home Dashboard")
+        
+        # Initialize DataStore with parallel import
+        self.datastore = None
+        if USE_DATASTORE:
+            self._init_datastore_async()
         
         # Start weekly Ertrag validation in background
         self._start_ertrag_validator()
@@ -540,7 +553,43 @@ class MainApp:
 
     def on_exit(self):
         self.status.update_status("Beende...")
+        # Cleanup DataStore
+        if self.datastore:
+            try:
+                self.datastore.close()
+            except:
+                pass
         self.root.after(100, self.root.quit)
+    
+    def _init_datastore_async(self):
+        """Initialisiere DataStore und importiere CSVs parallel im Hintergrund."""
+        def worker():
+            try:
+                start = time.time()
+                self.datastore = DataStore()
+                
+                # Check if import needed
+                cursor = self.datastore.conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM fronius")
+                count = cursor.fetchone()[0]
+                
+                if count == 0:
+                    print("[DB] 📊 Importiere FroniusDaten.csv parallel...")
+                    fronius_path = _data_path("FroniusDaten.csv")
+                    if os.path.exists(fronius_path):
+                        self.datastore.import_fronius_csv(fronius_path)
+                        elapsed = time.time() - start
+                        print(f"[DB] ✅ Import abgeschlossen in {elapsed:.1f}s")
+                    else:
+                        print(f"[DB] ⚠️ {fronius_path} nicht gefunden")
+                else:
+                    print(f"[DB] ✅ DataStore bereit ({count} records)")
+            except Exception as e:
+                print(f"[DB] ❌ Initialisierung fehlgeschlagen: {e}")
+                self.datastore = None
+        
+        # Start in background thread
+        threading.Thread(target=worker, daemon=True).start()
 
     def _start_ertrag_validator(self):
         """Starte wöchentliche Ertrag-Validierung im Hintergrund."""
@@ -898,14 +947,39 @@ class MainApp:
         return values
 
     def _fetch_real_data(self):
-        """Versucht, echte Daten aus CSV/APIs zu laden."""
+        """Versucht, echte Daten aus CSV/APIs zu laden - mit SQLite Fallback."""
         import csv
 
         fronius_csv = _data_path("FroniusDaten.csv")
         bmk_csv = _data_path("Heizungstemperaturen.csv")
 
-        # Fronius Daten (letzter Eintrag)
-        if os.path.exists(fronius_csv):
+        # Fronius Daten - bevorzuge DataStore wenn verfügbar
+        if self.datastore:
+            try:
+                record = self.datastore.get_last_fronius_record()
+                if record:
+                    pv_kw = record['pv']
+                    grid_kw = record['grid']
+                    batt_kw = record['batt']
+                    soc = record['soc']
+                    
+                    # Calculate load from balance
+                    load_kw = pv_kw + batt_kw - grid_kw
+                    
+                    self._last_data["pv"] = pv_kw * 1000  # kW -> W
+                    self._last_data["grid"] = grid_kw * 1000
+                    self._last_data["batt"] = -batt_kw * 1000
+                    self._last_data["load"] = load_kw * 1000
+                    self._last_data["soc"] = soc
+                    
+                    # Skip CSV fallback if DataStore worked
+                    bmk_csv_exists = True
+            except Exception as e:
+                logging.debug(f"DataStore Fronius Fehler: {e} - Fallback zu CSV")
+                self.datastore = None  # Deactivate on error
+        
+        # CSV Fallback (nur wenn DataStore nicht funktioniert)
+        if not self.datastore and os.path.exists(fronius_csv):
             try:
                 last_line = _read_last_data_line(fronius_csv)
                 if last_line:
