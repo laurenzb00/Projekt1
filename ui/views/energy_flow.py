@@ -21,9 +21,11 @@ try:
     _UI_SCALE = float(os.getenv("UI_SCALING_EFFECTIVE") or os.getenv("UI_SCALING", "1.0"))
 except Exception:
     _UI_SCALE = 1.0
+# Energiefluss skalieren sanfter, damit Nodes nicht überlappen
+_EF_SCALE = min(_UI_SCALE, 1.05)
 
 def _s(val: float) -> int:
-    return int(round(val * _UI_SCALE))
+    return int(round(val * _EF_SCALE))
 
 
 DEBUG_LOG = os.getenv("DASH_DEBUG", "0") == "1"

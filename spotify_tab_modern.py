@@ -40,9 +40,14 @@ try:
     _UI_SCALE = float(os.getenv("UI_SCALING_EFFECTIVE") or os.getenv("UI_SCALING", "1.0"))
 except Exception:
     _UI_SCALE = 1.0
+# Buttons etwas weniger aggressiv skalieren, um Layout auf festen Screens stabil zu halten
+_BTN_SCALE = min(_UI_SCALE, 1.0)
 
 def _s(val: float) -> int:
     return int(round(val * _UI_SCALE))
+
+def _sb(val: float) -> int:
+    return int(round(val * _BTN_SCALE))
 from ui.components.card import Card
 
 # Aliases für alte Code-Kompatibilität
@@ -119,11 +124,11 @@ class SpotifyTab:
         # Player-Buttons
         btn_y = _s(100)
         btn_x = _s(700)
-        self.btn_prev = tk.Button(self.player_bar, text=emoji("⏮", "Prev"), font=("Segoe UI", _s(28)), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=_s(3), height=_s(2), command=self._on_prev)
+        self.btn_prev = tk.Button(self.player_bar, text=emoji("⏮", "Prev"), font=("Segoe UI", _sb(28)), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=_sb(3), height=_sb(2), command=self._on_prev)
         self.btn_prev.place(x=btn_x, y=btn_y)
-        self.btn_play = tk.Button(self.player_bar, text=emoji("⏯", "Play/Pause"), font=("Segoe UI", _s(32), "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=_s(4), height=_s(2), command=self._on_play_pause)
+        self.btn_play = tk.Button(self.player_bar, text=emoji("⏯", "Play/Pause"), font=("Segoe UI", _sb(32), "bold"), bg=COLOR_PRIMARY, fg="white", activebackground=COLOR_SUCCESS, relief=tk.FLAT, width=_sb(4), height=_sb(2), command=self._on_play_pause)
         self.btn_play.place(x=btn_x+_s(90), y=btn_y-_s(6))
-        self.btn_next = tk.Button(self.player_bar, text=emoji("⏭", "Next"), font=("Segoe UI", _s(28)), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=_s(3), height=_s(2), command=self._on_next)
+        self.btn_next = tk.Button(self.player_bar, text=emoji("⏭", "Next"), font=("Segoe UI", _sb(28)), bg=COLOR_ACCENT, fg="white", activebackground=COLOR_PRIMARY, relief=tk.FLAT, width=_sb(3), height=_sb(2), command=self._on_next)
         self.btn_next.place(x=btn_x+_s(210), y=btn_y)
         # Geräteauswahl-Button
         self.device_btn = tk.Button(self.player_bar, text=emoji("🔊 Gerät: Wohnzimmer ▾", "Gerät"), font=("Segoe UI", _s(16), "bold"), bg=COLOR_CARD, fg=COLOR_PRIMARY, activebackground=COLOR_ACCENT, relief=tk.RAISED, width=_s(18), height=_s(2), command=self._toggle_device_panel)
