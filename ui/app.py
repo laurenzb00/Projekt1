@@ -517,6 +517,14 @@ class MainApp:
                 from ertrag_validator import validate_and_repair_ertrag
                 print("[ERTRAG] Validation beim Start...")
                 validate_and_repair_ertrag()
+                print("[ERTRAG] Ertrag- und Heizungs-Tabs werden aktualisiert...")
+                # Update tabs after validation
+                if hasattr(self, 'ertrag_tab') and self.ertrag_tab:
+                    self.ertrag_tab._last_key = None
+                    self.ertrag_tab._update_plot()
+                if hasattr(self, 'historical_tab') and self.historical_tab:
+                    self.historical_tab._last_key = None
+                    self.historical_tab._update_plot()
             except Exception as e:
                 print(f"[ERTRAG] Validator nicht verfügbar: {e}")
             
@@ -527,6 +535,13 @@ class MainApp:
                     from ertrag_validator import validate_and_repair_ertrag
                     print("[ERTRAG] Wöchentliche Validierung...")
                     validate_and_repair_ertrag()
+                    # Update tabs after validation
+                    if hasattr(self, 'ertrag_tab') and self.ertrag_tab:
+                        self.ertrag_tab._last_key = None
+                        self.ertrag_tab._update_plot()
+                    if hasattr(self, 'historical_tab') and self.historical_tab:
+                        self.historical_tab._last_key = None
+                        self.historical_tab._update_plot()
                 except Exception as e:
                     print(f"[ERTRAG] Fehler bei wöchentlicher Validierung: {e}")
         
@@ -876,7 +891,7 @@ class MainApp:
 
                         self._last_data["pv"] = pv_kw * 1000  # kW -> W
                         self._last_data["grid"] = grid_kw * 1000
-                        self._last_data["batt"] = batt_kw * 1000
+                        self._last_data["batt"] = -batt_kw * 1000  # Invert: negativ = laden, positiv = entladen
                         self._last_data["load"] = load_kw * 1000
                         self._last_data["soc"] = float(row[5])
             except Exception as e:

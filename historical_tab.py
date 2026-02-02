@@ -193,13 +193,13 @@ class HistoricalTab:
     def _data_path(filename: str) -> str:
         # Try multiple common paths
         candidates = [
-            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename),  # Parent dir (Root)
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),  # Same dir (if in root)
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),  # Same dir (Root)
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename),  # Parent dir (ui/)
             os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi path
             os.path.join("/home/pi/projekt1", filename),  # Alternative Pi path
         ]
         for candidate in candidates:
             if os.path.exists(candidate):
                 return candidate
-        # Default fallback (root directory)
+        # Default fallback (same directory)
         return candidates[0]

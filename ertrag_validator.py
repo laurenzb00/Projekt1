@@ -16,11 +16,28 @@ ERTRAG_VALIDATION_LOG = os.path.join(WORKING_DIR, "ertrag_validation.json")
 
 def load_data():
     """Lade Fronius und Ertrag Daten."""
-    fronius = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"]) if os.path.exists(FRONIUS_CSV) else pd.DataFrame()
-    ertrag = pd.read_csv(ERTRAG_CSV, parse_dates=["Zeitstempel"]) if os.path.exists(ERTRAG_CSV) else pd.DataFrame()
+    try:
+        fronius = pd.read_csv(FRONIUS_CSV, parse_dates=["Zeitstempel"], dtype={"Zeitstempel": str}) if os.path.exists(FRONIUS_CSV) else pd.DataFrame()
+        if not fronius.empty and "Zeitstempel" in fronius.columns:
+            fronius["Zeitstempel"] = pd.to_datetime(fronius["Zeitstempel"], errors="coerce")
+            fronius = fronius.dropna(subset=["Zeitstempel"])
+    except Exception as e:
+        print(f"[ERTRAG] Error loading Fronius: {e}")
+        fronius = pd.DataFrame()
     
-    fronius = fronius.sort_values("Zeitstempel").drop_duplicates(subset=["Zeitstempel"], keep="first")
-    ertrag = ertrag.sort_values("Zeitstempel").drop_duplicates(subset=["Zeitstempel"], keep="first")
+    try:
+        ertrag = pd.read_csv(ERTRAG_CSV, parse_dates=["Zeitstempel"], dtype={"Zeitstempel": str}) if os.path.exists(ERTRAG_CSV) else pd.DataFrame()
+        if not ertrag.empty and "Zeitstempel" in ertrag.columns:
+            ertrag["Zeitstempel"] = pd.to_datetime(ertrag["Zeitstempel"], errors="coerce")
+            ertrag = ertrag.dropna(subset=["Zeitstempel"])
+    except Exception as e:
+        print(f"[ERTRAG] Error loading Ertrag: {e}")
+        ertrag = pd.DataFrame()
+    
+    if not fronius.empty:
+        fronius = fronius.sort_values("Zeitstempel").drop_duplicates(subset=["Zeitstempel"], keep="first")
+    if not ertrag.empty:
+        ertrag = ertrag.sort_values("Zeitstempel").drop_duplicates(subset=["Zeitstempel"], keep="first")
     
     return fronius, ertrag
 
