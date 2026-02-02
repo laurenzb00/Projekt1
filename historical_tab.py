@@ -79,9 +79,10 @@ class HistoricalTab:
         self.canvas.get_tk_widget().bind("<Configure>", self._on_canvas_resize)
 
         self._last_key = None
+        self._resize_pending = False  # Prevent Configure event loop
         # Lazy Load: Nur wenn Daten existieren, sonst warte
         if os.path.exists(self._data_path("Heizungstemperaturen.csv")):
-            self._update_plot()
+            self.root.after(100, self._update_plot)
         else:
             print("[HISTORIE] Keine CSV gefunden - überspringe initial plot")
             self.root.after(30000, self._update_plot)  # Retry nach 30s
@@ -237,18 +238,37 @@ class HistoricalTab:
         self.root.after(5 * 60 * 1000, self._update_plot)
 
     def _on_canvas_resize(self, event):
+        # Prevent Configure event loop - debounce rapid resize events
+        if self._resize_pending:
+            return
+        
         w = max(1, event.width)
         h = max(1, event.height)
         if self._last_canvas_size:
             last_w, last_h = self._last_canvas_size
-            if abs(w - last_w) < 6 and abs(h - last_h) < 6:
+            # Only redraw if size changed significantly (more than 10px)
+            if abs(w - last_w) < 10 and abs(h - last_h) < 10:
                 return
+        
         self._last_canvas_size = (w, h)
+        self._resize_pending = True
+        
         try:
             self.fig.tight_layout(pad=0.6)
-            self.canvas.draw_idle()
+            # Use after() to defer the draw and prevent event loop
+            self.root.after(100, lambda: self._do_canvas_draw())
+        except Exception:
+            self._resize_pending = False
+    
+    def _do_canvas_draw(self):
+        """Deferred canvas draw to prevent Configure event loop."""
+        try:
+            if self.canvas.get_tk_widget().winfo_exists():
+                self.canvas.draw_idle()
         except Exception:
             pass
+        finally:
+            self._resize_pending = False
 
     @staticmethod
     def _data_path(filename: str) -> str:

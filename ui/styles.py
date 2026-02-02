@@ -20,11 +20,41 @@ COLOR_TITLE = "#AAB3C5"
 # Emoji support flag (set in init_style)
 EMOJI_OK = True
 
+# Safe default fonts
+_available_fonts = None
+
+def get_available_fonts(root: tk.Misc = None) -> list:
+    """Get list of available fonts, cached."""
+    global _available_fonts
+    if _available_fonts is not None:
+        return _available_fonts
+    try:
+        if root:
+            _available_fonts = set(tkfont.families(root))
+        else:
+            _available_fonts = set(tkfont.families())
+    except Exception:
+        _available_fonts = {"Arial", "TkDefaultFont"}
+    return _available_fonts
+
+def get_safe_font(family: str = "Arial", size: int = 10, style: str = "") -> tuple:
+    """Returns a safe font tuple, falling back to system default if family not available."""
+    available = get_available_fonts()
+    
+    # Check if requested font family exists
+    if family not in available:
+        # Try to find a fallback
+        fallbacks = ["Arial", "Helvetica", "Courier", "TkDefaultFont", "Noto Sans", "DejaVu Sans"]
+        family = next((f for f in fallbacks if f in available), "TkDefaultFont")
+    
+    if style:
+        return (family, size, style)
+    return (family, size)
 
 def detect_emoji_support(root: tk.Misc) -> bool:
     """Checks if a known emoji font is available in Tk."""
     try:
-        families = set(tkfont.families(root))
+        families = get_available_fonts(root)
         emoji_fonts = [
             "Segoe UI Emoji",
             "Noto Color Emoji",
@@ -80,6 +110,8 @@ def init_style(root: tk.Tk) -> Style:
     style = Style(theme="darkly")
     root.configure(bg=COLOR_ROOT)
     global EMOJI_OK
+    # Cache available fonts early
+    get_available_fonts(root)
     EMOJI_OK = detect_emoji_support(root)
     configure_styles(style)
     return style

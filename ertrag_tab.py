@@ -40,6 +40,7 @@ class ErtragTab:
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.card.content())
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         self._last_canvas_size = None
+        self._resize_pending = False
         self.canvas.get_tk_widget().bind("<Configure>", self._on_canvas_resize)
 
         stats_frame = ttk.Frame(self.card.content())
@@ -52,7 +53,7 @@ class ErtragTab:
         ttk.Label(stats_frame, textvariable=self.var_last).pack(side=tk.LEFT, padx=6)
 
         self._last_key = None
-        self._update_plot()
+        self.root.after(100, self._update_plot)
 
     def stop(self):
         self.alive = False
@@ -188,18 +189,33 @@ class ErtragTab:
         self.root.after(5 * 60 * 1000, self._update_plot)
 
     def _on_canvas_resize(self, event):
+        if self._resize_pending:
+            return
+        
         w = max(1, event.width)
         h = max(1, event.height)
         if self._last_canvas_size:
             last_w, last_h = self._last_canvas_size
-            if abs(w - last_w) < 6 and abs(h - last_h) < 6:
+            if abs(w - last_w) < 10 and abs(h - last_h) < 10:
                 return
+        
         self._last_canvas_size = (w, h)
+        self._resize_pending = True
+        
         try:
             self.fig.tight_layout(pad=0.6)
-            self.canvas.draw_idle()
+            self.root.after(100, lambda: self._do_canvas_draw())
+        except Exception:
+            self._resize_pending = False
+    
+    def _do_canvas_draw(self):
+        try:
+            if self.canvas.get_tk_widget().winfo_exists():
+                self.canvas.draw_idle()
         except Exception:
             pass
+        finally:
+            self._resize_pending = False
 
     @staticmethod
     def _data_path(filename: str) -> str:
