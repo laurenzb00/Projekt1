@@ -53,7 +53,8 @@ logging.getLogger().addHandler(console)
 
 # Set all noisy libraries to WARNING
 for noisy in [
-    "matplotlib", "phue", "spotipy", "urllib3", "requests", "PyTado", "PyTado.zone", "PyTado.device"
+    "matplotlib", "phue", "spotipy", "urllib3", "requests", "PyTado", "PyTado.zone", "PyTado.device",
+    "BMKDATEN", "Wechselrichter"
 ]:
     logging.getLogger(noisy).setLevel(logging.WARNING)
 
