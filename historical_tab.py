@@ -79,7 +79,12 @@ class HistoricalTab:
         self.canvas.get_tk_widget().bind("<Configure>", self._on_canvas_resize)
 
         self._last_key = None
-        self._update_plot()
+        # Lazy Load: Nur wenn Daten existieren, sonst warte
+        if os.path.exists(self._data_path("Heizungstemperaturen.csv")):
+            self._update_plot()
+        else:
+            print("[HISTORIE] Keine CSV gefunden - überspringe initial plot")
+            self.root.after(30000, self._update_plot)  # Retry nach 30s
 
     def stop(self):
         self.alive = False

@@ -220,17 +220,13 @@ class SpotifyDashboard(tk.Frame):
         self.status_var.set(text)
     
     def _get_oauth(self):
-        """Erstelle OAuth Instanz - mit echte Pi-IP."""
+        """Erstelle OAuth Instanz - Nutze localhost (wird von Spotify akzeptiert!)."""
         try:
             from spotipy.oauth2 import SpotifyOAuth
             cache_path = os.path.join(os.getcwd(), ".cache-spotify")
             
-            # Nutze env-Variable oder erkenne automatisch
-            redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
-            if not redirect_uri:
-                # Default: verwende 192.168.1.200 (user muss env setzen oder code anpassen)
-                redirect_uri = "http://192.168.1.200:8889/callback"
-                print(f"[SPOTIFY] Redirect URI: {redirect_uri} (setze SPOTIPY_REDIRECT_URI um zu ändern)")
+            # Localhost wird von Spotify für HTTP akzeptiert!
+            redirect_uri = "http://localhost:8889/callback"
             
             return SpotifyOAuth(
                 client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
@@ -239,69 +235,90 @@ class SpotifyDashboard(tk.Frame):
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state user-read-private",
                 cache_path=cache_path,
                 open_browser=False,
-                show_dialog=False,  # Keine interaktiven Dialoge!
+                show_dialog=False,
             )
         except Exception as e:
             print(f"[SPOTIFY] OAuth Error: {e}")
             return None
     
     def _connect_spotify(self):
-        """OAuth Browser Login - mit Local Server für Callback."""
+        """OAuth mit Terminal-Input für headless Pi."""
         self.set_status("🔐 Starte Login...")
         
         def worker():
-            global callback_code, callback_event
-            
             try:
                 import spotipy
-                from urllib.parse import urlencode
-                
-                # Starte Callback Server im Hintergrund
-                server_thread = threading.Thread(target=start_callback_server, daemon=True)
-                server_thread.start()
-                print("[SPOTIFY] Callback Server gestartet auf Port 8889")
+                from urllib.parse import urlparse, parse_qs
                 
                 self.oauth = self._get_oauth()
                 if not self.oauth:
                     self.after(0, lambda: self.set_status("❌ OAuth Error"))
                     return
                 
-                # Zeige Authorize-URL
-                auth_url = self.oauth.get_authorize_url()
-                print(f"\n{'='*70}")
-                print("[SPOTIFY] 🔐 LOGIN ERFORDERLICH")
-                print(f"{'='*70}")
-                print(f"Öffne diesen Link in deinem Browser:")
-                print(f"\n{auth_url}\n")
-                print(f"Nach dem Login wirst du automatisch zurückgeleitet.")
-                print(f"{'='*70}\n")
-                
-                self.after(0, lambda: self.set_status("🌐 Warte auf Browser-Login..."))
-                
-                # Warte auf Callback (max 5 Minuten)
-                callback_event.clear()
-                callback_event.wait(timeout=300)
-                
-                if callback_code:
-                    # Hoste Token mit Authorization Code
-                    token_info = self.oauth.get_access_token(code=callback_code)
-                    if token_info and token_info.get("access_token"):
+                # Prüfe ob schon gecachte Credentials existieren
+                try:
+                    token_info = self.oauth.get_cached_token()
+                    if token_info:
                         self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
-                        self.after(0, lambda: self.set_status("✓ Verbunden!"))
+                        self.after(0, lambda: self.set_status("✓ Gecacht!"))
                         self.after(0, self._refresh_status)
                         self.after(5000, self._start_status_check)
-                        print("[SPOTIFY] ✓ Login erfolgreich!")
-                        callback_code = None
-                    else:
-                        self.after(0, lambda: self.set_status("❌ Token Error"))
-                        print("[SPOTIFY] ❌ Token nicht erhalten")
+                        print("[SPOTIFY] ✓ Nutze gecachte Credentials")
+                        return
+                except Exception:
+                    pass
+                
+                # Zeige Auth-URL im Terminal
+                auth_url = self.oauth.get_authorize_url()
+                print(f"\n{'='*80}")
+                print("[SPOTIFY] 🔐 SPOTIFY LOGIN")
+                print(f"{'='*80}")
+                print(f"1. Öffne diesen Link im Browser (PC/Handy):\n")
+                print(f"{auth_url}\n")
+                print(f"2. Melde dich bei Spotify an")
+                print(f"3. Du wirst weitergeleitet zu: http://localhost:8889/callback?code=...")
+                print(f"4. Kopiere die KOMPLETTE URL und paste hier:\n")
+                print(f"{'='*80}")
+                
+                self.after(0, lambda: self.set_status("🌐 Warte auf Terminal-Input..."))
+                
+                # Terminal Input
+                try:
+                    callback_url = input("Callback-URL: ").strip()
+                except EOFError:
+                    self.after(0, lambda: self.set_status("❌ Kein Input"))
+                    return
+                
+                if not callback_url:
+                    self.after(0, lambda: self.set_status("❌ Abgebrochen"))
+                    return
+                
+                # Extrahiere Code aus URL
+                parsed = urlparse(callback_url)
+                code = parse_qs(parsed.query).get('code', [None])[0]
+                
+                if not code:
+                    self.after(0, lambda: self.set_status("❌ Kein Code gefunden"))
+                    print(f"[SPOTIFY] Keine 'code' in URL: {callback_url}")
+                    return
+                
+                # Hole Token mit Code
+                token_info = self.oauth.get_access_token(code=code, check_cache=False)
+                
+                if token_info and token_info.get("access_token"):
+                    self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
+                    self.after(0, lambda: self.set_status("✓ Verbunden!"))
+                    self.after(0, self._refresh_status)
+                    self.after(5000, self._start_status_check)
+                    print("[SPOTIFY] ✓ Login erfolgreich!")
                 else:
-                    self.after(0, lambda: self.set_status("⏱ Login Timeout"))
-                    print("[SPOTIFY] ⏱ Kein Response im Timeout")
+                    self.after(0, lambda: self.set_status("❌ Token Error"))
                     
             except Exception as ex:
                 print(f"[SPOTIFY] Connect Error: {ex}")
-                error_msg = str(ex)[:30]
+                import traceback
+                traceback.print_exc()
+                error_msg = str(ex)[:40]
                 self.after(0, lambda msg=error_msg: self.set_status(f"❌ {msg}"))
         
         threading.Thread(target=worker, daemon=True).start()
