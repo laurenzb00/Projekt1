@@ -22,7 +22,8 @@ class DataStore:
     
     def _init_db(self):
         """Initialisiere Datenbank mit Tabellen."""
-        self.conn = sqlite3.connect(self.db_path)
+        # check_same_thread=False erlaubt Nutzung in verschiedenen Threads (safe für read-only)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         # Pi 5 Optimierungen: WAL + moderater Cache
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA cache_size=-32000")  # 32MB Cache (sicherer)
