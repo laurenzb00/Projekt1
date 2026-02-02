@@ -42,6 +42,10 @@ class HueTab:
         self.scroll_canvas = None
         self.scroll_window = None
         
+        # Erstelle Tab Frame
+        self.tab_frame = tk.Frame(notebook, bg=COLOR_ROOT)
+        notebook.add(self.tab_frame, text=emoji("💡 Hue", "Hue"))
+        
         # Initialisiere UI
         self._build_ui()
         
@@ -53,7 +57,7 @@ class HueTab:
         """Erstelle das UI - FEHLERTOLERANTER AUFBAU."""
         try:
             # Frame für Global Controls
-            global_frame = tk.Frame(self.notebook, bg=COLOR_ROOT, height=80)
+            global_frame = tk.Frame(self.tab_frame, bg=COLOR_ROOT, height=80)
             global_frame.pack(fill="x", padx=10, pady=10)
             
             # Status
@@ -105,7 +109,7 @@ class HueTab:
             self.bright_label.pack(side="left", padx=(10, 0))
             
             # Scroll Area für Szenen/Lichter
-            canvas_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
+            canvas_frame = tk.Frame(self.tab_frame, bg=COLOR_ROOT)
             canvas_frame.pack(fill="both", expand=True, padx=10, pady=10)
             
             self.scroll_canvas = tk.Canvas(
