@@ -87,9 +87,14 @@ class HistoricalTab:
             self._data_path("Heizungstemperaturen.csv"),
             self._data_path("Heizungstemperaturen_cleaned.csv"),
         ]
+        
+        print(f"[HISTORIE] Suche Heizungsdaten...")
         for path in paths:
             if not os.path.exists(path):
+                print(f"[HISTORIE] Nicht gefunden: {path}")
                 continue
+            
+            print(f"[HISTORIE] Lade: {path}")
             rows = []
             all_rows = []
             cutoff = datetime.now() - timedelta(days=4)

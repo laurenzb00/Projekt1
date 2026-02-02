@@ -48,8 +48,7 @@ class SpotifyDashboard(tk.Frame):
         self._build_ui()
         print("[SPOTIFY] UI gebaut!")
         
-        # Starte Background Updates
-        self.after(500, self._start_status_check)
+        # Status Check NICHT automatisch starten - nur nach Login
         print("[SPOTIFY] Dashboard initialisiert!")
     
     def _build_ui(self):
@@ -233,6 +232,8 @@ class SpotifyDashboard(tk.Frame):
                     self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                     self.after(0, lambda: self.set_status("✓ Verbunden"))
                     self.after(0, self._refresh_status)
+                    # Starte regelmäßige Updates NACH erfolgreichem Login
+                    self.after(5000, self._start_status_check)
                 else:
                     self.after(0, lambda: self.set_status("❌ Login fehlgeschlagen"))
             except Exception as ex:
