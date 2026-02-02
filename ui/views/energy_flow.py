@@ -16,6 +16,15 @@ from ui.styles import (
     COLOR_DANGER,
 )
 
+# UI scaling (aligns with main.py export UI_SCALING_EFFECTIVE)
+try:
+    _UI_SCALE = float(os.getenv("UI_SCALING_EFFECTIVE") or os.getenv("UI_SCALING", "1.0"))
+except Exception:
+    _UI_SCALE = 1.0
+
+def _s(val: float) -> int:
+    return int(round(val * _UI_SCALE))
+
 
 DEBUG_LOG = os.getenv("DASH_DEBUG", "0") == "1"
 
@@ -30,14 +39,14 @@ class EnergyFlowView(tk.Frame):
 
         self.width = width
         self.height = height
-        self.node_radius = 38
-        self.ring_gap = 10
+        self.node_radius = _s(38)
+        self.ring_gap = _s(10)
         self._tk_img = None
-        self._font_big = ImageFont.truetype("arial.ttf", 40) if self._has_font("arial.ttf") else None
-        self._font_small = ImageFont.truetype("arial.ttf", 24) if self._has_font("arial.ttf") else None
-        self._font_tiny = ImageFont.truetype("arial.ttf", 17) if self._has_font("arial.ttf") else None
+        self._font_big = ImageFont.truetype("arial.ttf", _s(40)) if self._has_font("arial.ttf") else None
+        self._font_small = ImageFont.truetype("arial.ttf", _s(24)) if self._has_font("arial.ttf") else None
+        self._font_tiny = ImageFont.truetype("arial.ttf", _s(17)) if self._has_font("arial.ttf") else None
         # Emoji font support with multiple fallbacks
-        self._font_emoji = self._find_emoji_font(36)
+        self._font_emoji = self._find_emoji_font(_s(36))
         
         # Load PNG icons - will be pasted onto PIL image
         self._icons_pil = {}  # PIL Images for embedding
@@ -141,10 +150,10 @@ class EnergyFlowView(tk.Frame):
     def _define_nodes(self):
         w, h = self.width, self.height
         margin_x = int(w * 0.06)
-        margin_top = 40
-        margin_bottom = 90  # Platz für SoC-Text unter der Batterie
+        margin_top = _s(40)
+        margin_bottom = _s(90)  # Platz für SoC-Text unter der Batterie
         usable_h = h - margin_top - margin_bottom
-        battery_dx = -160  # weit nach links versetzen, damit Haus/Batterie genügend Abstand haben
+        battery_dx = _s(-160)  # weit nach links versetzen, damit Haus/Batterie genügend Abstand haben
         return {
             "pv": (margin_x + int((w - 2 * margin_x) * 0.20), margin_top + int(usable_h * 0.15)),
             "grid": (w - margin_x - int((w - 2 * margin_x) * 0.20), margin_top + int(usable_h * 0.15)),

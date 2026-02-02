@@ -98,7 +98,6 @@ class HistoricalTab:
         
         paths = [
             self._data_path("Heizungstemperaturen.csv"),
-            self._data_path("Heizungstemperaturen_cleaned.csv"),
         ]
         
         print(f"[HISTORIE] Suche Heizungsdaten...")
