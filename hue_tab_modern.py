@@ -49,6 +49,8 @@ class HueTab:
         self.color_picker_windows = {}
         
         self.status_var = tk.StringVar(value="Initialisiere...")
+        self.mode = tk.StringVar(value="scenes")  # Mode: "scenes" oder "lights"
+        self.master_bright_var = tk.IntVar(value=100)  # Master brightness
         
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_DARK_BG)
         self.notebook.add(self.tab_frame, text=emoji(" 💡 Licht ", "Licht"))
@@ -130,7 +132,6 @@ class HueTab:
         
         tk.Label(bright_frame, text="💡 Helligkeit:", font=("Segoe UI", 9), fg=COLOR_SUBTEXT, bg=COLOR_DARK_BG).pack(side=tk.LEFT, padx=6)
         
-        self.master_bright_var = tk.IntVar(value=100)
         bright_slider = ttk.Scale(bright_frame, from_=0, to=100, variable=self.master_bright_var, orient=tk.HORIZONTAL, command=self._set_master_brightness)
         bright_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
         
