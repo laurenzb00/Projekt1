@@ -233,6 +233,7 @@ class SpotifyTab:
         if self.oauth:
             try:
                 login_url = self.oauth.get_authorize_url()
+                self._login_url = login_url
             except Exception:
                 login_url = None
 
@@ -572,6 +573,7 @@ class SpotifyTab:
             redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8889/callback")
             if "localhost" in redirect_uri:
                 redirect_uri = redirect_uri.replace("localhost", "127.0.0.1")
+            self.redirect_uri = redirect_uri
             print(f"[SPOTIFY] Redirect URI: {redirect_uri}")
             self.oauth = SpotifyOAuth(
                 client_id="8cff12b3245a4e4088d5751360f62705",
@@ -579,7 +581,7 @@ class SpotifyTab:
                 redirect_uri=redirect_uri,
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
                 cache_path=cache_path,
-                open_browser=True,
+                open_browser=False,  # Kein Auto-Browser: vermeidet textbasierte Browser ohne JS
                 show_dialog=True,  # Dialog immer zeigen, damit manuelle Eingabe möglich ist
                 requests_timeout=10,
             )
@@ -603,56 +605,54 @@ class SpotifyTab:
     def _open_login_in_browser(self):
         if not self.oauth:
             return
-        def browser_and_token():
+        def browser_and_prompt():
             try:
                 url = self.oauth.get_authorize_url()
+                self._login_url = url
                 try:
-                    webbrowser.get("chromium-browser").open_new(url)
-                except Exception:
                     webbrowser.open_new(url)
-                self.root.after(0, lambda: self.status_text_var.set("Browser geöffnet..."))
-                self._wait_for_token_thread()
+                except Exception:
+                    try:
+                        webbrowser.get("xdg-open").open_new(url)
+                    except Exception:
+                        pass
+                self.root.after(0, lambda: self.status_text_var.set("Browser geöffnet – Redirect-URL einfügen"))
+                self.root.after(0, self._build_manual_code_ui)
             except Exception as e:
                 self.root.after(0, lambda err=e: self.status_text_var.set(f"Fehler: {err}"))
-        threading.Thread(target=browser_and_token, daemon=True).start()
+        threading.Thread(target=browser_and_prompt, daemon=True).start()
 
     def _wait_for_token_thread(self):
-        try:
-            token_info = None
-            try:
-                token_info = self.oauth.get_access_token(as_dict=True)
-            except Exception as e:
-                # Fallback: Manuelle Code-Eingabe anbieten
-                self.root.after(0, self._build_manual_code_ui)
-                return
-            if token_info and token_info.get("access_token"):
-                import spotipy
-                self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
-                self.ready = True
-                self.root.after(0, self._build_ui)
-                self.root.after(0, lambda: self.status_text_var.set("Verbunden"))
-                self.root.after(0, self.update_spotify)
-        except Exception as e:
-            self.root.after(0, lambda err=e: self._build_prelogin_ui(str(err)))
+        # Nicht mehr genutzt – manueller Flow mit eingefügter Redirect-URL
+        return
 
     def _build_manual_code_ui(self):
         self._clear_tab()
         wrapper = tk.Frame(self.tab_frame, bg=COLOR_DARK_BG)
         wrapper.pack(fill="both", expand=True)
-        tk.Label(wrapper, text="Spotify Login - Manuelle Code-Eingabe", font=("Segoe UI", 18, "bold"), fg="white", bg=COLOR_DARK_BG).pack(pady=20)
-        tk.Label(wrapper, text="Bitte öffne den Link im Browser, logge dich ein und kopiere den Code hierher:", font=("Segoe UI", 12), fg=COLOR_TEXT, bg=COLOR_DARK_BG).pack(pady=10)
-        url = self.oauth.get_authorize_url()
+        tk.Label(wrapper, text="Spotify Login - Manuelle Eingabe", font=("Segoe UI", 18, "bold"), fg="white", bg=COLOR_DARK_BG).pack(pady=20)
+        tk.Label(wrapper, text="Öffne den Link im Browser, logge dich ein und füge die komplette Redirect-URL hier ein (oder nur den code=...):", font=("Segoe UI", 12), fg=COLOR_TEXT, bg=COLOR_DARK_BG, wraplength=720, justify="center").pack(pady=10)
+        url = self._login_url if getattr(self, "_login_url", None) else self.oauth.get_authorize_url()
         url_entry = tk.Entry(wrapper, width=80, font=("Segoe UI", 10), fg="#2563eb", bg=COLOR_CARD_BG, borderwidth=0, relief=tk.FLAT)
         url_entry.insert(0, url)
         url_entry.config(state="readonly")
         url_entry.pack(pady=(5, 0))
         code_var = tk.StringVar()
-        code_entry = tk.Entry(wrapper, textvariable=code_var, width=60, font=("Segoe UI", 12))
+        code_entry = tk.Entry(wrapper, textvariable=code_var, width=80, font=("Segoe UI", 12))
         code_entry.pack(pady=20)
         def submit_code():
-            code = code_var.get().strip()
-            if not code:
+            raw = code_var.get().strip()
+            if not raw:
                 return
+            code = raw
+            try:
+                import urllib.parse as urlparse
+                parsed = urlparse.urlparse(raw)
+                if parsed.scheme and parsed.netloc:
+                    qs = urlparse.parse_qs(parsed.query)
+                    code = (qs.get("code") or [None])[0] or raw
+            except Exception:
+                pass
             try:
                 token_info = self.oauth.get_access_token(code, as_dict=True)
                 if token_info and token_info.get("access_token"):
