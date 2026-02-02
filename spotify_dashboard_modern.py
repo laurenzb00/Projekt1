@@ -195,19 +195,19 @@ class SpotifyDashboard(tk.Frame):
         self.status_var.set(text)
     
     def _get_oauth(self):
-        """Erstelle OAuth Instanz."""
+        """Erstelle OAuth Instanz - für Headless (Pi) oder Desktop."""
         try:
             from spotipy.oauth2 import SpotifyOAuth
             cache_path = os.path.join(os.getcwd(), ".cache-spotify")
             
-            # Nutze Port 8889 statt 8888 (8888 oft belegt)
+            # open_browser=False für Pi (headless), open_browser=True wäre unnötig
             return SpotifyOAuth(
                 client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
                 client_secret=os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5"),
                 redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8889/callback"),
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state user-read-private",
                 cache_path=cache_path,
-                open_browser=True,
+                open_browser=False,  # Pi ist headless - zeige manuellen Link
                 show_dialog=True,
             )
         except Exception as e:
@@ -215,27 +215,42 @@ class SpotifyDashboard(tk.Frame):
             return None
     
     def _connect_spotify(self):
-        """OAuth Browser Login."""
-        self.set_status("🔐 Öffne Browser für Login...")
+        """OAuth Browser Login - mit manuellem Link für Pi."""
+        self.set_status("🔐 Starte Login...")
         
         def worker():
             try:
                 import spotipy
+                from spotipy.oauth2 import SpotifyOAuth
                 
                 self.oauth = self._get_oauth()
                 if not self.oauth:
                     self.after(0, lambda: self.set_status("❌ OAuth Error"))
                     return
                 
+                # Für Pi: Zeige manuellen Login-Link
+                auth_url = self.oauth.get_authorize_url()
+                print(f"\n{'='*60}")
+                print("[SPOTIFY] 🔐 LOGIN ERFORDERLICH")
+                print(f"{'='*60}")
+                print(f"Öffne diesen Link in deinem Browser:")
+                print(f"\n{auth_url}\n")
+                print(f"{'='*60}\n")
+                
+                self.after(0, lambda: self.set_status("🌐 Warte auf Browser-Login..."))
+                
+                # Versuche Token zu holen (wird nach Redirect gespeichert)
                 token_info = self.oauth.get_access_token()
                 if token_info and token_info.get("access_token"):
                     self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
-                    self.after(0, lambda: self.set_status("✓ Verbunden"))
+                    self.after(0, lambda: self.set_status("✓ Verbunden!"))
                     self.after(0, self._refresh_status)
                     # Starte regelmäßige Updates NACH erfolgreichem Login
                     self.after(5000, self._start_status_check)
+                    print("[SPOTIFY] ✓ Login erfolgreich!")
                 else:
                     self.after(0, lambda: self.set_status("❌ Login fehlgeschlagen"))
+                    print("[SPOTIFY] ❌ Token nicht erhalten")
             except Exception as ex:
                 print(f"[SPOTIFY] Connect Error: {ex}")
                 error_msg = str(ex)[:30]
