@@ -955,11 +955,34 @@ class MainApp:
         fronius_csv = _data_path("FroniusDaten.csv")
         bmk_csv = _data_path("Heizungstemperaturen.csv")
 
+        # Hole letzte CSV-Zeile vorab, um sie bei Bedarf (oder wenn frischer als DB) zu nutzen
+        csv_row = None
+        csv_ts = None
+        if os.path.exists(fronius_csv):
+            try:
+                last_line = _read_last_data_line(fronius_csv)
+                if last_line:
+                    csv_row = next(csv.reader([last_line]))
+                    csv_ts = datetime.fromisoformat(csv_row[0]) if csv_row else None
+            except Exception:
+                csv_row = None
+                csv_ts = None
+
         # Fronius Daten - bevorzuge DataStore wenn verfügbar
         if self.datastore:
             try:
                 record = self.datastore.get_last_fronius_record()
                 if record:
+                    record_ts = None
+                    try:
+                        record_ts = datetime.fromisoformat(record['timestamp'])
+                    except Exception:
+                        record_ts = None
+
+                    # Wenn CSV frischer ist als DB-Record, nimm CSV statt stale DB-Wert
+                    if csv_ts and record_ts and record_ts < csv_ts:
+                        record = None  # erzwinge CSV unten
+                    else:
                     pv_kw = record['pv']
                     grid_kw = record['grid']
                     batt_kw = record['batt']
@@ -974,36 +997,37 @@ class MainApp:
                     self._last_data["load"] = load_kw * 1000
                     self._last_data["soc"] = soc
                     
-                    # Skip CSV fallback if DataStore worked
-                    bmk_csv_exists = True
+                        # Skip CSV fallback if DataStore worked
+                        bmk_csv_exists = True
             except Exception as e:
                 logging.debug(f"DataStore Fronius Fehler: {e} - Fallback zu CSV")
                 self.datastore = None  # Deactivate on error
         
         # CSV Fallback (nur wenn DataStore nicht funktioniert)
-        if not self.datastore and os.path.exists(fronius_csv):
+        if (not self.datastore or csv_row) and os.path.exists(fronius_csv):
             try:
-                last_line = _read_last_data_line(fronius_csv)
-                if last_line:
-                    row = next(csv.reader([last_line]))
-                    if len(row) >= 6:
-                        pv_kw = float(row[1])
-                        grid_kw = float(row[2])
-                        batt_kw = float(row[3])
-                        load_kw = float(row[4])
+                row = csv_row
+                if not row:
+                    last_line = _read_last_data_line(fronius_csv)
+                    row = next(csv.reader([last_line])) if last_line else None
+                if row and len(row) >= 6:
+                    pv_kw = float(row[1])
+                    grid_kw = float(row[2])
+                    batt_kw = float(row[3])
+                    load_kw = float(row[4])
 
-                        # Derive grid sign from power balance
-                        netz_calc_kw = pv_kw + batt_kw - load_kw
-                        if abs(grid_kw) > 1e-4:
-                            grid_kw = abs(grid_kw) * (1 if netz_calc_kw <= 0 else -1)
-                        else:
-                            grid_kw = netz_calc_kw
+                    # Derive grid sign from power balance
+                    netz_calc_kw = pv_kw + batt_kw - load_kw
+                    if abs(grid_kw) > 1e-4:
+                        grid_kw = abs(grid_kw) * (1 if netz_calc_kw <= 0 else -1)
+                    else:
+                        grid_kw = netz_calc_kw
 
-                        self._last_data["pv"] = pv_kw * 1000  # kW -> W
-                        self._last_data["grid"] = grid_kw * 1000
-                        self._last_data["batt"] = -batt_kw * 1000  # Invert: negativ = laden, positiv = entladen
-                        self._last_data["load"] = load_kw * 1000
-                        self._last_data["soc"] = float(row[5])
+                    self._last_data["pv"] = pv_kw * 1000  # kW -> W
+                    self._last_data["grid"] = grid_kw * 1000
+                    self._last_data["batt"] = -batt_kw * 1000  # Invert: negativ = laden, positiv = entladen
+                    self._last_data["load"] = load_kw * 1000
+                    self._last_data["soc"] = float(row[5])
             except Exception as e:
                 logging.debug(f"Fronius CSV Fehler: {e}")
 
