@@ -46,6 +46,9 @@ class EnergyFlowView(tk.Frame):
         self.nodes = self._define_nodes()
         self._base_img = self._render_background()
         self._canvas_img = self.canvas.create_image(0, 0, anchor="nw")
+        
+        # Performance optimization: track last values to skip rendering when unchanged
+        self._last_flows = None
 
     def resize(self, width: int, height: int):
         """FIXED: Only update canvas size and dimensions, don't recreate background."""
@@ -441,13 +444,27 @@ class EnergyFlowView(tk.Frame):
         return img
 
     def update_flows(self, pv_w: float, load_w: float, grid_w: float, batt_w: float, soc: float):
-        """Update power flows - checks for canvas size changes and redraws if needed."""
-        # DON'T recompute layout on every update - this causes constant redrawing
-        # Instead, only update if canvas size ACTUALLY changed significantly
+        """Update power flows - only re-render if values changed significantly (save CPU)."""
+        values = (pv_w, load_w, grid_w, batt_w, soc)
+        
+        # Skip rendering if values haven't changed significantly (saves PIL rendering CPU)
+        if self._last_flows:
+            last_pv, last_load, last_grid, last_batt, last_soc = self._last_flows
+            # Only re-render if: delta > 1% OR absolute change > 50W
+            if (abs(pv_w - last_pv) < 0.05 * max(1, last_pv + pv_w) or abs(pv_w - last_pv) < 50) and \
+                (abs(load_w - last_load) < 0.05 * max(1, last_load + load_w) or abs(load_w - last_load) < 50) and \
+                (abs(grid_w - last_grid) < 0.05 * max(1, last_grid + grid_w) or abs(grid_w - last_grid) < 50) and \
+                (abs(batt_w - last_batt) < 0.05 * max(1, last_batt + batt_w) or abs(batt_w - last_batt) < 50) and \
+                (abs(soc - last_soc) < 2):
+                return  # Skip render - values too similar, saves CPU
+        
+        self._last_flows = values
+        
+        # Check for canvas size changes
         cw = max(200, self.canvas.winfo_width())
         ch = max(200, self.canvas.winfo_height())
         
-        # Only recreate layout if size changed by more than 30px (ignore small pack/grid fluctuations)
+        # Only recreate layout if size changed by more than 30px
         if abs(cw - self.width) > 30 or abs(ch - self.height) > 30:
             elapsed = time.time() - self._start_time
             if DEBUG_LOG:

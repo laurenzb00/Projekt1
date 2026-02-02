@@ -19,9 +19,10 @@ class SpotifyDashboard(tk.Frame):
         super().__init__(parent, bg=BG_MAIN)
         self.configure(width=1024, height=524)
         self.pack_propagate(False)
-        self.status_var = tk.StringVar(value="Spotify: nicht verbunden")
+        self.status_var = tk.StringVar(value="Spotify: initialisiere...")
         self.init_ui()
-        self._start_spotify_status_check()
+        # Check status NACH UI init, um Fehler zu vermeiden
+        self.after(500, self._start_spotify_status_check)
 
     def init_ui(self):
         # Hauptcontainer
@@ -100,8 +101,9 @@ class SpotifyDashboard(tk.Frame):
 
     def set_status(self, text: str):
         self.status_var.set(text)
-
-    def _ensure_oauth(self):
+    
+    def _get_oauth(self):
+        """Create OAuth instance."""
         try:
             from spotipy.oauth2 import SpotifyOAuth
             cache_path = os.path.join(os.path.abspath(os.getcwd()), ".cache-spotify")
@@ -114,68 +116,96 @@ class SpotifyDashboard(tk.Frame):
                 open_browser=False,
                 show_dialog=False,
             )
-        except Exception:
+        except Exception as e:
+            print(f"[SPOTIFY] OAuth creation error: {e}")
             return None
 
     def _connect_spotify(self):
-        self.set_status("Spotify: verbinde...")
-        oauth = self._ensure_oauth()
-        if oauth is None:
-            self.set_status("Spotify: OAuth Fehler")
-            return
-        try:
-            url = oauth.get_authorize_url()
-            webbrowser.open_new(url)
-            build_login_popup(self, oauth, lambda: self._start_spotify_status_check(force_refresh=True))
-            self.set_status("Spotify: Login geöffnet")
-        except Exception:
-            self.set_status("Spotify: Login konnte nicht geöffnet werden")
+        """Öffne Spotify OAuth Browser Login - BLOCKING bis Authorization."""
+        self.set_status("Spotify: öffne Browser für Login...")
+        
+        def worker():
+            try:
+                from spotipy.oauth2 import SpotifyOAuth
+                import spotipy
+                
+                oauth = self._get_oauth()
+                if not oauth:
+                    self.after(0, lambda: self.set_status("Spotify: OAuth setup error"))
+                    return
+                
+                # get_authorize_url() zeigt Auth Dialog automatisch
+                auth_url = oauth.get_authorize_url()
+                print(f"[SPOTIFY] Auth URL: {auth_url}")
+                webbrowser.open_new(auth_url)
+                
+                # Warte auf Token Cache nach Browser Login (max 120s)
+                import time
+                for attempt in range(120):
+                    token_info = oauth.get_cached_token()
+                    if token_info and token_info.get("access_token"):
+                        self.after(0, lambda: self.set_status("Spotify: verbunden! ✓"))
+                        self.after(0, lambda: self._start_spotify_status_check(force_refresh=True))
+                        return
+                    time.sleep(1)
+                
+                self.after(0, lambda: self.set_status("Spotify: Login Timeout"))
+            except Exception as e:
+                print(f"[SPOTIFY] Connect error: {e}")
+                self.after(0, lambda: self.set_status("Spotify: Error"))
+        
+        threading.Thread(target=worker, daemon=True).start()
 
     def _refresh_spotify(self):
-        # Refresh playback info if possible
+        """Force refresh playback info."""
+        self.set_status("Spotify: aktualisiere...")
         self._start_spotify_status_check(force_refresh=True)
 
     def _start_spotify_status_check(self, force_refresh: bool = False):
+        """Check Spotify token und aktualisiere Status."""
         def worker():
             try:
                 import spotipy
-                from spotipy.oauth2 import SpotifyOAuth
-
-                cache_path = os.path.join(os.path.abspath(os.getcwd()), ".cache-spotify")
-                oauth = SpotifyOAuth(
-                    client_id=os.getenv("SPOTIPY_CLIENT_ID", "8cff12b3245a4e4088d5751360f62705"),
-                    client_secret=os.getenv("SPOTIPY_CLIENT_SECRET", "af9ecfa466504d7795416a3f2c66f5c5"),
-                    redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8888/callback"),
-                    scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
-                    cache_path=cache_path,
-                    open_browser=False,
-                    show_dialog=False,
-                )
-
+                
+                oauth = self._get_oauth()
+                if not oauth:
+                    self.after(0, lambda: self.set_status("Spotify: OAuth error"))
+                    return
+                
+                # Versuche Token zu erhalten (aus Cache)
                 token_info = oauth.get_cached_token()
+                
                 if token_info and token_info.get("access_token"):
-                    sp = spotipy.Spotify(auth_manager=oauth, requests_timeout=10)
-                    self.after(0, lambda: self.set_status("Spotify: verbunden"))
-                    if force_refresh:
-                        try:
-                            playback = sp.current_playback()
-                            if playback and playback.get("item"):
-                                item = playback["item"]
-                                title = item.get("name") or "Unbekannt"
-                                artist = ", ".join(a.get("name") for a in item.get("artists", [])) or ""
-                                cover = None
-                                images = item.get("album", {}).get("images", [])
-                                if images:
-                                    cover = images[0].get("url")
-                                self.after(0, lambda: self.update_track_info(title, artist, cover))
-                            else:
-                                self.after(0, lambda: self.set_status("Spotify: verbunden (keine Wiedergabe)") )
-                        except Exception:
-                            self.after(0, lambda: self.set_status("Spotify: verbunden (keine Daten)") )
+                    # Token vorhanden - verbinde mit Spotify
+                    try:
+                        sp = spotipy.Spotify(auth_manager=oauth, requests_timeout=10)
+                        playback = sp.current_playback()
+                        
+                        if playback and playback.get("item"):
+                            item = playback["item"]
+                            title = item.get("name") or "Unbekannt"
+                            artist = ", ".join(a.get("name") for a in item.get("artists", [])) or ""
+                            cover = None
+                            images = item.get("album", {}).get("images", [])
+                            if images:
+                                cover = images[0].get("url")
+                            
+                            self.after(0, lambda: self.set_status("Spotify: verbunden ✓"))
+                            self.after(0, lambda: self.update_track_info(title, artist, cover))
+                        else:
+                            self.after(0, lambda: self.set_status("Spotify: verbunden (keine Wiedergabe)"))
+                    except Exception as e:
+                        print(f"[SPOTIFY] Playback fetch error: {e}")
+                        self.after(0, lambda: self.set_status("Spotify: verbunden (Fehler beim Laden)"))
                 else:
-                    self.after(0, lambda: self.set_status("Spotify: nicht verbunden (spotifylogin.py ausführen)"))
+                    # Kein Token - zeige Connect Button
+                    self.after(0, lambda: self.set_status("Spotify: nicht verbunden"))
+                    
             except Exception as e:
-                self.after(0, lambda: self.set_status(f"Spotify: Fehler ({e})"))
+                print(f"[SPOTIFY] Status check error: {e}")
+                self.after(0, lambda: self.set_status(f"Spotify: Fehler"))
+        
+        threading.Thread(target=worker, daemon=True).start()
 
         threading.Thread(target=worker, daemon=True).start()
 

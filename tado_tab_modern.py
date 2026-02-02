@@ -48,7 +48,7 @@ class TadoTab:
         notebook.add(self.tab_frame, text=emoji("🌡️ Klima", "Klima"))
         
         self.tab_frame.grid_columnconfigure(0, weight=1)
-        self.tab_frame.grid_rowconfigure(1, weight=1)
+        self.tab_frame.grid_rowconfigure(2, weight=1)
 
         # Header mit Status
         header = tk.Frame(self.tab_frame, bg=COLOR_ROOT)
@@ -115,6 +115,32 @@ class TadoTab:
         
         ttk.Button(btn_frame, text="Heizen", command=self._set_heating).pack(side=tk.LEFT, padx=3, fill=tk.X, expand=True)
         ttk.Button(btn_frame, text="Aus", command=self._set_off).pack(side=tk.LEFT, padx=3, fill=tk.X, expand=True)
+
+        # Temperatur-Historie (matplotlib)
+        try:
+            history_card = Card(self.tab_frame)
+            history_card.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+            history_card.add_title("Temperatur-Verlauf (24h)", icon="📈")
+            
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+            
+            fig, ax = plt.subplots(figsize=(10, 2.5), dpi=80)
+            fig.patch.set_facecolor(COLOR_CARD)
+            ax.set_facecolor(COLOR_CARD)
+            for spine in ["top", "right"]:
+                ax.spines[spine].set_visible(False)
+            for spine in ["left", "bottom"]:
+                ax.spines[spine].set_color(COLOR_BORDER)
+            
+            self.history_fig = fig
+            self.history_ax = ax
+            self.history_canvas = FigureCanvasTkAgg(fig, master=history_card.content())
+            self.history_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            self.history_temps = []  # Liste für Temperatur-Historie
+        except Exception as e:
+            print(f"[TADO] History chart error: {e}")
+            self.history_canvas = None
 
         # Start Update Loop
         self.root.after(0, lambda: threading.Thread(target=self._loop, daemon=True).start())
@@ -318,6 +344,16 @@ class TadoTab:
                 if target is None:
                     self._ui_set(self.var_temp_soll, "-- °C")
                     self._ui_set(self.var_status, "Automatik")
+                
+                # Update history chart
+                try:
+                    if current and self.history_canvas:
+                        self.history_temps.append(current)
+                        if len(self.history_temps) > 288:  # 24h * 5min = 288 punkte
+                            self.history_temps = self.history_temps[-288:]
+                        self._update_history_chart()
+                except Exception:
+                    pass
                     
             except Exception as e:
                 if not getattr(self, "_state_error_logged", False):
@@ -325,3 +361,36 @@ class TadoTab:
                     self._state_error_logged = True
             
             time.sleep(30)  # Update alle 30 Sekunden
+    
+    def _update_history_chart(self):
+        """Update 24h temperature chart."""
+        try:
+            if not hasattr(self, 'history_canvas') or not self.history_canvas:
+                return
+            
+            self.history_ax.clear()
+            
+            if len(self.history_temps) > 1:
+                # Plot min/max area + current line
+                import numpy as np
+                temps = np.array(self.history_temps)
+                x = np.arange(len(temps))
+                
+                self.history_ax.plot(x, temps, color=COLOR_PRIMARY, linewidth=2, label="Temperatur")
+                self.history_ax.fill_between(x, temps, alpha=0.2, color=COLOR_PRIMARY)
+                self.history_ax.set_ylabel("°C", color=COLOR_TEXT, fontsize=9)
+                self.history_ax.tick_params(axis="y", colors=COLOR_TEXT, labelsize=8)
+                self.history_ax.tick_params(axis="x", colors=COLOR_SUBTEXT, labelsize=7)
+                self.history_ax.grid(True, alpha=0.2, axis="y")
+                self.history_ax.set_ylim(min(temps) - 2, max(temps) + 2)
+            else:
+                self.history_ax.text(0.5, 0.5, "Keine Historie", ha="center", va="center",
+                                   transform=self.history_ax.transAxes, color=COLOR_SUBTEXT)
+            
+            self.history_fig.tight_layout(pad=0.4)
+            try:
+                self.history_canvas.draw_idle()
+            except:
+                pass
+        except Exception as e:
+            print(f"[TADO] Chart update error: {e}")

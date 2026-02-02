@@ -77,6 +77,9 @@ class HueTab:
         # Grid-Konfiguration (3 Spalten)
         for i in range(3):
             self.scroll_frame.columnconfigure(i, weight=1, minsize=310)
+        
+        # Modes: "scenes" oder "lights"
+        self.mode = tk.StringVar(value="scenes")
 
         # Start Connection
         self.root.after(0, lambda: threading.Thread(target=self._connect_loop, daemon=True).start())
@@ -109,17 +112,32 @@ class HueTab:
         ).pack(side=tk.RIGHT, padx=20)
 
     def _build_global_controls(self):
-        """Zentrale Steuerung"""
+        """Zentrale Steuerung mit Mode Toggle + Master Brightness"""
         bar = tk.Frame(self.tab_frame, bg=COLOR_DARK_BG)
         bar.pack(fill=tk.X, padx=15, pady=(15, 10))
         
-        tk.Label(
-            bar, text="Zentrale Steuerung:",
-            font=("Segoe UI", 11, "bold"),
-            fg=COLOR_TEXT, bg=COLOR_DARK_BG
-        ).pack(side=tk.LEFT, padx=(0, 15))
+        # Mode Selection
+        mode_frame = tk.Frame(bar, bg=COLOR_DARK_BG)
+        mode_frame.pack(side=tk.LEFT, padx=(0, 20))
         
-        # Modern Buttons
+        tk.Label(mode_frame, text="Mode:", font=("Segoe UI", 10, "bold"), fg=COLOR_TEXT, bg=COLOR_DARK_BG).pack(side=tk.LEFT, padx=6)
+        ttk.Radiobutton(mode_frame, text="Szenen", variable=self.mode, value="scenes", command=self._on_mode_changed).pack(side=tk.LEFT, padx=4)
+        ttk.Radiobutton(mode_frame, text="Lampen", variable=self.mode, value="lights", command=self._on_mode_changed).pack(side=tk.LEFT, padx=4)
+        
+        # Master Brightness Slider
+        bright_frame = tk.Frame(bar, bg=COLOR_DARK_BG)
+        bright_frame.pack(side=tk.LEFT, padx=(30, 10))
+        
+        tk.Label(bright_frame, text="💡 Helligkeit:", font=("Segoe UI", 9), fg=COLOR_SUBTEXT, bg=COLOR_DARK_BG).pack(side=tk.LEFT, padx=6)
+        
+        self.master_bright_var = tk.IntVar(value=100)
+        bright_slider = ttk.Scale(bright_frame, from_=0, to=100, variable=self.master_bright_var, orient=tk.HORIZONTAL, command=self._set_master_brightness)
+        bright_slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
+        
+        self.bright_label = tk.Label(bright_frame, text="100%", font=("Segoe UI", 9), fg=COLOR_PRIMARY, bg=COLOR_DARK_BG, width=4)
+        self.bright_label.pack(side=tk.LEFT, padx=4)
+        
+        # Global Buttons
         def create_btn(parent, text, cmd, bg):
             return tk.Button(
                 parent, text=text,
@@ -158,7 +176,11 @@ class HueTab:
             self.root.after(0, self._refresh_scenes_ui)
 
     def _refresh_scenes_ui(self):
-        """Zeigt Szenen statt einzelner Lampen."""
+        """Zeigt Szenen statt einzelner Lampen (MAX 12 pro Raum)."""
+        if self.mode.get() == "lights":
+            self._refresh_lights_ui()
+            return
+            
         try:
             scenes = self.bridge.get_scene()
             groups = self.bridge.get_group()
@@ -175,14 +197,23 @@ class HueTab:
                 ).grid(row=0, column=0, columnspan=3, pady=40)
                 return
 
-            scene_list = []
+            # Gruppiere Szenen nach Raum
+            scenes_by_group = {}
             for scene_id, scene in scenes.items():
                 name = scene.get("name", "Unbenannt")
                 group_id = scene.get("group")
                 group_name = group_names.get(group_id, "Alle")
-                scene_list.append((group_name, name, scene_id))
-
-            scene_list.sort(key=lambda x: (x[0], x[1]))
+                
+                if group_name not in scenes_by_group:
+                    scenes_by_group[group_name] = []
+                scenes_by_group[group_name].append((name, scene_id))
+            
+            # Sortiere und begrenze auf TOP 10 pro Raum
+            scene_list = []
+            for group_name in sorted(scenes_by_group.keys()):
+                scenes = sorted(scenes_by_group[group_name], key=lambda x: x[0])[:10]  # Top 10
+                for name, scene_id in scenes:
+                    scene_list.append((group_name, name, scene_id))
 
             for widget in self.scroll_frame.winfo_children():
                 widget.destroy()
@@ -656,3 +687,156 @@ class HueTab:
             self.root.after(0, self._refresh_lights_ui)
         except Exception as e:
             print(f"Gruppe Fehler: {e}")
+    
+    def _on_mode_changed(self):
+        """Wechsel zwischen Szenen und Lampen-Modus."""
+        self.root.after(0, self._refresh_scenes_ui)
+    
+    def _set_master_brightness(self, value):
+        """Stelle Helligkeit aller Lampen."""
+        try:
+            value = int(float(value))
+            self.bright_label.configure(text=f"{value}%")
+            
+            def worker():
+                if not self.bridge:
+                    return
+                try:
+                    # Stelle Helligkeit für Gruppe 0 (alle Lampen)
+                    brightness_254 = max(0, min(254, int(value * 254 / 100)))
+                    if value == 0:
+                        # Wenn 0: Schalte aus
+                        self.bridge.set_group(0, 'on', False)
+                    else:
+                        # Sonst: An + Helligkeit setzen
+                        self.bridge.set_group(0, 'bri', brightness_254)
+                        self.bridge.set_group(0, 'on', True)
+                except Exception as e:
+                    print(f"[HUE] Brightness error: {e}")
+            
+            threading.Thread(target=worker, daemon=True).start()
+        except Exception:
+            pass
+    
+    def _refresh_lights_ui(self):
+        """Zeigt individuelle Lampen mit Toggle und Helligkeit."""
+        try:
+            lights = self.bridge.get_light_objects("name")
+            
+            # Clear existing widgets
+            for widget in self.scroll_frame.winfo_children():
+                widget.destroy()
+            
+            if not lights:
+                tk.Label(
+                    self.scroll_frame,
+                    text="Keine Lampen gefunden.",
+                    font=("Segoe UI", 12),
+                    fg=COLOR_SUBTEXT, bg=COLOR_DARK_BG
+                ).grid(row=0, column=0, columnspan=3, pady=40)
+                return
+            
+            row, col = 0, 0
+            for light in lights:
+                self._create_light_card(light, row, col)
+                col += 1
+                if col > 2:
+                    col = 0
+                    row += 1
+        except Exception as e:
+            self._ui_set(self.status_var, f"Fehler: {e}")
+    
+    def _create_light_card(self, light, row: int, col: int):
+        """Erstellt Lampen-Karte mit Toggle + Brightness."""
+        outer = tk.Frame(self.scroll_frame, bg="#0a0f1a")
+        outer.grid(row=row, column=col, sticky="nsew", padx=8, pady=8)
+        
+        card = tk.Frame(
+            outer,
+            bg=COLOR_CARD_BG,
+            relief=tk.FLAT,
+            highlightbackground=COLOR_BORDER,
+            highlightthickness=2
+        )
+        card.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        
+        # Header mit Power Toggle
+        header = tk.Frame(card, bg="#142038", height=50)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+        
+        is_on = light.on
+        toggle_color = COLOR_SUCCESS if is_on else COLOR_ACCENT
+        
+        def toggle_light():
+            def worker():
+                try:
+                    light.on = not light.on
+                    time.sleep(0.3)
+                    self.root.after(0, self._refresh_lights_ui)
+                except Exception:
+                    pass
+            threading.Thread(target=worker, daemon=True).start()
+        
+        toggle_btn = tk.Button(
+            header, text="💡" if is_on else "⚪",
+            font=("Segoe UI", 18),
+            bg=toggle_color, fg="white",
+            relief=tk.FLAT,
+            cursor="hand2",
+            width=3, height=2,
+            command=toggle_light
+        )
+        toggle_btn.pack(side=tk.LEFT, padx=10, pady=8)
+        
+        tk.Label(
+            header, text=light.name,
+            font=("Segoe UI", 12, "bold"),
+            fg="white", bg="#142038",
+            anchor="w"
+        ).pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
+        
+        # Content
+        content = tk.Frame(card, bg=COLOR_CARD_BG)
+        content.pack(fill=tk.BOTH, expand=True, padx=15, pady=12)
+        
+        # Status
+        reachable = "🔗 Online" if light.reachable else "❌ Offline"
+        tk.Label(
+            content, text=reachable,
+            font=("Segoe UI", 9), fg=COLOR_SUBTEXT, bg=COLOR_CARD_BG
+        ).pack(anchor="w", pady=(0, 10))
+        
+        # Brightness Slider
+        if is_on:
+            tk.Label(
+                content, text=f"Helligkeit: {light.brightness}%",
+                font=("Segoe UI", 10, "bold"), fg="white", bg=COLOR_CARD_BG
+            ).pack(anchor="w", pady=(0, 5))
+            
+            def set_brightness(val):
+                def worker():
+                    try:
+                        light.brightness = int(float(val))
+                    except Exception:
+                        pass
+                threading.Thread(target=worker, daemon=True).start()
+            
+            bright_slider = ttk.Scale(
+                content, from_=0, to=100,
+                command=set_brightness
+            )
+            bright_slider.set(light.brightness)
+            bright_slider.pack(fill=tk.X, pady=(0, 8))
+        
+        # Color Button (für Farblampen)
+        if hasattr(light, 'hue') and hasattr(light, 'saturation'):
+            tk.Button(
+                content, text="🎨 Farbe ändern",
+                font=("Segoe UI", 9),
+                bg=COLOR_PRIMARY, fg="white",
+                relief=tk.FLAT,
+                cursor="hand2",
+                command=lambda: self._open_color_picker_window(light)
+            ).pack(fill=tk.X, pady=4)
+

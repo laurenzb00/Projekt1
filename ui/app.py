@@ -344,11 +344,7 @@ class MainApp:
         if self._debug_log:
             print(f"[LAYOUT] UI built at {time.time() - self._start_time:.3f}s")
         
-        # LAYOUT FIX: Let Tkinter complete ALL geometry calculations before anything else
-        # This prevents the Configure cascade that causes layout jumping
-        # Do THREE idle updates to ensure all widgets have settled to final size
-        self.root.update_idletasks()
-        self.root.update_idletasks()
+        # LAYOUT FIX: Single update_idletasks() instead of 3x to avoid minimize lag
         self.root.update_idletasks()
         
         w = self.root.winfo_width()
@@ -445,7 +441,7 @@ class MainApp:
                     self.pv_status_time.set(str(row[0]) if len(row) > 0 else "--")
             except Exception:
                 pass
-        self.root.after(60000, self._update_pv_status_tab)
+        self.root.after(120000, self._update_pv_status_tab)
 
         # State
         self._tick = 0
@@ -744,7 +740,7 @@ class MainApp:
         except Exception:
             self.status.update_status("Emoji-Font Installation fehlgeschlagen")
 
-    # --- Update Loop mit echten Daten ---
+    # --- Update Loop mit echten Daten (OPTIMIZED for Pi performance) ---
     def _loop(self):
         self._tick += 1
 
@@ -754,7 +750,7 @@ class MainApp:
         except Exception as e:
             logging.debug(f"Fehler beim Abrufen echter Daten: {e}")
 
-        # Header every 1.5s
+        # Header every 3s
         now = datetime.now()
         if self._tick % 1 == 0:
             date_text = now.strftime("%d.%m.%Y")
@@ -766,7 +762,7 @@ class MainApp:
             soc = self._last_data["soc"]
             self.status.update_center(f"SOC {soc:.0f}%")
 
-        # Energy every 1.5s
+        # Energy every 3s (was 1.5s) - smart delta detection avoids redundant rendering
         self.energy_view.update_flows(
             self._last_data["pv"],
             self._last_data["load"],
@@ -775,8 +771,8 @@ class MainApp:
             self._last_data["soc"],
         )
 
-        # Buffer every 6s
-        if self._tick % 4 == 0:
+        # Buffer every 9s (was 6s) - matplotlib rendering is expensive
+        if self._tick % 3 == 0:
             # Show Kesseltemperatur as the main value in the mini diagram
             kessel = self._last_data.get("kesseltemperatur")
             # Fallback to warmwasser if kesseltemperatur is not available
@@ -789,10 +785,11 @@ class MainApp:
             )
 
         # Data freshness every 15s
-        if self._tick % 10 == 0:
+        if self._tick % 5 == 0:
             self._update_freshness_and_sparkline()
 
-        self.root.after(1500, self._loop)
+        # Increased loop interval from 1.5s to 3s reduces CPU usage significantly
+        self.root.after(3000, self._loop)
 
     def _update_freshness_and_sparkline(self):
         last_ts = self._get_last_timestamp()
