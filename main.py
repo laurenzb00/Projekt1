@@ -6,10 +6,14 @@ import tkinter as tk
 import subprocess
 import sys
 import platform
+import os
 
 import BMKDATEN
 import Wechselrichter
 from ui.app import MainApp
+
+# Force Spotify redirect URI to loopback IP (avoid localhost which Spotify nicht erlaubt)
+os.environ["SPOTIPY_REDIRECT_URI"] = "http://127.0.0.1:8889/callback"
 
 # --- Ensure Emoji Font is installed ---
 def ensure_emoji_font():
