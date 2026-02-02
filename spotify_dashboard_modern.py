@@ -113,15 +113,15 @@ class SpotifyDashboard(tk.Frame):
                 redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI", "http://127.0.0.1:8888/callback"),
                 scope="user-read-currently-playing user-modify-playback-state user-read-playback-state",
                 cache_path=cache_path,
-                open_browser=False,
-                show_dialog=False,
+                open_browser=True,
+                show_dialog=True,
             )
         except Exception as e:
             print(f"[SPOTIFY] OAuth creation error: {e}")
             return None
 
     def _connect_spotify(self):
-        """Öffne Spotify OAuth Browser Login - BLOCKING bis Authorization."""
+        """Öffne Spotify OAuth Browser Login - mit automatischem Browser-Öffnen."""
         self.set_status("Spotify: öffne Browser für Login...")
         
         def worker():
@@ -134,25 +134,18 @@ class SpotifyDashboard(tk.Frame):
                     self.after(0, lambda: self.set_status("Spotify: OAuth setup error"))
                     return
                 
-                # get_authorize_url() zeigt Auth Dialog automatisch
-                auth_url = oauth.get_authorize_url()
-                print(f"[SPOTIFY] Auth URL: {auth_url}")
-                webbrowser.open_new(auth_url)
+                # get_access_token() öffnet Browser automatisch und wartet auf Authorization
+                token_info = oauth.get_access_token()
                 
-                # Warte auf Token Cache nach Browser Login (max 120s)
-                import time
-                for attempt in range(120):
-                    token_info = oauth.get_cached_token()
-                    if token_info and token_info.get("access_token"):
-                        self.after(0, lambda: self.set_status("Spotify: verbunden! ✓"))
-                        self.after(0, lambda: self._start_spotify_status_check(force_refresh=True))
-                        return
-                    time.sleep(1)
+                if token_info and token_info.get("access_token"):
+                    self.after(0, lambda: self.set_status("Spotify: verbunden! ✓"))
+                    self.after(0, lambda: self._start_spotify_status_check(force_refresh=True))
+                    return
                 
-                self.after(0, lambda: self.set_status("Spotify: Login Timeout"))
+                self.after(0, lambda: self.set_status("Spotify: Login fehlgeschlagen"))
             except Exception as e:
                 print(f"[SPOTIFY] Connect error: {e}")
-                self.after(0, lambda: self.set_status("Spotify: Error"))
+                self.after(0, lambda: self.set_status(f"Spotify: Error - {str(e)[:30]}"))
         
         threading.Thread(target=worker, daemon=True).start()
 
