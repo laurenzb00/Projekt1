@@ -86,9 +86,9 @@ class HistoricalTab:
 
     def _load_temps(self):
         import time
-        # Cache: Nur alle 60s neu laden um Segfault zu vermeiden
+        # Cache: Nur alle 120s neu laden um Segfault zu vermeiden
         now = time.time()
-        if self._last_temps_cache and (now - self._last_cache_time) < 60:
+        if self._last_temps_cache and (now - self._last_cache_time) < 120:
             return self._last_temps_cache
         
         paths = [
