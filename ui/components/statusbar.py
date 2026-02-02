@@ -39,17 +39,17 @@ class StatusBar(tk.Frame):
         self.window_btn = RoundedButton(
             inner, text="⊡", command=on_toggle_fullscreen,
             bg=COLOR_BORDER, fg=COLOR_TEXT,
-            radius=12, padding=(14, 4), font_size=12
+            radius=10, padding=(8, 2), font_size=10, width=36, height=20
         )
-        self.window_btn.grid(row=0, column=2, sticky="e", padx=(4, 4), pady=0)
+        self.window_btn.grid(row=0, column=2, sticky="e", padx=(2, 2), pady=0)
 
         # Kleiner Exit-Button
         self.exit_btn = RoundedButton(
             inner, text="⏻", command=on_exit,
             bg=COLOR_DANGER, fg="#fff",
-            radius=12, padding=(14, 4), font_size=12
+            radius=10, padding=(8, 2), font_size=10, width=36, height=20
         )
-        self.exit_btn.grid(row=0, column=3, sticky="e", padx=(4, 8), pady=0)
+        self.exit_btn.grid(row=0, column=3, sticky="e", padx=(2, 4), pady=0)
 
     def update_status(self, text: str):
         self.status_label.config(text=text)

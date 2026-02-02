@@ -61,15 +61,15 @@ class HeaderBar(tk.Frame):
         self.btn_a = RoundedButton(
             btn_row, text="An", command=on_toggle_a,
             bg=COLOR_PRIMARY, fg="#fff",
-            radius=14, padding=(18, 6), font_size=13
+            radius=12, padding=(10, 3), font_size=11, width=48, height=26
         )
-        self.btn_a.pack(side=tk.LEFT, padx=4, pady=0, fill="y", expand=True)
+        self.btn_a.pack(side=tk.LEFT, padx=2, pady=0)
         self.btn_b = RoundedButton(
             btn_row, text="Aus", command=on_toggle_b,
             bg=COLOR_BORDER, fg=COLOR_TEXT,
-            radius=14, padding=(18, 6), font_size=13
+            radius=12, padding=(10, 3), font_size=11, width=48, height=26
         )
-        self.btn_b.pack(side=tk.LEFT, padx=4, pady=0, fill="y", expand=True)
+        self.btn_b.pack(side=tk.LEFT, padx=2, pady=0)
         # Exit-Button entfernt, nur noch unten
 
     def update_header(self, date_text: str, weekday: str, time_text: str, out_temp: str):

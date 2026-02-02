@@ -204,7 +204,8 @@ except ImportError:
 # Importiere NUR das neue SpotifyDashboard
 try:
     from spotify_dashboard_modern import SpotifyDashboard
-except ImportError:
+except Exception as e:
+    print(f"[SPOTIFY-IMPORT-ERROR] {e}")
     SpotifyDashboard = None
 
 try:
@@ -465,9 +466,10 @@ class MainApp:
     def _add_other_tabs(self):
         """Integriert das neue SpotifyDashboard als Tab, sowie Tado, Hue, System und Calendar Tabs."""
         if SpotifyDashboard:
+            print("[SPOTIFY] SpotifyDashboard wird als Tab hinzugefügt!")
             self.spotify_tab = SpotifyDashboard(self.notebook)
             self.spotify_tab.pack_propagate(False)
-            self.notebook.add(self.spotify_tab, text="Spotify")
+            self.notebook.add(self.spotify_tab, text="🎵 Spotify Modern")
         if TadoTab:
             self.tado_tab = TadoTab(self.root, self.notebook)
             if self._debug_log:
