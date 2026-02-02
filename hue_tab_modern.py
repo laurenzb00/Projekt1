@@ -183,8 +183,8 @@ class HueTab:
                         retry_count = 0
                         continue
                 else:
-                    # Bridge verbunden - refresh content alle 30s
-                    time.sleep(30)
+                    # Bridge verbunden - refresh content alle 15s (war 30s)
+                    time.sleep(15)
                     self._refresh_content()
                     
             except Exception as e:
