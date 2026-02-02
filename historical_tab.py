@@ -29,6 +29,8 @@ class HistoricalTab:
         self.root = root
         self.notebook = notebook
         self.alive = True
+        self._last_temps_cache = None  # Cache um Segfault zu vermeiden
+        self._last_cache_time = 0
 
         self.tab_frame = tk.Frame(self.notebook, bg=COLOR_ROOT)
         self.notebook.add(self.tab_frame, text=emoji("📈 Heizung-Historie", "Heizung-Historie"))
@@ -83,6 +85,12 @@ class HistoricalTab:
         self.alive = False
 
     def _load_temps(self):
+        import time
+        # Cache: Nur alle 60s neu laden um Segfault zu vermeiden
+        now = time.time()
+        if self._last_temps_cache and (now - self._last_cache_time) < 60:
+            return self._last_temps_cache
+        
         paths = [
             self._data_path("Heizungstemperaturen.csv"),
             self._data_path("Heizungstemperaturen_cleaned.csv"),
@@ -127,14 +135,25 @@ class HistoricalTab:
                                 rows.append((ts, top, mid, bot, boiler, outside))
                         except Exception:
                             continue
-            except Exception:
+            except Exception as e:
+                print(f"[HISTORIE] Fehler beim Laden: {e}")
                 continue
+            
             rows.sort(key=lambda r: r[0])
             if rows:
+                self._last_temps_cache = rows
+                self._last_cache_time = now
                 return rows
+            
             all_rows.sort(key=lambda r: r[0])
             if all_rows:
-                return all_rows[-500:]
+                result = all_rows[-500:]
+                self._last_temps_cache = result
+                self._last_cache_time = now
+                return result
+        
+        self._last_temps_cache = []
+        self._last_cache_time = now
         return []
 
     @staticmethod

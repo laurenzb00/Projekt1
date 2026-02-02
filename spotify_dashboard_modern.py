@@ -244,22 +244,35 @@ class SpotifyDashboard(tk.Frame):
         threading.Thread(target=worker, daemon=True).start()
     
     def _refresh_status(self):
-        """Aktualisiere Playback Status."""
+        """Aktualisiere Playback Status - mit Fehlerbehandlung."""
         def worker():
             try:
                 if not self.sp:
                     import spotipy
                     self.oauth = self._get_oauth()
                     if not self.oauth:
+                        print("[SPOTIFY] OAuth nicht verfügbar")
                         return
-                    token_info = self.oauth.get_cached_token()
-                    if not token_info:
+                    try:
+                        token_info = self.oauth.get_cached_token()
+                        if not token_info:
+                            print("[SPOTIFY] Kein cached Token - login required")
+                            return
+                        self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
+                    except Exception as ex:
+                        print(f"[SPOTIFY] Token error: {ex}")
                         return
-                    self.sp = spotipy.Spotify(auth_manager=self.oauth, requests_timeout=10)
                 
                 # Hole aktuellen Playback Status
-                playback = self.sp.current_playback()
+                try:
+                    playback = self.sp.current_playback()
+                except Exception as ex:
+                    print(f"[SPOTIFY] Playback error: {ex}")
+                    self.after(0, lambda: self.set_status("⚠ Verbindungsfehler"))
+                    return
+                    
                 if not playback:
+                    print("[SPOTIFY] Kein Playback")
                     return
                 
                 # Update Device
@@ -273,8 +286,8 @@ class SpotifyDashboard(tk.Frame):
                     title = item.get("name", "Unbekannt")
                     artists = ", ".join([a.get("name") for a in item.get("artists", [])])
                     
-                    self.after(0, lambda: self.track_var.set(title))
-                    self.after(0, lambda: self.artist_var.set(artists))
+                    self.after(0, lambda t=title: self.track_var.set(t))
+                    self.after(0, lambda a=artists: self.artist_var.set(a))
                     
                     # Lade Album Cover
                     images = item.get("album", {}).get("images", [])
