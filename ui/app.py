@@ -462,27 +462,64 @@ class MainApp:
     def _add_other_tabs(self):
         """Integriert das neue SpotifyDashboard als Tab, sowie Tado, Hue, System und Calendar Tabs."""
         if SpotifyDashboard:
-            print("[SPOTIFY] SpotifyDashboard wird als Tab hinzugefügt!")
-            self.spotify_tab = SpotifyDashboard(self.notebook)
-            self.spotify_tab.pack_propagate(False)
-            self.notebook.add(self.spotify_tab, text="🎵 Spotify Modern")
+            try:
+                print("[SPOTIFY] SpotifyDashboard wird als Tab hinzugefügt!")
+                self.spotify_tab = SpotifyDashboard(self.notebook)
+                self.spotify_tab.pack_propagate(False)
+                self.notebook.add(self.spotify_tab, text="🎵 Spotify Modern")
+            except Exception as e:
+                print(f"[ERROR] SpotifyDashboard initialization failed: {e}")
+                self.spotify_tab = None
+        
         if TadoTab:
-            self.tado_tab = TadoTab(self.root, self.notebook)
-            if self._debug_log:
-                print(f"[TADO] Tab added")
+            try:
+                self.tado_tab = TadoTab(self.root, self.notebook)
+                if self._debug_log:
+                    print(f"[TADO] Tab added successfully")
+            except Exception as e:
+                print(f"[ERROR] TadoTab initialization failed: {e}")
+                self.tado_tab = None
+                if self._debug_log:
+                    print(f"[TADO] Tab not available (init failed)")
         else:
             if self._debug_log:
                 print(f"[TADO] Tab not available (import failed)")
         if HueTab:
-            self.hue_tab = HueTab(self.root, self.notebook)
+            try:
+                self.hue_tab = HueTab(self.root, self.notebook)
+                if self._debug_log:
+                    print(f"[HUE] Tab added successfully")
+            except Exception as e:
+                print(f"[ERROR] HueTab initialization failed: {e}")
+                self.hue_tab = None
+        
         if SystemTab:
-            self.system_tab = SystemTab(self.root, self.notebook)
+            try:
+                self.system_tab = SystemTab(self.root, self.notebook)
+            except Exception as e:
+                print(f"[ERROR] SystemTab init failed: {e}")
+                self.system_tab = None
+        
         if CalendarTab:
-            self.calendar_tab = CalendarTab(self.root, self.notebook)
+            try:
+                self.calendar_tab = CalendarTab(self.root, self.notebook)
+            except Exception as e:
+                print(f"[ERROR] CalendarTab init failed: {e}")
+                self.calendar_tab = None
+        
         if HistoricalTab:
-            self.historical_tab = HistoricalTab(self.root, self.notebook)
+            try:
+                self.historical_tab = HistoricalTab(self.root, self.notebook)
+            except Exception as e:
+                print(f"[ERROR] HistoricalTab init failed: {e}")
+                self.historical_tab = None
+        
         if ErtragTab:
-            self.ertrag_tab = ErtragTab(self.root, self.notebook)
+            try:
+                self.ertrag_tab = ErtragTab(self.root, self.notebook)
+            except Exception as e:
+                print(f"[ERROR] ErtragTab init failed: {e}")
+                self.ertrag_tab = None
 
     # --- Callbacks ---
     def on_toggle_a(self):
