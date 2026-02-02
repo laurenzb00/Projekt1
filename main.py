@@ -15,6 +15,24 @@ from ui.app import MainApp
 # Force Spotify redirect URI to loopback IP (avoid localhost which Spotify nicht erlaubt)
 os.environ["SPOTIPY_REDIRECT_URI"] = "http://127.0.0.1:8889/callback"
 
+# --- Clear Matplotlib Font Cache ---
+def clear_matplotlib_cache():
+    """Clear matplotlib fontlist cache to prevent corruption"""
+    try:
+        import matplotlib
+        cache_dir = matplotlib.get_configdir()
+        fontlist_file = os.path.join(cache_dir, "fontlist-v390.json")
+        if os.path.exists(fontlist_file):
+            try:
+                os.remove(fontlist_file)
+                print("[MATPLOTLIB] Cleared fontlist cache")
+            except Exception as e:
+                print(f"[MATPLOTLIB] Could not clear cache: {e}")
+    except Exception:
+        pass
+
+clear_matplotlib_cache()
+
 # --- Ensure Emoji Font is installed ---
 def ensure_emoji_font():
     """Install emoji font if not available (for Raspberry Pi compatibility)."""

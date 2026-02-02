@@ -33,6 +33,7 @@ class EnergyFlowView(tk.Frame):
         self._start_time = time.time()
         self.canvas = tk.Canvas(self, width=width, height=height, highlightthickness=0, bg=COLOR_CARD)
         self.canvas.pack(fill=tk.BOTH, expand=True)
+        self._resize_pending = False  # Debounce Configure events
         self.canvas.bind("<Configure>", self._on_canvas_resize)
 
         self.width = width
@@ -59,11 +60,16 @@ class EnergyFlowView(tk.Frame):
 
     def _on_canvas_resize(self, event):
         """Re-render background and last frame when the canvas grows."""
+        # Debounce rapid resize events
+        if self._resize_pending:
+            return
+        
         new_w = max(240, int(event.width))
         new_h = max(200, int(event.height))
-        if abs(new_w - self.width) < 6 and abs(new_h - self.height) < 6:
+        if abs(new_w - self.width) < 10 and abs(new_h - self.height) < 10:  # 10px threshold
             return
 
+        self._resize_pending = True
         self.width = new_w
         self.height = new_h
         self.nodes = self._define_nodes()
@@ -78,6 +84,7 @@ class EnergyFlowView(tk.Frame):
 
         self._tk_img = ImageTk.PhotoImage(frame)
         self.canvas.itemconfig(self._canvas_img, image=self._tk_img)
+        self._resize_pending = False
 
     def resize(self, width: int, height: int):
         """FIXED: Only update canvas size and dimensions, don't recreate background."""

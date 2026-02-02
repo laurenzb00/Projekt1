@@ -219,13 +219,19 @@ class ErtragTab:
 
     @staticmethod
     def _data_path(filename: str) -> str:
+        import platform
         # Try multiple common paths
         candidates = [
             os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),  # Same dir (Root)
             os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename),  # Parent dir (ui/)
-            os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi path
-            os.path.join("/home/pi/projekt1", filename),  # Alternative Pi path
         ]
+        # Add platform-specific paths
+        if platform.system() == "Linux":
+            candidates.extend([
+                os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi path
+                os.path.join("/home/pi/projekt1", filename),  # Alternative Pi path
+            ])
+        
         for candidate in candidates:
             if os.path.exists(candidate):
                 return candidate
