@@ -35,9 +35,9 @@ from ui.styles import (
     emoji,
 )
 
-# UI Scaling helper (matches optional UI_SCALING in main.py)
+# UI Scaling helper (uses effective scaling from main.py when available)
 try:
-    _UI_SCALE = float(os.getenv("UI_SCALING", "1.0"))
+    _UI_SCALE = float(os.getenv("UI_SCALING_EFFECTIVE") or os.getenv("UI_SCALING", "1.0"))
 except Exception:
     _UI_SCALE = 1.0
 
