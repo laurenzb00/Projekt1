@@ -26,8 +26,8 @@ COLOR_ACCENT = "#191414"
 
 class SpotifyDashboard(tk.Frame):
     def __init__(self, parent):
-        super().__init__(parent, bg=BG_MAIN)
-        # Don't use pack_propagate(False) - let it expand naturally
+        super().__init__(parent, bg="#1E1E1E")
+        print("[SPOTIFY] Initialisiere Dashboard...")
         
         # State
         self.sp = None
@@ -43,141 +43,153 @@ class SpotifyDashboard(tk.Frame):
         self.track_var = tk.StringVar(value="Kein Track")
         self.artist_var = tk.StringVar(value="Kein Artist")
         
+        print("[SPOTIFY] Baue UI...")
         # Baue UI
         self._build_ui()
+        print("[SPOTIFY] UI gebaut!")
         
         # Starte Background Updates
         self.after(500, self._start_status_check)
+        print("[SPOTIFY] Dashboard initialisiert!")
     
     def _build_ui(self):
-        """Modernes Spotify UI mit Glasmorphism."""
+        """Modernes Spotify UI - VEREINFACHT für Debug."""
         try:
+            print("[SPOTIFY] _build_ui gestartet")
+            
+            # Großer Test-Label damit wir sehen dass was angezeigt wird
+            test_label = tk.Label(
+                self, text="SPOTIFY DASHBOARD", 
+                font=("Arial", 32, "bold"),
+                fg="#1DB954", bg="#1E1E1E"
+            )
+            test_label.pack(pady=20)
+            print("[SPOTIFY] Test-Label erstellt")
+            
             # --- HEADER ---
-            header = tk.Frame(self, bg=BG_MAIN, height=60)
-            header.pack(fill="x", padx=20, pady=(20, 10))
-            header.pack_propagate(False)
+            header = tk.Frame(self, bg="#1E1E1E", height=60)
+            header.pack(fill="x", padx=20, pady=(10, 10))
             
             tk.Label(
-                header, text="🎵 Spotify", font=("Segoe UI", 24, "bold"),
-                fg=COLOR_PRIMARY, bg=BG_MAIN
+                header, text="🎵 Spotify", font=("Segoe UI", 20, "bold"),
+                fg="#1DB954", bg="#1E1E1E"
             ).pack(side="left")
             
             tk.Label(
                 header, textvariable=self.status_var,
-                font=("Segoe UI", 11), fg=COLOR_SUBTEXT, bg=BG_MAIN
+                font=("Segoe UI", 11), fg="#B3B3B3", bg="#1E1E1E"
             ).pack(side="right")
+            print("[SPOTIFY] Header erstellt")
             
             # --- MAIN CONTENT ---
-            content = tk.Frame(self, bg=BG_MAIN)
+            content = tk.Frame(self, bg="#1E1E1E")
             content.pack(fill="both", expand=True, padx=20, pady=10)
             
             # Left: Album Cover
-            left_panel = tk.Frame(content, bg=BG_MAIN)
-            left_panel.pack(side="left", fill="both", expand=False, padx=(0, 20))
+            left_panel = tk.Frame(content, bg="#1E1E1E")
+            left_panel.pack(side="left", padx=(0, 20))
             
             self.cover_canvas = tk.Canvas(
-                left_panel, width=300, height=300, bg=COLOR_ACCENT,
-                highlightthickness=2, highlightbackground=COLOR_PRIMARY
+                left_panel, width=300, height=300, bg="#191414",
+                highlightthickness=2, highlightbackground="#1DB954"
             )
             self.cover_canvas.pack()
             self.cover_canvas.create_text(
-                150, 150, text="♪", fill=COLOR_PRIMARY, font=("Arial", 80)
+                150, 150, text="♪", fill="#1DB954", font=("Arial", 80)
             )
+            print("[SPOTIFY] Cover Canvas erstellt")
             
             # Right: Controls & Info
-            right_panel = tk.Frame(content, bg=BG_MAIN)
+            right_panel = tk.Frame(content, bg="#1E1E1E")
             right_panel.pack(side="left", fill="both", expand=True)
             
             # Track Info
             tk.Label(
                 right_panel, textvariable=self.track_var,
-                font=("Segoe UI", 20, "bold"), fg=COLOR_TEXT, bg=BG_MAIN,
+                font=("Segoe UI", 18, "bold"), fg="#FFFFFF", bg="#1E1E1E",
                 wraplength=400, justify="left"
             ).pack(anchor="w", pady=(0, 5))
             
             tk.Label(
                 right_panel, textvariable=self.artist_var,
-                font=("Segoe UI", 14), fg=COLOR_SUBTEXT, bg=BG_MAIN,
+                font=("Segoe UI", 12), fg="#B3B3B3", bg="#1E1E1E",
                 wraplength=400, justify="left"
             ).pack(anchor="w", pady=(0, 20))
+            print("[SPOTIFY] Track Info erstellt")
             
             # --- PLAYBACK CONTROLS ---
-            controls = tk.Frame(right_panel, bg=BG_MAIN)
+            controls = tk.Frame(right_panel, bg="#1E1E1E")
             controls.pack(anchor="w", pady=(0, 20))
             
             self.prev_btn = tk.Button(
-                controls, text="⏮ Zurück", font=("Segoe UI", 11),
-                bg=COLOR_ACCENT, fg=COLOR_TEXT, activebackground=COLOR_PRIMARY,
+                controls, text="⏮", font=("Segoe UI", 14),
+                bg="#191414", fg="#FFFFFF", activebackground="#1DB954",
                 command=self.prev_track, relief="flat", padx=15, pady=10
             )
             self.prev_btn.pack(side="left", padx=5)
             
             self.play_btn = tk.Button(
-                controls, text="▶ Spielen", font=("Segoe UI", 11, "bold"),
-                bg=COLOR_PRIMARY, fg="#000000", activebackground="#1ed760",
+                controls, text="▶", font=("Segoe UI", 16, "bold"),
+                bg="#1DB954", fg="#000000", activebackground="#1ed760",
                 command=self.toggle_play_pause, relief="flat", padx=20, pady=10
             )
             self.play_btn.pack(side="left", padx=5)
             
             self.next_btn = tk.Button(
-                controls, text="Weiter ⏭", font=("Segoe UI", 11),
-                bg=COLOR_ACCENT, fg=COLOR_TEXT, activebackground=COLOR_PRIMARY,
+                controls, text="⏭", font=("Segoe UI", 14),
+                bg="#191414", fg="#FFFFFF", activebackground="#1DB954",
                 command=self.next_track, relief="flat", padx=15, pady=10
             )
             self.next_btn.pack(side="left", padx=5)
+            print("[SPOTIFY] Controls erstellt")
             
             # --- VOLUME CONTROL ---
-            vol_frame = tk.Frame(right_panel, bg=BG_MAIN)
+            vol_frame = tk.Frame(right_panel, bg="#1E1E1E")
             vol_frame.pack(anchor="w", fill="x", pady=(0, 20))
             
             tk.Label(
                 vol_frame, text="🔊 Lautstärke:", font=("Segoe UI", 10),
-                fg=COLOR_SUBTEXT, bg=BG_MAIN
+                fg="#B3B3B3", bg="#1E1E1E"
             ).pack(anchor="w", pady=(0, 5))
             
             self.volume_slider = tk.Scale(
                 vol_frame, from_=0, to=100, orient="horizontal",
-                variable=self.volume_var, bg=COLOR_ACCENT, fg=COLOR_PRIMARY,
-                troughcolor=COLOR_CARD, command=self._on_volume_change,
+                variable=self.volume_var, bg="#191414", fg="#1DB954",
+                troughcolor="#1A1A1A", command=self._on_volume_change,
                 length=300, highlightthickness=0
             )
             self.volume_slider.pack(fill="x")
-            
-            # --- DEVICE SELECTOR ---
-            device_frame = tk.Frame(right_panel, bg=BG_MAIN)
-            device_frame.pack(anchor="w", fill="x", pady=(0, 20))
-            
-            tk.Label(
-                device_frame, text="🎧 Geräte:", font=("Segoe UI", 10),
-                fg=COLOR_SUBTEXT, bg=BG_MAIN
-            ).pack(anchor="w", pady=(0, 5))
-            
-            self.device_var = tk.StringVar(value="Kein Gerät")
-            self.device_menu = tk.OptionMenu(
-                device_frame, self.device_var, "Lade Geräte...",
-                bg=COLOR_ACCENT, fg=COLOR_TEXT, activebackground=COLOR_PRIMARY,
-                highlightthickness=0
-            )
-            self.device_menu.pack(fill="x")
+            print("[SPOTIFY] Volume Slider erstellt")
             
             # --- ACTION BUTTONS ---
-            action_frame = tk.Frame(right_panel, bg=BG_MAIN)
+            action_frame = tk.Frame(right_panel, bg="#1E1E1E")
             action_frame.pack(anchor="w", fill="x")
             
             tk.Button(
                 action_frame, text="🔐 Verbinden", font=("Segoe UI", 10),
-                bg=COLOR_PRIMARY, fg="#000000", activebackground="#1ed760",
+                bg="#1DB954", fg="#000000", activebackground="#1ed760",
                 command=self._connect_spotify, relief="flat", padx=15, pady=8
             ).pack(side="left", padx=(0, 5))
             
             tk.Button(
                 action_frame, text="🔄 Aktualisieren", font=("Segoe UI", 10),
-                bg=COLOR_ACCENT, fg=COLOR_TEXT, activebackground=COLOR_PRIMARY,
+                bg="#191414", fg="#FFFFFF", activebackground="#1DB954",
                 command=self._refresh_status, relief="flat", padx=15, pady=8
             ).pack(side="left", padx=5)
+            print("[SPOTIFY] Buttons erstellt")
+            
+            print("[SPOTIFY] ✅ _build_ui erfolgreich abgeschlossen")
             
         except Exception as e:
-            print(f"[SPOTIFY] UI Build Error: {e}")
+            print(f"[SPOTIFY] ❌ UI Build Error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Fallback: Zeige wenigstens einen Error
+            tk.Label(
+                self, text=f"Spotify UI Error: {str(e)}", 
+                fg="red", bg="#1E1E1E", font=("Arial", 12)
+            ).pack(pady=50)
     
     def set_status(self, text):
         """Setze Status Text."""
