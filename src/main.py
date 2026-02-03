@@ -8,8 +8,8 @@ import sys
 import platform
 import os
 
-from core.BMKDATEN import BMKDATEN
-from core.Wechselrichter import Wechselrichter
+from core import BMKDATEN
+from core import Wechselrichter
 from ui.app import MainApp
 
 # Force Spotify redirect URI to loopback IP (avoid localhost which Spotify nicht erlaubt)
