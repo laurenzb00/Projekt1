@@ -88,7 +88,10 @@ class AnalyseTab:
 
     def _update_plot(self):
         """Update Plot."""
-        self.ax1.clear()
+        self.fig.clear()
+        self.ax1 = self.fig.add_subplot(111)
+        self.fig.patch.set_facecolor(COLOR_CARD)
+        self.ax1.set_facecolor(COLOR_CARD)
         self._style_axes()
         
         # Load data

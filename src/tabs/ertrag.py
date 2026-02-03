@@ -149,7 +149,10 @@ class ErtragTab:
         
         self._last_key = key
 
-        self.ax.clear()
+        self.fig.clear()
+        self.ax = self.fig.add_subplot(111)
+        self.fig.patch.set_facecolor(COLOR_CARD)
+        self.ax.set_facecolor(COLOR_CARD)
         self._style_axes()
 
         if data:
