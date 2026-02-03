@@ -11,13 +11,7 @@ import os
 # Füge src-Verzeichnis zu Python-Pfad hinzu
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-try:
-    import spotifylogin
-    spotifylogin.start_oauth()
-except ImportError:
-    print("[MAIN] Could not import spotifylogin")
-except Exception as e:
-    print(f"[MAIN] Error initializing Spotify: {e}")
+
 
 from core import BMKDATEN
 from core import Wechselrichter
@@ -128,6 +122,14 @@ def run_bmkdaten():
 
 
 def main():
+        # Starte Spotify-Login nach GUI-Start, damit Terminal nicht blockiert
+        try:
+            import spotifylogin
+            threading.Thread(target=spotifylogin.start_oauth, daemon=True).start()
+        except ImportError:
+            print("[MAIN] Could not import spotifylogin")
+        except Exception as e:
+            print(f"[MAIN] Error initializing Spotify: {e}")
     print("[STARTUP] 🚀 Starte Smart Home Dashboard...")
     start_time = time.time()
     
