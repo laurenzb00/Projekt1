@@ -9,8 +9,12 @@ import json
 import logging
 import time
 import threading
-import os
+import sys
 from tkinter import ttk
+
+# Füge parent-Verzeichnis (src/) zu Python-Pfad hinzu
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from ui.styles import (
     init_style,
     COLOR_ROOT,

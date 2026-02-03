@@ -8,6 +8,9 @@ import sys
 import platform
 import os
 
+# Füge src-Verzeichnis zu Python-Pfad hinzu
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from core import BMKDATEN
 from core import Wechselrichter
 from ui.app import MainApp
