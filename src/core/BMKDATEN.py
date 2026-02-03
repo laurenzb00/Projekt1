@@ -242,7 +242,7 @@ def _speichere_heizungsdaten(daten):
     Speichert Heizungsdaten in CSV (data/ Verzeichnis nach Reorganisierung)
     """
     # Nach Reorganisierung: data/ Verzeichnis im Root
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     csv_datei = os.path.join(base_dir, "data", "Heizungstemperaturen.csv")
     datei_existiert = os.path.exists(csv_datei)
 

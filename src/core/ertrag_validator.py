@@ -9,7 +9,7 @@ import json
 
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 # Nach Reorganisierung: data/ Verzeichnis im Root
-DATA_DIR = os.path.join(os.path.dirname(WORKING_DIR), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(WORKING_DIR)), "data")
 FRONIUS_CSV = os.path.join(DATA_DIR, "FroniusDaten.csv")
 ERTRAG_CSV = os.path.join(DATA_DIR, "ErtragHistory.csv")
 ERTRAG_BACKUP = os.path.join(WORKING_DIR, "ErtragHistory_backup.csv")
