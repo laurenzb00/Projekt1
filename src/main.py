@@ -11,6 +11,14 @@ import os
 # Füge src-Verzeichnis zu Python-Pfad hinzu
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+try:
+    import spotifylogin
+    spotifylogin.start_oauth()
+except ImportError:
+    print("[MAIN] Could not import spotifylogin")
+except Exception as e:
+    print(f"[MAIN] Error initializing Spotify: {e}")
+
 from core import BMKDATEN
 from core import Wechselrichter
 from ui.app import MainApp
