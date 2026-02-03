@@ -26,9 +26,10 @@ class AnalyseTab:
         self.alive = True
         
         # Working directory
-        self.data_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.fronius_csv = os.path.join(self.data_root, "FroniusDaten.csv")
-        self.heating_csv = os.path.join(self.data_root, "Heizungstemperaturen.csv")
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        data_root = os.path.join(project_root, "data")
+        self.fronius_csv = os.path.join(data_root, "FroniusDaten.csv")
+        self.heating_csv = os.path.join(data_root, "Heizungstemperaturen.csv")
         
         # Tab Frame
         self.tab_frame = tk.Frame(notebook, bg=COLOR_ROOT)

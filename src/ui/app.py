@@ -40,7 +40,9 @@ except ImportError:
     print("[DB] DataStore nicht verfügbar - nutze CSV fallback")
 
 _UI_DIR = os.path.dirname(os.path.abspath(__file__))
-_DATA_ROOT = os.path.dirname(_UI_DIR)
+_SRC_DIR = os.path.dirname(_UI_DIR)
+_PROJECT_ROOT = os.path.dirname(_SRC_DIR)
+_DATA_ROOT = os.path.join(_PROJECT_ROOT, "data")
 
 
 def _data_path(filename: str) -> str:

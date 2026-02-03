@@ -226,20 +226,23 @@ class ErtragTab:
     @staticmethod
     def _data_path(filename: str) -> str:
         import platform
+        # Calculate root directory: src/tabs/ -> root/
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
         # Try multiple common paths
         candidates = [
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),  # Same dir (Root)
-            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename),  # Parent dir (ui/)
+            os.path.join(root_dir, "data", filename),  # data/ directory in root
+            os.path.join(root_dir, filename),  # Root directory
         ]
         # Add platform-specific paths
         if platform.system() == "Linux":
             candidates.extend([
-                os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi path
-                os.path.join("/home/pi/projekt1", filename),  # Alternative Pi path
+                os.path.join("/home/laurenz/projekt1/Projekt1/data", filename),  # Raspberry Pi data path
+                os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi root
             ])
         
         for candidate in candidates:
             if os.path.exists(candidate):
                 return candidate
-        # Default fallback (same directory)
+        # Default fallback (data directory)
         return candidates[0]

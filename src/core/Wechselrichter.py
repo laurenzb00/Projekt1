@@ -31,7 +31,7 @@ def abrufen_und_speichern():
             }
 
             # Daten in CSV speichern (data/ Verzeichnis nach Reorganisierung)
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             csv_datei = os.path.join(base_dir, "data", "FroniusDaten.csv")
             datei_existiert = os.path.exists(csv_datei)
 

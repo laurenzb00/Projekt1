@@ -559,12 +559,14 @@ class BufferStorageView(tk.Frame):
 
     @staticmethod
     def _data_path(filename: str) -> str:
+        # Calculate root directory: src/ui/views -> root/
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         # Try multiple common paths
         candidates = [
-            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), filename),  # ui/ parent
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),  # Same as this file
-            os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi path
-            os.path.join("/home/pi/projekt1", filename),  # Alternative Pi path
+            os.path.join(root_dir, "data", filename),  # data/ directory in root
+            os.path.join(root_dir, filename),  # Root directory
+            os.path.join("/home/laurenz/projekt1/Projekt1/data", filename),  # Raspberry Pi data path
+            os.path.join("/home/laurenz/projekt1/Projekt1", filename),  # Raspberry Pi root
         ]
         for candidate in candidates:
             if os.path.exists(candidate):
