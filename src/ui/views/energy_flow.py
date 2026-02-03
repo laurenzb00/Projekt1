@@ -122,10 +122,10 @@ class EnergyFlowView(tk.Frame):
         """Load and cache PNG icons from icons directory."""
         elapsed = time.time() - self._start_time
         
-        # Robust path: relative to this file's directory
+        # Nach Reorganisierung: icons in resources/icons
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(current_dir))  # Go up to ui/views -> ui -> project
-        icon_dir = os.path.join(project_root, "icons")
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))  # views -> ui -> src -> root
+        icon_dir = os.path.join(project_root, "resources", "icons")
         
         icon_files = {
             "pv": "pv.png",

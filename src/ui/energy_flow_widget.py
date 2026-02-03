@@ -68,13 +68,15 @@ class EnergyFlowWidgetV2:
     
     def _load_icons(self):
         """Lädt PNG-Icons oder erstellt Fallbacks"""
-        icon_path = os.path.join(os.path.dirname(__file__), "icons")
+        # Nach Reorganisierung: icons in resources/icons
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        icon_path = os.path.join(base_dir, "resources", "icons")
         self.icons = {}
         
         try:
             # Versuche Icons zu laden (mit den richtigen Dateinamen!)
-            pv_path = os.path.join(icon_path, "pv-icnon.png")  # Mit Tippfehler!
-            grid_path = os.path.join(icon_path, "grid.jpg")  # JPG statt PNG!
+            pv_path = os.path.join(icon_path, "pv.png")
+            grid_path = os.path.join(icon_path, "grid.png")
             house_path = os.path.join(icon_path, "house.png")
             battery_path = os.path.join(icon_path, "battery.png")
             
