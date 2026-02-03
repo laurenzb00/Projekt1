@@ -18,6 +18,11 @@ env/
 *.swp
 *.swo
 *~
+
+# Data / State
+Pufferspeicher.json
+config/Pufferspeicher.json
+
 .DS_Store
 
 # Database

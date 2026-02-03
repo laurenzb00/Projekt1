@@ -5155,5 +5155,608 @@
     "Durchschnitt": 54.23,
     "Stratifikation": 15.770000000000003,
     "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:12:58",
+    "Oben": 64.12,
+    "Mitte": 50.22,
+    "Unten": 48.35,
+    "Durchschnitt": 54.23,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:13:08",
+    "Oben": 64.12,
+    "Mitte": 50.28,
+    "Unten": 48.35,
+    "Durchschnitt": 54.25,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:13:18",
+    "Oben": 64.12,
+    "Mitte": 50.28,
+    "Unten": 48.35,
+    "Durchschnitt": 54.25,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:13:28",
+    "Oben": 64.12,
+    "Mitte": 50.34,
+    "Unten": 48.35,
+    "Durchschnitt": 54.27,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:13:39",
+    "Oben": 64.12,
+    "Mitte": 50.34,
+    "Unten": 48.35,
+    "Durchschnitt": 54.27,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:13:49",
+    "Oben": 64.12,
+    "Mitte": 50.34,
+    "Unten": 48.35,
+    "Durchschnitt": 54.27,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:13:59",
+    "Oben": 64.12,
+    "Mitte": 50.4,
+    "Unten": 48.35,
+    "Durchschnitt": 54.29,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:14:09",
+    "Oben": 64.12,
+    "Mitte": 50.4,
+    "Unten": 48.35,
+    "Durchschnitt": 54.29,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:14:19",
+    "Oben": 64.12,
+    "Mitte": 50.4,
+    "Unten": 48.35,
+    "Durchschnitt": 54.29,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:14:29",
+    "Oben": 64.12,
+    "Mitte": 50.45,
+    "Unten": 48.35,
+    "Durchschnitt": 54.30666666666667,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:14:39",
+    "Oben": 64.12,
+    "Mitte": 50.45,
+    "Unten": 48.35,
+    "Durchschnitt": 54.30666666666667,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:14:50",
+    "Oben": 64.12,
+    "Mitte": 50.51,
+    "Unten": 48.35,
+    "Durchschnitt": 54.32666666666666,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:15:00",
+    "Oben": 64.12,
+    "Mitte": 50.51,
+    "Unten": 48.35,
+    "Durchschnitt": 54.32666666666666,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:15:10",
+    "Oben": 64.12,
+    "Mitte": 50.51,
+    "Unten": 48.35,
+    "Durchschnitt": 54.32666666666666,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:15:20",
+    "Oben": 64.12,
+    "Mitte": 50.57,
+    "Unten": 48.35,
+    "Durchschnitt": 54.346666666666664,
+    "Stratifikation": 15.770000000000003,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:15:30",
+    "Oben": 64.07,
+    "Mitte": 50.57,
+    "Unten": 48.35,
+    "Durchschnitt": 54.32999999999999,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:15:40",
+    "Oben": 64.07,
+    "Mitte": 50.63,
+    "Unten": 48.35,
+    "Durchschnitt": 54.349999999999994,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:15:50",
+    "Oben": 64.07,
+    "Mitte": 50.63,
+    "Unten": 48.35,
+    "Durchschnitt": 54.349999999999994,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:16:01",
+    "Oben": 64.07,
+    "Mitte": 50.63,
+    "Unten": 48.35,
+    "Durchschnitt": 54.349999999999994,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:16:11",
+    "Oben": 64.07,
+    "Mitte": 50.69,
+    "Unten": 48.35,
+    "Durchschnitt": 54.37,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:16:21",
+    "Oben": 64.07,
+    "Mitte": 50.69,
+    "Unten": 48.35,
+    "Durchschnitt": 54.37,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:16:31",
+    "Oben": 64.07,
+    "Mitte": 50.74,
+    "Unten": 48.35,
+    "Durchschnitt": 54.38666666666666,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:16:41",
+    "Oben": 64.07,
+    "Mitte": 50.74,
+    "Unten": 48.35,
+    "Durchschnitt": 54.38666666666666,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:16:51",
+    "Oben": 64.07,
+    "Mitte": 50.74,
+    "Unten": 48.35,
+    "Durchschnitt": 54.38666666666666,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:17:01",
+    "Oben": 64.07,
+    "Mitte": 50.8,
+    "Unten": 48.35,
+    "Durchschnitt": 54.406666666666666,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:17:11",
+    "Oben": 64.01,
+    "Mitte": 50.8,
+    "Unten": 48.35,
+    "Durchschnitt": 54.38666666666666,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:17:22",
+    "Oben": 64.01,
+    "Mitte": 50.86,
+    "Unten": 48.35,
+    "Durchschnitt": 54.406666666666666,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:17:32",
+    "Oben": 64.01,
+    "Mitte": 50.86,
+    "Unten": 48.35,
+    "Durchschnitt": 54.406666666666666,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:17:42",
+    "Oben": 64.01,
+    "Mitte": 50.92,
+    "Unten": 48.35,
+    "Durchschnitt": 54.42666666666667,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:17:52",
+    "Oben": 64.01,
+    "Mitte": 50.92,
+    "Unten": 48.35,
+    "Durchschnitt": 54.42666666666667,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:18:07",
+    "Oben": 64.01,
+    "Mitte": 50.98,
+    "Unten": 48.35,
+    "Durchschnitt": 54.446666666666665,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:18:18",
+    "Oben": 64.01,
+    "Mitte": 50.98,
+    "Unten": 48.35,
+    "Durchschnitt": 54.446666666666665,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:18:28",
+    "Oben": 64.01,
+    "Mitte": 51.03,
+    "Unten": 48.35,
+    "Durchschnitt": 54.46333333333334,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:18:38",
+    "Oben": 64.01,
+    "Mitte": 51.03,
+    "Unten": 48.35,
+    "Durchschnitt": 54.46333333333334,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:18:48",
+    "Oben": 64.01,
+    "Mitte": 51.09,
+    "Unten": 48.35,
+    "Durchschnitt": 54.48333333333334,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:18:58",
+    "Oben": 64.01,
+    "Mitte": 51.09,
+    "Unten": 48.35,
+    "Durchschnitt": 54.48333333333334,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:19:08",
+    "Oben": 64.01,
+    "Mitte": 51.09,
+    "Unten": 48.35,
+    "Durchschnitt": 54.48333333333334,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:19:18",
+    "Oben": 64.01,
+    "Mitte": 51.15,
+    "Unten": 48.35,
+    "Durchschnitt": 54.50333333333333,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:19:29",
+    "Oben": 64.01,
+    "Mitte": 51.21,
+    "Unten": 48.35,
+    "Durchschnitt": 54.52333333333333,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:19:39",
+    "Oben": 64.01,
+    "Mitte": 51.21,
+    "Unten": 48.35,
+    "Durchschnitt": 54.52333333333333,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:19:49",
+    "Oben": 64.01,
+    "Mitte": 51.27,
+    "Unten": 48.35,
+    "Durchschnitt": 54.54333333333333,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:19:59",
+    "Oben": 64.01,
+    "Mitte": 51.27,
+    "Unten": 48.35,
+    "Durchschnitt": 54.54333333333333,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:20:09",
+    "Oben": 64.01,
+    "Mitte": 51.32,
+    "Unten": 48.35,
+    "Durchschnitt": 54.56,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:20:19",
+    "Oben": 64.01,
+    "Mitte": 51.32,
+    "Unten": 48.35,
+    "Durchschnitt": 54.56,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:20:29",
+    "Oben": 64.01,
+    "Mitte": 51.38,
+    "Unten": 48.35,
+    "Durchschnitt": 54.580000000000005,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:20:40",
+    "Oben": 64.01,
+    "Mitte": 51.38,
+    "Unten": 48.35,
+    "Durchschnitt": 54.580000000000005,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:20:50",
+    "Oben": 64.01,
+    "Mitte": 51.38,
+    "Unten": 48.35,
+    "Durchschnitt": 54.580000000000005,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:21:00",
+    "Oben": 64.01,
+    "Mitte": 51.44,
+    "Unten": 48.35,
+    "Durchschnitt": 54.6,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:21:10",
+    "Oben": 64.01,
+    "Mitte": 51.5,
+    "Unten": 48.35,
+    "Durchschnitt": 54.620000000000005,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:21:20",
+    "Oben": 64.01,
+    "Mitte": 51.5,
+    "Unten": 48.35,
+    "Durchschnitt": 54.620000000000005,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:21:30",
+    "Oben": 64.01,
+    "Mitte": 51.55,
+    "Unten": 48.35,
+    "Durchschnitt": 54.63666666666666,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:21:40",
+    "Oben": 64.01,
+    "Mitte": 51.55,
+    "Unten": 48.35,
+    "Durchschnitt": 54.63666666666666,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:21:50",
+    "Oben": 64.01,
+    "Mitte": 51.61,
+    "Unten": 48.35,
+    "Durchschnitt": 54.656666666666666,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:22:01",
+    "Oben": 64.01,
+    "Mitte": 51.61,
+    "Unten": 48.35,
+    "Durchschnitt": 54.656666666666666,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:22:11",
+    "Oben": 64.01,
+    "Mitte": 51.67,
+    "Unten": 48.35,
+    "Durchschnitt": 54.67666666666667,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:22:21",
+    "Oben": 64.01,
+    "Mitte": 51.67,
+    "Unten": 48.35,
+    "Durchschnitt": 54.67666666666667,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:22:31",
+    "Oben": 64.01,
+    "Mitte": 51.73,
+    "Unten": 48.35,
+    "Durchschnitt": 54.696666666666665,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:22:41",
+    "Oben": 64.01,
+    "Mitte": 51.73,
+    "Unten": 48.35,
+    "Durchschnitt": 54.696666666666665,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:22:51",
+    "Oben": 64.01,
+    "Mitte": 51.79,
+    "Unten": 48.35,
+    "Durchschnitt": 54.71666666666667,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:23:01",
+    "Oben": 64.01,
+    "Mitte": 51.79,
+    "Unten": 48.35,
+    "Durchschnitt": 54.71666666666667,
+    "Stratifikation": 15.660000000000004,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:23:12",
+    "Oben": 64.07,
+    "Mitte": 51.84,
+    "Unten": 48.35,
+    "Durchschnitt": 54.75333333333333,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:23:22",
+    "Oben": 64.07,
+    "Mitte": 51.84,
+    "Unten": 48.35,
+    "Durchschnitt": 54.75333333333333,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:23:32",
+    "Oben": 64.07,
+    "Mitte": 51.9,
+    "Unten": 48.35,
+    "Durchschnitt": 54.77333333333333,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:23:42",
+    "Oben": 64.07,
+    "Mitte": 51.9,
+    "Unten": 48.35,
+    "Durchschnitt": 54.77333333333333,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:23:52",
+    "Oben": 64.07,
+    "Mitte": 51.96,
+    "Unten": 48.35,
+    "Durchschnitt": 54.79333333333333,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:24:02",
+    "Oben": 64.07,
+    "Mitte": 51.96,
+    "Unten": 48.35,
+    "Durchschnitt": 54.79333333333333,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 10:24:12",
+    "Oben": 64.07,
+    "Mitte": 52.02,
+    "Unten": 48.35,
+    "Durchschnitt": 54.81333333333333,
+    "Stratifikation": 15.719999999999992,
+    "Status": "TEILGELADEN"
   }
 ]

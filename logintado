@@ -1,0 +1,17 @@
+from PyTado.interface import Tado
+import sys
+
+# HIER IHRE DATEN EINTRAGEN
+USER = r"laurenzbandzauner@gmail.com"
+PASS = r"Sw1mm1ngp00l"
+
+print(f"--- Teste Login fÃ¼r: {USER} ---")
+
+try:
+    t = Tado(USER, PASS)
+    me = t.get_me()
+    print("\n? ERFOLG! Login erfolgreich.")
+    print(f"Name: {me.get('name')}")
+except Exception as e:
+    print("\n? FEHLER: Login gescheitert.")
+    print(f"Meldung: {e}")
