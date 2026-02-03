@@ -575,9 +575,21 @@ class BufferStorageView(tk.Frame):
         return candidates[0]
 
     @staticmethod
-    def _read_lines_safe(path: str) -> list[str]:
+    def _read_lines_safe(path: str, max_bytes: int = 262144, max_lines: int = 2000) -> list[str]:
         try:
-            with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
-                return f.readlines()
+            with open(path, "rb") as f:
+                f.seek(0, os.SEEK_END)
+                size = f.tell()
+                f.seek(max(0, size - max_bytes))
+                chunk = f.read().decode("utf-8-sig", errors="replace")
+            lines = chunk.splitlines()
         except Exception:
-            return []
+            try:
+                with open(path, "r", encoding="utf-8-sig", errors="replace") as f:
+                    lines = f.readlines()
+            except Exception:
+                return []
+
+        if max_lines and len(lines) > max_lines:
+            return lines[-max_lines:]
+        return lines

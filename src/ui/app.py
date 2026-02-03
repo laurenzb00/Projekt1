@@ -57,6 +57,22 @@ def _read_lines_safe(path: str) -> list[str]:
         return []
 
 
+def _read_tail_lines(path: str, max_bytes: int = 262144, max_lines: int = 2000) -> list[str]:
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - max_bytes))
+            chunk = f.read().decode("utf-8-sig", errors="replace")
+        lines = chunk.splitlines()
+    except Exception:
+        lines = _read_lines_safe(path)
+
+    if max_lines and len(lines) > max_lines:
+        return lines[-max_lines:]
+    return lines
+
+
 def _read_last_data_line(path: str, max_bytes: int = 65536) -> str | None:
     try:
         with open(path, "rb") as f:
@@ -906,7 +922,7 @@ class MainApp:
         def _last_csv_ts(path: str) -> datetime | None:
             if not os.path.exists(path):
                 return None
-            lines = _read_lines_safe(path)
+            lines = _read_tail_lines(path, max_bytes=131072, max_lines=800)
             if len(lines) < 2:
                 return None
             for line in reversed(lines):
@@ -933,7 +949,7 @@ class MainApp:
         if not os.path.exists(path):
             return []
         cutoff = datetime.now() - timedelta(minutes=minutes)
-        lines = _read_lines_safe(path)
+        lines = _read_tail_lines(path, max_bytes=196608, max_lines=800)
         if len(lines) < 2:
             return []
         # Use recent lines only for speed
