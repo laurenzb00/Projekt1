@@ -30,8 +30,9 @@ def abrufen_und_speichern():
                 "Batterieladestand (%)": batterieladestand
             }
 
-            # Daten in CSV speichern
-            csv_datei = "FroniusDaten.csv"
+            # Daten in CSV speichern (data/ Verzeichnis nach Reorganisierung)
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            csv_datei = os.path.join(base_dir, "data", "FroniusDaten.csv")
             datei_existiert = os.path.exists(csv_datei)
 
             with open(csv_datei, "a", newline="", encoding="utf-8") as file:

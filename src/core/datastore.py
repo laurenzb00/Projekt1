@@ -200,7 +200,7 @@ def quick_import_if_needed():
     
     if count == 0:
         print("[DB] 📊 Datenbank leer - importiere CSVs...")
-        fronius_path = os.path.join(os.path.dirname(__file__), "..", "FroniusDaten.csv")
+        fronius_path = os.path.join(os.path.dirname(__file__), "..", "data", "FroniusDaten.csv")
         
         if os.path.exists(fronius_path):
             print(f"[DB] Importing from {fronius_path}...")

@@ -602,7 +602,7 @@ class MainApp:
         def validate_loop():
             # Beim Start validieren
             try:
-                from ertrag_validator import validate_and_repair_ertrag
+                from core.ertrag_validator import validate_and_repair_ertrag
                 print("[ERTRAG] Validation beim Start...")
                 validate_and_repair_ertrag()
                 print("[ERTRAG] Ertrag- und Heizungs-Tabs werden aktualisiert...")
@@ -620,7 +620,7 @@ class MainApp:
             while True:
                 time.sleep(7 * 24 * 3600)  # 1 Woche
                 try:
-                    from ertrag_validator import validate_and_repair_ertrag
+                    from core.ertrag_validator import validate_and_repair_ertrag
                     print("[ERTRAG] Wöchentliche Validierung...")
                     validate_and_repair_ertrag()
                     # Update tabs after validation
