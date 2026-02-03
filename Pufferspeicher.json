@@ -2717,3 +2717,103 @@
     "Stratifikation": 13.86,
     "Status": "TEILGELADEN"
   },
+  {
+    "Zeitstempel": "2026-02-03 09:26:55",
+    "Oben": 62.21,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.166666666666664,
+    "Stratifikation": 13.86,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:27:06",
+    "Oben": 62.26,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.18333333333333,
+    "Stratifikation": 13.909999999999997,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:27:16",
+    "Oben": 62.26,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.18333333333333,
+    "Stratifikation": 13.909999999999997,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:27:26",
+    "Oben": 62.26,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.18333333333333,
+    "Stratifikation": 13.909999999999997,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:27:36",
+    "Oben": 62.26,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.18333333333333,
+    "Stratifikation": 13.909999999999997,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:27:46",
+    "Oben": 62.32,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.203333333333326,
+    "Stratifikation": 13.969999999999999,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:27:56",
+    "Oben": 62.32,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.203333333333326,
+    "Stratifikation": 13.969999999999999,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:28:06",
+    "Oben": 62.32,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.203333333333326,
+    "Stratifikation": 13.969999999999999,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:28:16",
+    "Oben": 62.32,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.203333333333326,
+    "Stratifikation": 13.969999999999999,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:28:26",
+    "Oben": 62.37,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.22,
+    "Stratifikation": 14.019999999999996,
+    "Status": "TEILGELADEN"
+  },
+  {
+    "Zeitstempel": "2026-02-03 09:28:37",
+    "Oben": 62.37,
+    "Mitte": 48.94,
+    "Unten": 48.35,
+    "Durchschnitt": 53.22,
+    "Stratifikation": 14.019999999999996,
+    "Status": "TEILGELADEN"
+  }
+]
