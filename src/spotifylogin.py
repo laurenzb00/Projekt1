@@ -51,7 +51,7 @@ def _build_oauth() -> Optional["SpotifyOAuth"]:
         redirect_uri=redirect_uri,
         scope=SCOPES,
         cache_path=cache_path,
-        open_browser=False, 
+        open_browser=True,  # Immer Browser öffnen
     )
 
 
